@@ -55,7 +55,7 @@ mini_seg = mini_seg/sqrt(36.*total(mini_seg))
 ;writefits, 'vec_list.fits', vec_list
 ;writefits, 'NR_pairs_list_int.fits', NR_pairs_list_int
 ;;;;;;;;;;;;;; Instead, we just import them: ;;;;;;;;;;;;;;;;
-cd, '/astro/opticslab1/Users/Lucie/2017/Inputs'
+cd, '/Users/ilaginja/Documents/Git/PASTIS/data'
 Baseline_vec = readfits('Baseline_vec.fits')
 Projection_Matrix = readfits('Projection_Matrix.fits')
 vec_list = readfits('vec_list.fits')
@@ -63,7 +63,7 @@ NR_pairs_list_int = readfits('NR_pairs_list_int.fits')
 NR_pairs_nb = (size(Baseline_vec))[1]
 
 ;;;;;;;;;;;;;;;;;;; CALIBRATION ;;;;;;;;;;;;;;;;;;;
-cd, 'C:/Users/lleboulleux/Desktop'
+;cd, 'C:/Users/lleboulleux/Desktop'
 
 if zernike_pol EQ 0 then begin
   APLC_normalisation = readfits('APLC_normalisation.fits')
