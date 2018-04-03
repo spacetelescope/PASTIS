@@ -178,9 +178,9 @@ return, baseline_vec
 ; NR_pairs_list_int
 ; Projection_Matrix
 
-; writefits, 'name' + '.fits', vec_list
-; writefits, 'name' + '.fits', NR_pairs_list_int
-; writefits, 'name' + '.fits', Projection_Matrix
+;writefits, 'vec_list' + '.fits', vec_list
+;writefits, 'NR_pairs_list_int' + '.fits', NR_pairs_list_int
+;writefits, 'Projection_Matrix' + '.fits', Projection_Matrix
 
 
 end
