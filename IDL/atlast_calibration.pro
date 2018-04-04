@@ -76,7 +76,7 @@ pup_up = crop(pup_up, /m, nc=614)
 pup_do = crop(pup_do, /m, nc=614)
 
 pupdiam = (size(pup_up))[1]
-spec_pup = [[[pup_up]], [[pup_do]]]
+spec_pup = [[[pup_up]], [[pup_do]]]   ; creating an array with the APLC in one plane and Lyot stop in the other
 power_sp = 2.
 
 phi_up = simu_phi_fourier(pup=pup_up, wfe_rad=wfe_up_rad, seed=5678, power_sp=power_sp)   ; Creating the aberration that can be taken as input in end-to-end simulator

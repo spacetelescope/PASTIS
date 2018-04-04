@@ -54,11 +54,11 @@ size_seg = 100
 size_gap = 1
 marge = 2.0
 alpha = nb_seg * marge
-y_max = alpha/2-1
-x_max_init = alpha/2-1
+y_max = alpha / 2 - 1
+x_max_init = alpha / 2 - 1
 np = size_seg
 gap = size_gap
-np_tot = (NP+gap) * (alpha / marge)
+np_tot = (NP + gap) * (alpha / marge)
 pupdiam = np_tot
 largeur = fix(pupdiam * ech)
 
@@ -72,15 +72,15 @@ diam_rec = float(ceil(largeur/ech))
 IF diam_rec MOD 2 NE 0 THEN diam_rec = diam_rec + 1
 larg_rec = diam_rec
 
-pup_up = readfits('C:/Users/lleboulleux/Desktop/Budget d erreur/APLC designs/ATLAST_4à10/ApodSol_APLC_quart_atlastX025cobs1gap1_N0354r_FPM450M060_LSann20D70clear_Img097C_40DA100_BW10Nlam04fpres2_linbarhompre1.fits')
-pup_do = readfits('C:/Users/lleboulleux/Desktop/Budget d erreur/APLC designs/ATLAST_4à10/LS_full_atlast.fits')
+pup_up = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/ApodSol_APLC_quart_atlastX025cobs1gap1_N0354r_FPM450M060_LSann20D70clear_Img097C_40DA100_BW10Nlam04fpres2_linbarhompre1.fits')
+pup_do = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/LS_full_atlast.fits')
 
 pup_up = crop(pup_up, /m, nc=614)
 pup_do = crop(pup_do, /m, nc=614)
 
 pupdiam = (size(pup_up))[1]
 
-spec_pup = [[[pup_up]], [[pup_DO]]]
+spec_pup = [[[pup_up]], [[pup_do]]]   ; creating an array with the APLC in one plane and Lyot stop in the other
 
 power_sp = 2.
 
@@ -113,6 +113,7 @@ normp = max(p_ref)
 p_ref = p_ref/normp
 N = n_elements(p_ref)
 taille_image = (size(h_npc))[1]
+
 ; debut LL DARK HOLE
 polaire2, rt = 10.*ech*614./708., largeur=taille_image, masque=masko, /double ;/entre4, 
 polaire2, rt = 4.*ech*614./708., largeur=taille_image, masque=maski, /double
@@ -129,10 +130,10 @@ tic = systime(1)
 nb_zer = 6
 nb_seg = 37
 
-APLC_Mean_DH = make_array(37, value=0.)
+APLC_Mean_DH = make_array(37, value=0.)                 ; 
 
-nb_iterations = 250.;1.
-nb_steps = 1.;28.;50.
+nb_iterations = 10;250.;1.
+nb_steps = 5;1.;28.;50.
 contrastAPLC_vec = make_array(nb_steps, value=0.)
 minAPLC_vec = make_array(nb_steps, value=0.)
 maxAPLC_vec = make_array(nb_steps, value=0.)
@@ -142,29 +143,31 @@ max_vec = make_array(nb_steps, value=0.)
 var_vec = make_array(nb_steps, value=0.)
 contrastAM_vec = make_array(nb_steps, value=0.)
 
-cd,'C:/Users/lleboulleux/Desktop'
-M = readfits('Moyennes_Matrix_Piston.fits')
+;cd,'C:/Users/lleboulleux/Desktop'
+M = readfits('Moyennes_Matrix_Tilt.fits')
 nb_seg = 37
 
-for inc_step = 0,nb_steps-1 do begin
+; loop over different RMS values
+for inc_step = 0, nb_steps-1 do begin
 
   print, 'ITERATION'
   print, inc_step
   
   if inc_step EQ 27 then var_pm = 1000.
-  if inc_step LT 27 then var_pm = (inc_step-17)*100.
-  if inc_step LT 18 then var_pm = (inc_step-8)*10.
-  if inc_step LT 9 then var_pm = 1+inc_step
+  if inc_step LT 27 then var_pm = (inc_step - 17) * 100.
+  if inc_step LT 18 then var_pm = (inc_step - 8) * 10.
+  if inc_step LT 9 then var_pm = 1 + inc_step
 
   var_pm = 1000.
   var_vec[inc_step] = var_pm
   
-  var_nm = var_pm/1000.
+  var_nm = var_pm / 1000.
   contrast_vec_int = make_array(nb_iterations, value=0.)
   contrastAPLC_vec_int = make_array(nb_iterations, value=0.)
   contrastAM_vec_int = make_array(nb_iterations, value=0.)
 
-  for inc_iteration = 0,nb_iterations-1 do begin
+  ; loop over different variations/cases with the same RMS value
+  for inc_iteration = 0, nb_iterations-1 do begin
     
     print, 'ITERATION'
     print, inc_step
@@ -176,10 +179,11 @@ for inc_step = 0,nb_steps-1 do begin
     lala = pv(A, rms)
     A[18] = 0.
     A = A * var_nm / rms
-    contrast_vec_int[inc_iteration] = A##M##transpose(A)  
+    contrast_vec_int[inc_iteration] = A##M##transpose(A)      ; PASTIS CONTRAST !!!!!!!!!!!
     
+    ; Start computations for end-to-end in order to get ist contrast for comparison
     isolated_coef_zern = make_array(37, nb_zer, value=0.)
-    isolated_coef_zern[*,0] = 2. * !PI * A / lambda
+    isolated_coef_zern[*,2] = 2. * !PI * A / lambda   ; change number in isolated_coef_zern to according Zernike value
     global_coef_zern = make_array(1, 5, value=0.)
     phi_ab = make_phi_atlast_ll(isolated_coef_zern=isolated_coef_zern, global_coef_zern=global_coef_zern)
     phi_ab = crop(phi_ab,/m, nc=614)
@@ -200,11 +204,11 @@ for inc_step = 0,nb_steps-1 do begin
     h_npc = h_npc/normp;(normp*throughput)
     h_npc_zoom3 = crop(h_npc,/m,nc=40)
     dh_area_zoom = crop(dh_area,/m,nc=40)
-    contrastAPLC_vec_int[inc_iteration] = mean(h_npc_zoom3[where(dh_area_zoom)])
+    contrastAPLC_vec_int[inc_iteration] = mean(h_npc_zoom3[where(dh_area_zoom)])   ; END-TO-END COTRAST
     
-    ;tempIm = analytical_model(zernike_pol=0, coef = A)
+    ;tempIm = analytical_model(zernike_pol=0, coef=A)   ; PASTIS with image (now useless)
     ;ImAM = mean(tempIm[where(dh_area_zoom)])
-    ;contrastAM_vec_int[inc_iteration]=mean(ImAM[where(dh_area_zoom)])
+    ;contrastAM_vec_int[inc_iteration] = mean(ImAM[where(dh_area_zoom)])
   endfor
 
   contrast_vec[inc_step] = mean(contrast_vec_int)
@@ -234,7 +238,7 @@ curve6 = plot(var_vec, maxAPLC_vec, xtitle='Piston rms amplitude [pm]', ytitle =
 error = 100. * (contrast_vec_int-contrastAPLC_vec_int) / contrastAPLC_vec_int
 print, pv(error,rms), rms
 
-cd, 'C:/Users/lleboulleux/Desktop'
+;cd, 'C:/Users/lleboulleux/Desktop'
 ;curve.save,'EB_contrast_AMvsE2E.png'
 
 ;writefits,'var_vec_EB_contrast_AMvsE2E.fits',var_vec
@@ -245,14 +249,14 @@ cd, 'C:/Users/lleboulleux/Desktop'
 ;writefits,'minAPLC_vec_EB_contrast_AMvsE2E.fits',minAPLC_vec
 ;writefits,'maxAPLC_vec_EB_contrast_AMvsE2E.fits',maxAPLC_vec
 
-cd,'C:/Users/lleboulleux/Desktop'
-var_vec = readfits('var_vec_EB_contrast_AMvsE2E.fits')
-contrast_vec = readfits('contrast_vec_EB_contrast_AMvsE2E.fits')
-min_vec = readfits('min_vec_EB_contrast_AMvsE2E.fits')
-max_vec = readfits('max_vec_EB_contrast_AMvsE2E.fits')
-contrastAPLC_vec = readfits('contrastAPLC_vec_EB_contrast_AMvsE2E.fits')
-minAPLC_vec = readfits('minAPLC_vec_EB_contrast_AMvsE2E.fits')
-maxAPLC_vec = readfits('maxAPLC_vec_EB_contrast_AMvsE2E.fits')
+;cd,'C:/Users/lleboulleux/Desktop'
+;var_vec = readfits('var_vec_EB_contrast_AMvsE2E.fits')
+;contrast_vec = readfits('contrast_vec_EB_contrast_AMvsE2E.fits')
+;min_vec = readfits('min_vec_EB_contrast_AMvsE2E.fits')
+;max_vec = readfits('max_vec_EB_contrast_AMvsE2E.fits')
+;contrastAPLC_vec = readfits('contrastAPLC_vec_EB_contrast_AMvsE2E.fits')
+;minAPLC_vec = readfits('minAPLC_vec_EB_contrast_AMvsE2E.fits')
+;maxAPLC_vec = readfits('maxAPLC_vec_EB_contrast_AMvsE2E.fits')
 curve = plot(var_vec, contrast_vec, xtitle='Piston rms amplitude $\sqrt<a_{k,1}^2>$ (pm)', ytitle = 'Contrast in DH C',title='Contrast sensitivity to piston on segments',xrange=[min(var_vec),max(var_vec)],yrange=[1.e-12,1.e-7],color='red', thick=2, xthick=2,ythick=2,/current,/xlog,/ylog,name='Mean contrast for Model')
 curve2 = plot(var_vec, min_vec, xtitle='Piston rms amplitude $\sqrt<a_{k,1}^2>$ (pm)', ytitle = 'Contrast in DH C',title='Contrast sensitivity to piston on segments',xrange=[min(var_vec),max(var_vec)],yrange=[1.e-12,1.e-7],color='green', thick=2, xthick=2,ythick=2,/current,/xlog,/ylog,name='Min contrast for Model')
 curve3 = plot(var_vec, max_vec, xtitle='Piston rms amplitude $\sqrt<a_{k,1}^2>$ (pm)', ytitle = 'Contrast in DH C',title='Contrast sensitivity to piston on segments',xrange=[min(var_vec),max(var_vec)],yrange=[1.e-12,1.e-7],color='blue', thick=2, xthick=2,ythick=2,/current,/xlog,/ylog,name='Max contrast for Model')
@@ -260,8 +264,8 @@ curve4 = plot(var_vec, contrastAPLC_vec, xtitle='Piston rms amplitude $\sqrt<a_{
 curve5 = plot(var_vec, minAPLC_vec, xtitle='Piston rms amplitude $\sqrt<a_{k,1}^2>$ (pm)', ytitle = 'Contrast in DH C',title='Contrast sensitivity to piston on segments',xrange=[min(var_vec),max(var_vec)],yrange=[1.e-12,1.e-7],color='green', linestyle = 3, thick=2, xthick=2,ythick=2,/current,/xlog,/ylog,name='Min contrast for E2E')
 curve6 = plot(var_vec, maxAPLC_vec, xtitle='Piston rms amplitude $\sqrt<a_{k,1}^2>$ (pm)', ytitle = 'Contrast in DH C',title='Contrast sensitivity to piston on segments',xrange=[min(var_vec),max(var_vec)],yrange=[1.e-12,1.e-7],color='blue', linestyle = 3, thick=2, xthick=2,ythick=2,/current,/xlog,/ylog,name='Max contrast for E2E')
 leg = legend(target=[curve,curve2,curve3, curve4, curve5, curve6],position=[30.,5e-8], /DATA)
-cd, 'C:/Users/lleboulleux/Desktop/FiguresJATIS'
-curve.save, 'EB_contrast_AMvsE2E.png'
+;cd, 'C:/Users/lleboulleux/Desktop/FiguresJATIS'
+;curve.save, 'EB_contrast_AMvsE2E.png'
 
 stop
 
