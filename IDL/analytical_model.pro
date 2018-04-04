@@ -37,6 +37,8 @@ polaire2, rt=4.*ech*614./708., largeur=largeur, /entre4, masque=maski, /double
 dh_area = abs(masko-maski)
 
 ;;;;;;;;;;;;;;;; MEAN SUBTRACTION ;;;;;;;;;;;;;;;;
+; Only for piston
+
 coef = coef*2.*!PI/lambda
 
 if zernike_pol EQ 0 then begin
@@ -65,17 +67,24 @@ NR_pairs_nb = (size(Baseline_vec))[1]
 ;;;;;;;;;;;;;;;;;;; CALIBRATION ;;;;;;;;;;;;;;;;;;;
 ;cd, 'C:/Users/lleboulleux/Desktop'
 
-if zernike_pol EQ 0 then begin
-  APLC_normalisation = readfits('APLC_normalisation.fits')
-  Model_normalisation = readfits('Model_normalisation.fits')
-  ck = sqrt(APLC_normalisation/Model_normalisation)
-endif
-if zernike_pol EQ 1 then ck=sqrt(readfits('Calibration_Tip.fits'))
-if zernike_pol EQ 2 then ck=sqrt(readfits('Calibration_Tilt.fits'))
-if zernike_pol EQ 3 then ck=sqrt(readfits('Calibration_Focus.fits'))
-if zernike_pol EQ 4 then ck=sqrt(readfits('Calibration_Astig45.fits'))
-if zernike_pol EQ 5 then ck=sqrt(readfits('Calibration_Astig0.fits'))
+; Iva will never need this block ever again
+;if zernike_pol EQ 0 then begin
+;  APLC_normalisation = readfits('APLC_normalisation.fits')
+;  Model_normalisation = readfits('Model_normalisation.fits')
+;  ck = sqrt(APLC_normalisation/Model_normalisation)
+;endif
 
+; Block commented out  because I don't have any calibration files yet
+;if zernike_pol EQ 1 then ck=sqrt(readfits('Calibration_Tip.fits'))
+if zernike_pol EQ 2 then ck=sqrt(readfits('Calibration_Tilt.fits'))
+;if zernike_pol EQ 3 then ck=sqrt(readfits('Calibration_Focus.fits'))
+;if zernike_pol EQ 4 then ck=sqrt(readfits('Calibration_Astig45.fits'))
+;if zernike_pol EQ 5 then ck=sqrt(readfits('Calibration_Astig0.fits'))
+
+; When you're only about to make the calibration files, use this line for ck, otherwise comment out
+;ck = make_array(37, value=1.)
+
+; This line doesn't ever change, it just looks weird
 coef = coef * ck
 
 ;;;;;;;;;;;;;;;;;;; GENERIC COEFFICIENTS Aq ;;;;;;;;;;;;;;;;;;;
