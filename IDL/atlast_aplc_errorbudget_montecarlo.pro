@@ -130,7 +130,7 @@ tic = systime(1)
 nb_zer = 6
 nb_seg = 37
 
-APLC_Mean_DH = make_array(37, value=0.)                 ; 
+APLC_Mean_DH = make_array(37, value=0.)
 
 nb_iterations = 10;250.;1.
 nb_steps = 5;1.;28.;50.
@@ -144,6 +144,7 @@ var_vec = make_array(nb_steps, value=0.)
 contrastAM_vec = make_array(nb_steps, value=0.)
 
 ;cd,'C:/Users/lleboulleux/Desktop'
+cd, '/Users/ilaginja/Documents/Git/PASTIS/data'
 M = readfits('Moyennes_Matrix_Tilt.fits')
 nb_seg = 37
 
@@ -154,11 +155,11 @@ for inc_step = 0, nb_steps-1 do begin
   print, inc_step
   
   if inc_step EQ 27 then var_pm = 1000.
-  if inc_step LT 27 then var_pm = (inc_step - 17) * 100.
-  if inc_step LT 18 then var_pm = (inc_step - 8) * 10.
-  if inc_step LT 9 then var_pm = 1 + inc_step
+  if inc_step LT 27 then var_pm = (inc_step - 17) * 100.  ; values are 100, 200, ..., 900
+  if inc_step LT 18 then var_pm = (inc_step - 8) * 10.    ; values are 10, 20, ..., 90
+  if inc_step LT 9 then var_pm = 1 + inc_step             ; values are 1, 2, ..., 9
 
-  var_pm = 1000.
+  ;var_pm = 1000.    ; it should be a ramp, so leave this out
   var_vec[inc_step] = var_pm
   
   var_nm = var_pm / 1000.
@@ -169,10 +170,10 @@ for inc_step = 0, nb_steps-1 do begin
   ; loop over different variations/cases with the same RMS value
   for inc_iteration = 0, nb_iterations-1 do begin
     
-    print, 'ITERATION'
-    print, inc_step
-    print, 'ITERATION'
-    print, inc_iteration
+    print, 'RMS ITERATION'
+    print, inc_step + '/' + nb_steps
+    print, 'CASE ITERATION'
+    print, inc_iteration + '/' + nb_iterations
     
     A = randomu(seed, nb_seg, 1)
     A = A - mean(A)
