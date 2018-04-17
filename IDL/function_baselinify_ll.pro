@@ -81,11 +81,12 @@ vec_list_z = 0. * vec_list[*,*,1] ; useless, just makes the function "crossp" fu
 for i=1,nb_seg*nb_seg-1 do begin
   for k=0,i-1 do begin
       if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list_x[k], vec_list_y[k], vec_list_z[k]])) LT 4. then begin  ; check length with norm, offset/margin of four pixels
-        if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list_x[k],vec_list_y[k],vec_list_z[k]])) LT 1000. then         ; check directions with crossproduct, offset/margin of a 1000 becaue vectors are huge
+        if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list_x[k],vec_list_y[k],vec_list_z[k]])) LT 1000. then begin   ; check directions with crossproduct, offset/margin of a 1000 becaue vectors are huge
             
-            ; All redundant distance pairs are set to zero
-            vec_list[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, *] = [0.,0.]      ; going back from total index to x and y index (like for seg_position above)
-            
+          ; All redundant distance pairs are set to zero
+          vec_list[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, *] = [0.,0.]      ; going back from total index to x and y index (like for seg_position above)
+         
+        endif   
       endif
   endfor
 endfor
@@ -177,9 +178,9 @@ return, baseline_vec
 ; NR_pairs_list_int
 ; Projection_Matrix
 
-; writefits, 'name' + '.fits', vec_list
-; writefits, 'name' + '.fits', NR_pairs_list_int
-; writefits, 'name' + '.fits', Projection_Matrix
+;writefits, 'vec_list' + '.fits', vec_list
+;writefits, 'NR_pairs_list_int' + '.fits', NR_pairs_list_int
+;writefits, 'Projection_Matrix' + '.fits', Projection_Matrix
 
 
 end
