@@ -30,29 +30,81 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import ndimage
+import poppy
+import webbpsf
 
 
 if __name__ == "__main__":
 
-    # Generate the pupil with segments and spiders or read in from fits file
+    # Some parameters
+    NA = 18   # Number of apertures, without central obscuration
 
-    # Get the coordinates of the central pixel of each segment
+    #-# Generate the pupil with segments and spiders or read in from fits file
+
+    # For now, use poppy directly
+    jwst_pup = poppy.MultiHexagonAperture(rings=2)   # Create JWST pupil without spiders
+    #jwst_pup.display()   # Show pupil
+    #plt.show()
+
+    #-# Get the coordinates of the central pixel of each segment
     ### In IDL done by 'eroding' the pupil - fill each center pixel with 1 and the rest with 0.
     ### Then use 'where' to find the 1s.
     ### seg_position is a [2, nb_seg] array that holds x and y position of each central pixel
 
-    # Make distance list with distnaces between all of the central pixels among each other
+    #test = jwst_pup.to_fits(npix=512)   # Create fits file from pupil file
+    #pup_im = test[0].data   # Extract the data from the first ([0]) fits entry, which is the pupil image
+
+    #one = poppy.MultiHexagonAperture(rings=1, center=True, segmentlist=[0])   # Create single segment for erosion
+    #test2 = one.to_fits(npix=512)   # Convert to fits
+    #single_seg = test2[0].data   # Convert to proper array
+
+    # Cut out one single segment
+    #cop = np.copy(pup_im)   # because for some reason pup_im gets overwritten somehow
+    #mini_seg = cop[:103, 197:314]
+    # Create meshgrid to be able to do grid operations
+    #x, y = np.meshgrid(np.arange(np.size(mini_seg, 1)), np.arange(np.size(mini_seg, 0)))
+    # Create blank data canvas
+    #data = np.zeros([np.size(mini_seg,0), np.size(mini_seg,1)])
+    #data1 = np.copy(data)
+    # Make a line to cover segment overlap on bottom right
+    #bottom_left = np.where(1.74*x+y > 256)
+    #data[bottom_left] = 1
+    #soso = np.copy(mini_seg)
+    #soso[bottom_left] = 0
+    #mini_seg[bottom_left] = 0
+
+    #bottom_right = np.where(-1.74*x+y > 52)
+    #mini_seg[bottom_right] = 0
+
+    #plt.imshow(pup_im)
+    #plt.show()
+
+    # Scraping the stuff above. New try with poppy function.
+
+    seg_position = np.zeros((NA, 2))
+    for i in range(NA):
+        seg_position[i, 1], seg_position[i, 0] = jwst_pup._hex_center(i)   # y, x = center position
+
+    #-# Make distance list with distnaces between all of the central pixels among each other
     ### vec_list is a [nb_seg, nb_seg, 2] array
 
-    # Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
+    vec_list = np.zeros((NA, NA, 2))
+    for i in range(NA):
+        for j in range(NA):
+            vec_list[i,j,:] = seg_position[i,:] - seg_position[j,:]
 
-    # Extract the (number of) non redundant vectors: NR_distance_list
+    #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
 
-    # Select non redundant vectors
+    
+
+    #-# Extract the (number of) non redundant vectors: NR_distance_list
+
+    #-# Select non redundant vectors
     ### NR_pairs_list is [NRP number, seg1, seg2] vector to hold non redundant vector information
 
-    # Create NR_pairs_list_int and baseline_vec
+    #-# Create NR_pairs_list_int and baseline_vec
 
-    # Generate projection matrix
+    #-# Generate projection matrix
 
-    # Get baseline_vec and Projection_Matrix
+    #-# Get baseline_vec and Projection_Matrix
