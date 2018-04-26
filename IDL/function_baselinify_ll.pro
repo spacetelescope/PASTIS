@@ -20,27 +20,27 @@ tab_seg = make_array(sz, sz, 37, value=0.)
 
 ; Bottom line with four segments
 for i=1,4 do begin &$
-  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i)
+  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i) &$
 endfor
 
 ; Second line from bottom with five segments
 for i=5,9 do begin &$
-  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+1)
+  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+1) &$
 endfor
 
 ; Three middle lines with 18 segments in total; central obscuration is left black
 for i=10,28 do begin &$
-  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+2)
+  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+2) &$
 endfor
 
 ; Second line from top with five segments
 for i=29,33 do begin &$
-  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+3)
+  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+3) &$
 endfor
 
 ; Top line with four segments
 for i=34,37 do begin &$
-  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+4)
+  tab_seg[*,*,i-1] = isolate_segment_ll2(pup=pup_int, hex=mini_seg, num_seg=i+4) &$
 endfor
 
 ; Define the final pupil as combination of all the individual segments you picked
@@ -54,19 +54,19 @@ nb_seg = (size(index))[1]   ; nubmer of segments, central obscuration excluded
 seg_position = make_array(nb_seg, 2, value=0.)   ; This will hold the x and y pixel posiiton of each segment
 sz = (size(pup_final))[1]   ; Size of final pupil
 
-; Fill with x and y pixel positions for each segment, it looks this complicatede because IDL is not great at it
-for i=0, nb_seg-1 do begin
-  seg_position[i,0] = index[i] MOD sz
-  seg_position[i,1] = (index[i] - seg_position[i,0]) / sz
+; Fill with x and y pixel positions for each segment; it looks this complicated because IDL is not great at it
+for i=0, nb_seg-1 do begin &$
+  seg_position[i,0] = index[i] MOD sz &$
+  seg_position[i,1] = (index[i] - seg_position[i,0]) / sz &$
 endfor
 
 ;;;;;;;;;;;;;; make distance list vec_list ;;;;;;;;;;;;;
 
 vec_list = make_array(nb_seg, nb_seg, 2., value=0.)   ; Will hold relative positions of the centers between all pairs of segments
 
-for i=0,nb_seg-1 do begin
-  for j=0,nb_seg-1 do begin
-    vec_list[i,j,*] = seg_position[i,*] - seg_position[j,*]
+for i=0,nb_seg-1 do begin &$
+  for j=0,nb_seg-1 do begin &$
+    vec_list[i,j,*] = seg_position[i,*] - seg_position[j,*] &$
   endfor
 endfor
 
@@ -78,13 +78,13 @@ vec_list_y = vec_list[*,*,1]
 vec_list_z = 0. * vec_list[*,*,1] ; useless, just makes the function "crossp" further down work, which is a crossproduct and needs three dimensions in order to work
 
 ; Loop over all pairs
-for i=1,nb_seg*nb_seg-1 do begin
-  for k=0,i-1 do begin
-      if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list_x[k], vec_list_y[k], vec_list_z[k]])) LT 4. then begin  ; check length with norm, offset/margin of four pixels
-        if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list_x[k],vec_list_y[k],vec_list_z[k]])) LT 1000. then begin   ; check directions with crossproduct, offset/margin of a 1000 becaue vectors are huge
+for i=1,nb_seg*nb_seg-1 do begin &$
+  for k=0,i-1 do begin &$
+      if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list_x[k], vec_list_y[k], vec_list_z[k]])) LT 4. then begin  &$  ; check length with norm, offset/margin of four pixels
+        if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list_x[k],vec_list_y[k],vec_list_z[k]])) LT 1000. then begin  &$   ; check directions with crossproduct, offset/margin of a 1000 becaue vectors are huge
             
           ; All redundant distance pairs are set to zero
-          vec_list[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, *] = [0.,0.]      ; going back from total index to x and y index (like for seg_position above)
+          vec_list[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, *] = [0.,0.]      ; going back from total index to x and y index (complicated IDL way like for seg_position above)
          
         endif   
       endif

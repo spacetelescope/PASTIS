@@ -28,6 +28,7 @@ Outputs:
 
 import os
 import time
+from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
@@ -85,8 +86,10 @@ if __name__ == "__main__":
     seg_position = np.zeros((NA, 2))
     for i in range(NA):
         seg_position[i, 1], seg_position[i, 0] = jwst_pup._hex_center(i)   # y, x = center position
+        # The units of seg_posiiton are currently physical meters. I don't thing I need to do it in pixels as long
+        # as it stays consistent.
 
-    #-# Make distance list with distnaces between all of the central pixels among each other
+    #-# Make distance list with distances between all of the central pixels among each other
     ### vec_list is a [nb_seg, nb_seg, 2] array
 
     vec_list = np.zeros((NA, NA, 2))
@@ -96,7 +99,29 @@ if __name__ == "__main__":
 
     #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
 
-    
+    for i in range(NA):
+        for j in range(NA):
+            for k in product(vec_list[i,:,:], vec_list[:,j,:]):
+                # k is a tuple holding two arrays which make a segment pair, k[0] and k[1] are the arrays that hold the
+                # x and y distance coordinates for the given pair.
+
+                # Check if length of two vectors is the same (within certain limits)
+                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) < 4:
+
+                    # Check if direction of two vectors is the same (within certain limits)
+                    if np.linalg.norm(np.cross(k[0], k[1])) < 1000:
+
+                        # Some prints for testing
+                        #print('vec_list[i,j,:]: ', vec_list[i,j,:])
+                        #print('k[0]: ', k[0])
+                        #print('k[1]: ', k[1])
+                        #print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
+                        #print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
+
+                        # If both length and direction are the same, the pair is redundant, and we set it to zero.
+                        vec_list[i,j,:] = [0,0]
+
+
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
 
