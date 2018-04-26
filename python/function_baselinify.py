@@ -106,10 +106,10 @@ if __name__ == "__main__":
                 # x and y distance coordinates for the given pair.
 
                 # Check if length of two vectors is the same (within certain limits)
-                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) < 4:
+                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) == 0:
 
                     # Check if direction of two vectors is the same (within certain limits)
-                    if np.linalg.norm(np.cross(k[0], k[1])) < 1000:
+                    if np.linalg.norm(np.cross(k[0], k[1])) == 0:
 
                         # Some prints for testing
                         #print('vec_list[i,j,:]: ', vec_list[i,j,:])
@@ -119,11 +119,19 @@ if __name__ == "__main__":
                         #print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
 
                         # If both length and direction are the same, the pair is redundant, and we set it to zero.
-                        vec_list[i,j,:] = [0,0]
-
+                        # First find where in vec_list the second pair of the redundant pairs is.
+                        ix = np.where(vec_list[:, j, :] == k[1])
+                        ind = np.where(ix)[0][0]
+                        vec_list[ind,j,:] = [0,0]
 
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
+
+    # Create vector that holds distances between segments (iinstead of distance COORDINATES like in vec_list)
+    distance_list = np.square(vec_list[:,:,0]) + np.square(vec_list[:,:,1])   # We use square distances so that we don't miss out on negative values
+    nonzero = np.nonzero(distance_list)
+    NR_distance_list = distance_list[nonzero]
+    NR_pairs_nb = np.count_nonzero(distance_list)   # How many non-redundant (NR) pairs do we have?
 
     #-# Select non redundant vectors
     ### NR_pairs_list is [NRP number, seg1, seg2] vector to hold non redundant vector information
