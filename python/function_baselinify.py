@@ -105,18 +105,27 @@ if __name__ == "__main__":
                 # k is a tuple holding two arrays which make a segment pair, k[0] and k[1] are the arrays that hold the
                 # x and y distance coordinates for the given pair.
 
+                # Some prints for testing
+                print(k)
+                #print('i, j: ', i, ',', j)
+                #print('vec_list[i,j,:]: ', vec_list[i, j, :])   # giving vec_lsit[i,j,:] is useless when you consider how itertools.product() works
+                #print('k[0]: ', k[0])
+                #print('k[1]: ', k[1])
+                #print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
+                #print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
+
                 # Check if length of two vectors is the same (within certain limits)
-                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) == 0:
+                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) <= 1.e-10:
 
                     # Check if direction of two vectors is the same (within certain limits)
-                    if np.linalg.norm(np.cross(k[0], k[1])) == 0:
+                    if np.linalg.norm(np.cross(k[0], k[1])) <= 1.e-10:
 
                         # Some prints for testing
-                        #print('vec_list[i,j,:]: ', vec_list[i,j,:])
+                        print('vec_list[i,j,:]: ', vec_list[i,j,:])   # giving vec_lsit[i,j,:] is useless when you consider how itertools.product() works
                         #print('k[0]: ', k[0])
-                        #print('k[1]: ', k[1])
-                        #print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
-                        #print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
+                        print('k[1]: ', k[1])
+                        print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
+                        print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
 
                         # If both length and direction are the same, the pair is redundant, and we set it to zero.
                         # First find where in vec_list the second pair of the redundant pairs is.
@@ -124,10 +133,15 @@ if __name__ == "__main__":
                         ind = np.where(ix)[0][0]
                         vec_list[ind,j,:] = [0,0]
 
+            for m, n in product(enumerate(vec_list[i,:,:], vec_list[:,j,:])):
+                print('next')
+                print(m)
+                print(n)
+
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
 
-    # Create vector that holds distances between segments (iinstead of distance COORDINATES like in vec_list)
+    # Create vector that holds distances between segments (instead of distance COORDINATES like in vec_list)
     distance_list = np.square(vec_list[:,:,0]) + np.square(vec_list[:,:,1])   # We use square distances so that we don't miss out on negative values
     nonzero = np.nonzero(distance_list)
     NR_distance_list = distance_list[nonzero]
