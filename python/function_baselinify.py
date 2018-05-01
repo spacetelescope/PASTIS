@@ -108,6 +108,7 @@ if __name__ == "__main__":
 
     ap = 0
     rp = 0
+
     for i in range(np.square(NA)):
         for j in range(i):
 
@@ -133,8 +134,7 @@ if __name__ == "__main__":
                     #print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i, :], vec_flat[j, :])))
                     rp += 1
 
-                    vec_null[j,:] = [0, 0]
-                    print(vec_null)
+                    vec_null[i,:] = [0, 0]
 
     # Reshape nulled array back into proper shape of vec_list
     vec_list_nulled = np.reshape(vec_null, (vec_list.shape[0], vec_list.shape[1], 2))
@@ -150,8 +150,31 @@ if __name__ == "__main__":
     #-# Select non redundant vectors
     ### NR_pairs_list is [NRP number, seg1, seg2] vector to hold non redundant vector information
 
-    #-# Create NR_pairs_list_int and baseline_vec
+    # Create the array of NRPs that will be the output
+    # We are not giving the central obscuration segment a number
+    NR_pairs_list = np.zeros((NR_pairs_nb, 2))
+
+    # Loop over number of NRPs
+    for i in range(NR_pairs_nb):
+        NR_pairs_list[i,0] = nonzero[0][i]
+        NR_pairs_list[i, 1] = nonzero[1][i]
+
+    #-# Create NR_pairs_list_int (?) and baseline_vec
+    baseline_vec = np.copy(NR_pairs_list)
+    baseline_vec[:,1] = NR_pairs_list[:,0]
+    baseline_vec[:,0] = NR_pairs_list[:,1]
+
+    NR_pairs_list.astype(int)
 
     #-# Generate projection matrix
 
-    #-# Get baseline_vec and Projection_Matrix
+    # Set diagonal to zero (distance between a segment and itself will always be zero)
+    vec_list2 = np.copy(vec_list)
+    for i in range(NA):
+        for j in range(NA):
+            if i ==j:
+                vec_list2[i,j,:] = [0,0]
+
+
+
+    #-# Get the vectors Projection_Matrix
