@@ -99,48 +99,50 @@ if __name__ == "__main__":
 
     #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
 
-    # Create a counter for all pairs and redundant pairs
+    # Reshape vec_list array to one dimension so that we can implement the loop below
+    longshape = vec_list.shape[0] * vec_list.shape[1]
+    vec_flat = np.reshape(vec_list, (longshape, 2))
+
+    # Create array that will hold the nulled coordinates
+    vec_null = np.copy(vec_flat)
+
     ap = 0
     rp = 0
+    for i in range(np.square(NA)):
+        for j in range(i):
 
-    for i in range(NA):
-        for j in range(NA):
-            for m, n in product(enumerate(vec_list[i, :, :]), enumerate(vec_list[:, j, :])):
-                # m is a tuple of integers. m[0] is the current index in vec_list[i, :, :] and m[1] is an array that
-                # cointains the coordinates at that index. n[0] is the current index in vec_list[:, j, :] and n[1] are
-                # the coordinates at that index. Access the individual x and y coordinates with m[1][[?] and n[1][?].
+            # Some print statements for testing
+            #print('i, j', i, j)
+            #print('vec_flat[i,:]: ', vec_flat[i,:])
+            #print('vec_flat[j,:]: ', vec_flat[j,:])
+            #print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i,:]) - np.linalg.norm(vec_flat[j,:])))
+            #print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i,:], vec_flat[j,:])))
+            ap += 1
 
-                # Some print statements for testing
-                #print('Redundand AND non-redundant pairs')
-                #print('i, j', i, j)
-                #print('m[0], n[0]', m[0], n[0])
-                #print('m[1], n[1]', m[1], n[1])
-                #print('norm diff: ', np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])))
-                #print('dir diff: ', np.linalg.norm(np.cross(m[1], n[1])))
-                ap += 1
+            # Check if length of two vectors is the same (within certain limits)
+            if np.abs(np.linalg.norm(vec_flat[i,:]) - np.linalg.norm(vec_flat[j,:])) <= 1.e-10:
 
-                # Check if length of two vectors is the same (within certain limits)
-                if np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])) <= 1.e-10:
+                # Check if direction of two vectors is the same (within certain limits)
+                if np.linalg.norm(np.cross(vec_flat[i,:], vec_flat[j,:])) <= 1.e-10:
 
-                    # Check if direction of two vectors is the same (within certain limits)
-                    if np.linalg.norm(np.cross(m[1], n[1])) <= 1.e-10:
+                    # Some print statements for testing
+                    #print('i, j', i, j)
+                    #print('vec_flat[i,:]: ', vec_flat[i, :])
+                    #print('vec_flat[j,:]: ', vec_flat[j, :])
+                    #print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i, :]) - np.linalg.norm(vec_flat[j, :])))
+                    #print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i, :], vec_flat[j, :])))
+                    rp += 1
 
-                        # Some prints for testing
-                        print('i, j', i, j)
-                        print('m[0], n[0]', m[0], n[0])
-                        print('m[1], n[1]', m[1], n[1])
-                        print('norm diff: ', np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])))
-                        print('dir diff: ', np.linalg.norm(np.cross(m[1], n[1])))
+                    vec_null[j,:] = [0, 0]
+                    print(vec_null)
 
-                        rp += 1
-
-                        # If both length and direction are the same, the pair is redundant, and we set it to zero.
-                        vec_list[n[0],j,:] = [0,0]
+    # Reshape nulled array back into proper shape of vec_list
+    vec_list_nulled = np.reshape(vec_null, (vec_list.shape[0], vec_list.shape[1], 2))
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
 
     # Create vector that holds distances between segments (instead of distance COORDINATES like in vec_list)
-    distance_list = np.square(vec_list[:,:,0]) + np.square(vec_list[:,:,1])   # We use square distances so that we don't miss out on negative values
+    distance_list = np.square(vec_list_nulled[:,:,0]) + np.square(vec_list_nulled[:,:,1])   # We use square distances so that we don't miss out on negative values
     nonzero = np.nonzero(distance_list)
     NR_distance_list = distance_list[nonzero]
     NR_pairs_nb = np.count_nonzero(distance_list)   # How many non-redundant (NR) pairs do we have?
