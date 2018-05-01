@@ -104,23 +104,23 @@ NR_pairs_nb = (size(NR_distance_list))[1]                 ; number of NRPs; ATLA
 NR_pairs_list = make_array(NR_pairs_nb, 2, value=0.)   ; Create empty array to hold NRPs [NRP number, seg1, seg2]
 
 ; Loop over number of NRPs, taking into account the shift due to the central obscuration
-for i=0,NR_pairs_nb-1 do begin
-  NR_pairs_list[i,0] = index[i] MOD nb_seg                                              ; Assign first segment of the pair
-  NR_pairs_list[i,1] = (index[i] - NR_pairs_list[i,0]) / nb_seg                         ; Assign second segment of the pair
-  if NR_pairs_list[i,0] GE nb_seg/2 then NR_pairs_list[i,0] = NR_pairs_list[i,0] + 1    ; These two lines account for the offset of one segment because 
-  if NR_pairs_list[i,1] GE nb_seg/2 then NR_pairs_list[i,1] = NR_pairs_list[i,1] + 1    ;   we numbered the segments including the central obscuration, but it doesn't really exist
+for i=0,NR_pairs_nb-1 do begin &$
+  NR_pairs_list[i,0] = index[i] MOD nb_seg           &$                                    ; Assign first segment of the pair
+  NR_pairs_list[i,1] = (index[i] - NR_pairs_list[i,0]) / nb_seg      &$                    ; Assign second segment of the pair
+  if NR_pairs_list[i,0] GE nb_seg/2 then NR_pairs_list[i,0] = NR_pairs_list[i,0] + 1   &$  ; These two lines account for the offset of one segment because 
+  if NR_pairs_list[i,1] GE nb_seg/2 then NR_pairs_list[i,1] = NR_pairs_list[i,1] + 1  &$   ;   we numbered the segments including the central obscuration, but it doesn't really exist
 endfor
 
 ; Create the actual array of NRPs [NRP number, seg1, seg2] that will be the output
 NR_pairs_list_int = make_array(NR_pairs_nb, 2, value=0.)
 
 ; Loop over number of NRPs, now not taking into account the shift due to the central obscuration
-for i=0,NR_pairs_nb-1 do begin
-  NR_pairs_list_int[i,0] = index[i] MOD nb_seg
-  NR_pairs_list_int[i,1] = (index[i] - NR_pairs_list_int[i,0]) / nb_seg
+for i=0,NR_pairs_nb-1 do begin &$ 
+  NR_pairs_list_int[i,0] = index[i] MOD nb_seg &$ 
+  NR_pairs_list_int[i,1] = (index[i] - NR_pairs_list_int[i,0]) / nb_seg &$ 
 endfor
 
-; Creating new vector baseline_vec with swapped segment assignments for NRPs
+; Creating new vector baseline_vec with swapped segment assignments for NRPs.
 NR_pairs_list = round(NR_pairs_list)
 NR_pairs_list_int = round(NR_pairs_list_int)
 baseline_vec = 0. * NR_pairs_list
@@ -131,33 +131,33 @@ baseline_vec[*,0] = NR_pairs_list[*,1]
 
 vec_list3 = vec_list2   ; Relative positions of the centers between all pairs of segments
 
-; Set relative posiitons between a segment and itself to zero
-for i=0,nb_seg-1 do begin
-  for j=0,nb_seg-1 do begin
-    if i GE j then vec_list2[i,j,*] = [0.,0.]
-  endfor
+; Set relative positions between a segment and itself to zero
+for i=0,nb_seg-1 do begin &$
+  for j=0,nb_seg-1 do begin &$
+    if i GE j then vec_list2[i,j,*] = [0.,0.] &$
+  endfor &$
 endfor
 
 ; Extract individual coordinates
 vec_list_x = vec_list2[*,*,0]
 vec_list_y = vec_list2[*,*,1]
-vec_list_z = 0. * vec_list[*,*,1]   ; Holds non information, is needed to enable the function crossp below, the cross product
+vec_list_z = 0. * vec_list[*,*,1]   ; Holds no information, is needed to enable the function crossp below, the cross product
 
 ; Initialize projection matrix
 Projection_Matrix_int = make_array(nb_seg,nb_seg, 3, value = 0.)   ; [NRP #, seg1, seg2]
 
 ; Loop through redundant (=all) segment pairs
-for i=0,nb_seg*nb_seg-1 do begin
+for i=0,nb_seg*nb_seg-1 do begin &$
   ; Loop thourgh non-redundant segment pairs
-  for k=0,NR_pairs_nb-1 do begin
-    if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0], vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],1], 0.*vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0]])) LT 4. then begin  ; check lengths with norm
-      if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0],vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],1],0.*vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0]])) LT 1000. then begin      ; check directions with cross product
-        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 0] = k+1                     ; NRP #
-        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 1] = NR_pairs_list[k,1]      ; segmet 1 of NRP
-        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 2] = NR_pairs_list[k,0]      ; segment 2 of NRP
-      endif
-    endif
-  endfor
+  for k=0,NR_pairs_nb-1 do begin &$
+    if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0], vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],1], 0.*vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0]])) LT 4. then begin &$  ; check lengths with norm
+      if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0],vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],1],0.*vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0]])) LT 1000. then begin &$      ; check directions with cross product
+        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 0] = k+1                     &$ ; NRP #
+        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 1] = NR_pairs_list[k,1]      &$ ; segmet 1 of NRP
+        Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 2] = NR_pairs_list[k,0]      &$ ; segment 2 of NRP
+      endif &$
+    endif &$
+  endfor &$
 endfor
 
 Projection_Matrix = make_array(nb_seg+1, nb_seg+1, 3, value = 0.)     ; New array for projection matrix
