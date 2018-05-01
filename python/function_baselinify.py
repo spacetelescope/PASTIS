@@ -99,45 +99,43 @@ if __name__ == "__main__":
 
     #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
 
+    # Create a counter for all pairs and redundant pairs
+    ap = 0
+    rp = 0
+
     for i in range(NA):
         for j in range(NA):
-            for k in product(vec_list[i,:,:], vec_list[:,j,:]):
-                # k is a tuple holding two arrays which make a segment pair, k[0] and k[1] are the arrays that hold the
-                # x and y distance coordinates for the given pair.
+            for m, n in product(enumerate(vec_list[i, :, :]), enumerate(vec_list[:, j, :])):
+                # m is a tuple of integers. m[0] is the current index in vec_list[i, :, :] and m[1] is an array that
+                # cointains the coordinates at that index. n[0] is the current index in vec_list[:, j, :] and n[1] are
+                # the coordinates at that index. Access the individual x and y coordinates with m[1][[?] and n[1][?].
 
-                # Some prints for testing
-                print(k)
-                #print('i, j: ', i, ',', j)
-                #print('vec_list[i,j,:]: ', vec_list[i, j, :])   # giving vec_lsit[i,j,:] is useless when you consider how itertools.product() works
-                #print('k[0]: ', k[0])
-                #print('k[1]: ', k[1])
-                #print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
-                #print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
+                # Some print statements for testing
+                #print('Redundand AND non-redundant pairs')
+                #print('i, j', i, j)
+                #print('m[0], n[0]', m[0], n[0])
+                #print('m[1], n[1]', m[1], n[1])
+                #print('norm diff: ', np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])))
+                #print('dir diff: ', np.linalg.norm(np.cross(m[1], n[1])))
+                ap += 1
 
                 # Check if length of two vectors is the same (within certain limits)
-                if np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])) <= 1.e-10:
+                if np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])) <= 1.e-10:
 
                     # Check if direction of two vectors is the same (within certain limits)
-                    if np.linalg.norm(np.cross(k[0], k[1])) <= 1.e-10:
+                    if np.linalg.norm(np.cross(m[1], n[1])) <= 1.e-10:
 
                         # Some prints for testing
-                        print('vec_list[i,j,:]: ', vec_list[i,j,:])   # giving vec_lsit[i,j,:] is useless when you consider how itertools.product() works
-                        #print('k[0]: ', k[0])
-                        print('k[1]: ', k[1])
-                        print('norm diff: ', np.abs(np.linalg.norm(k[0]) - np.linalg.norm(k[1])))
-                        print('dir diff: ', np.linalg.norm(np.cross(k[0], k[1])))
+                        print('i, j', i, j)
+                        print('m[0], n[0]', m[0], n[0])
+                        print('m[1], n[1]', m[1], n[1])
+                        print('norm diff: ', np.abs(np.linalg.norm(m[1]) - np.linalg.norm(n[1])))
+                        print('dir diff: ', np.linalg.norm(np.cross(m[1], n[1])))
+
+                        rp += 1
 
                         # If both length and direction are the same, the pair is redundant, and we set it to zero.
-                        # First find where in vec_list the second pair of the redundant pairs is.
-                        ix = np.where(vec_list[:, j, :] == k[1])
-                        ind = np.where(ix)[0][0]
-                        vec_list[ind,j,:] = [0,0]
-
-            for m, n in product(enumerate(vec_list[i,:,:], vec_list[:,j,:])):
-                print('next')
-                print(m)
-                print(n)
-
+                        vec_list[n[0],j,:] = [0,0]
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
 
