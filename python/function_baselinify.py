@@ -5,7 +5,9 @@ Computes the number of unique pairs in your pupil.
 No inputs.
 
 nb_seg is the number of segments WITHOUT the central obscuration.
-nb_seg+1 is the number of segemts WITH the central obscurtiton.
+nb_seg+1 is the number of segemts WITH the central obscuration.
+Segments are numbered from 0 to nb_seg-1, or from 0 to nb_seg if central segment is numbered also.
+NRPs are numbered from 1 to NR_pairs_nb (total number of NRPs).
 
 Outputs:
     Projection_Matrix:  [nb_seg+1, nb_seg+1, 3] array
@@ -35,58 +37,35 @@ from scipy import ndimage
 import poppy
 import webbpsf
 
+import util_pastis as util
+
 
 if __name__ == "__main__":
 
     # Some parameters
     NA = 18   # Number of apertures, without central obscuration (= nb_seg)
+    cen_seg_num = 9   # SEGMENT NUMBERING STARTS WITH 0!!!
+                       # Number assigned to the central segment in arrays where we include it in the numbering.
+                       # It will not always be NA/2 like here, think of apertures with an uneven number of segments!
+    outDir = os.path.join('..', 'data', 'py_data')
 
     #-# Generate the pupil with segments and spiders or read in from fits file
 
-    # For now, use poppy directly
+    # Use poppy to  create JWST aperture without spiders
+    print('Creating and saving aperture')
     jwst_pup = poppy.MultiHexagonAperture(rings=2)   # Create JWST pupil without spiders
-    #jwst_pup.display()   # Show pupil
-    #plt.show()
+    jwst_pup.display()   # Show pupil
+    plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
     #-# Get the coordinates of the central pixel of each segment
     ### In IDL done by 'eroding' the pupil - fill each center pixel with 1 and the rest with 0.
     ### Then use 'where' to find the 1s.
     ### seg_position is a [2, nb_seg] array that holds x and y position of each central pixel
 
-    #test = jwst_pup.to_fits(npix=512)   # Create fits file from pupil file
-    #pup_im = test[0].data   # Extract the data from the first ([0]) fits entry, which is the pupil image
-
-    #one = poppy.MultiHexagonAperture(rings=1, center=True, segmentlist=[0])   # Create single segment for erosion
-    #test2 = one.to_fits(npix=512)   # Convert to fits
-    #single_seg = test2[0].data   # Convert to proper array
-
-    # Cut out one single segment
-    #cop = np.copy(pup_im)   # because for some reason pup_im gets overwritten somehow
-    #mini_seg = cop[:103, 197:314]
-    # Create meshgrid to be able to do grid operations
-    #x, y = np.meshgrid(np.arange(np.size(mini_seg, 1)), np.arange(np.size(mini_seg, 0)))
-    # Create blank data canvas
-    #data = np.zeros([np.size(mini_seg,0), np.size(mini_seg,1)])
-    #data1 = np.copy(data)
-    # Make a line to cover segment overlap on bottom right
-    #bottom_left = np.where(1.74*x+y > 256)
-    #data[bottom_left] = 1
-    #soso = np.copy(mini_seg)
-    #soso[bottom_left] = 0
-    #mini_seg[bottom_left] = 0
-
-    #bottom_right = np.where(-1.74*x+y > 52)
-    #mini_seg[bottom_right] = 0
-
-    #plt.imshow(pup_im)
-    #plt.show()
-
-    # Scraping the stuff above. New try with poppy function.
-
     seg_position = np.zeros((NA, 2))
     for i in range(NA):
         seg_position[i, 1], seg_position[i, 0] = jwst_pup._hex_center(i)   # y, x = center position
-        # The units of seg_posiiton are currently physical meters. I don't thing I need to do it in pixels as long
+        # The units of seg_posiiton are currently physical meters. I don't think I need to do it in pixels as long
         # as it stays consistent.
 
     #-# Make distance list with distances between all of the central pixels among each other
@@ -109,6 +88,7 @@ if __name__ == "__main__":
     ap = 0
     rp = 0
 
+    print('Nulling redundant segment pairs')
     for i in range(np.square(NA)):
         for j in range(i):
 
@@ -148,7 +128,8 @@ if __name__ == "__main__":
     NR_pairs_nb = np.count_nonzero(distance_list)   # How many non-redundant (NR) pairs do we have?
 
     #-# Select non redundant vectors
-    ### NR_pairs_list(_int) is a [NRP number, seg1, seg2] vector to hold non redundant vector information
+    ### NR_pairs_list(_int) is a [NRP number, seg1, seg2] vector to hold non redundant vector information.
+    ### NRPs are numbered from 1 to NR_pairs_nb.
 
     # Create the array of NRPs that will be the output
     # One will include the central (obscured) segment a number, one will not
@@ -166,9 +147,9 @@ if __name__ == "__main__":
         NR_pairs_list[i, 1] = nonzero[1][i]
 
         # Fill segments after cenral obscuration
-        if NR_pairs_list[i,0] > NA:
+        if NR_pairs_list[i,0] > NA/2:
             NR_pairs_list[i, 0] += 1
-        if NR_pairs_list[i,1] > NA:
+        if NR_pairs_list[i,1] > NA/2:
             NR_pairs_list[i, 1] += 1
 
     # Create baseline_vec
@@ -176,8 +157,8 @@ if __name__ == "__main__":
     baseline_vec[:,1] = NR_pairs_list[:,0]
     baseline_vec[:,0] = NR_pairs_list[:,1]
 
-    NR_pairs_list.astype(int)
-    NR_pairs_list_int.astype(int)
+    NR_pairs_list = NR_pairs_list.astype(int)
+    NR_pairs_list_int = NR_pairs_list_int.astype(int)
 
     #-# Generate projection matrix
 
@@ -199,6 +180,7 @@ if __name__ == "__main__":
     matrix_long = Projection_Matrix_int.shape[0] * Projection_Matrix_int.shape[1]
     matrix_flat = np.reshape(Projection_Matrix_int, (matrix_long, 3))
 
+    print('Creating projectino matrix')
     for i in range(np.square(NA)):
         for k in range(NR_pairs_nb):
 
@@ -206,15 +188,30 @@ if __name__ == "__main__":
 
                 if np.linalg.norm(np.cross(vec2_flat[i, :], vec_list[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1], :])) <= 1.e-10:
 
-                    matrix_flat[i, 0] = k # (?)
+                    matrix_flat[i, 0] = k + 1
                     matrix_flat[i, 1] = NR_pairs_list[k,1]
                     matrix_flat[i, 2] = NR_pairs_list[k,0]
 
     # Reshape matrix back to normal form
+    Projection_Matrix_int = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
 
     # Renumber and shift because of central obscuration
+    Projection_Matrix = np.zeros((NA+1, NA+1, 3))
 
+    # Fill top left corner from cross with zeros that marks the central segment in the matrix
+    Projection_Matrix[:cen_seg_num, :cen_seg_num] = Projection_Matrix_int[:cen_seg_num, :cen_seg_num]
+    # Fill bottom right corner
+    Projection_Matrix[cen_seg_num + 1:, cen_seg_num + 1:] = Projection_Matrix_int[cen_seg_num:, cen_seg_num:]
+    # Fill top right corner
+    Projection_Matrix[:cen_seg_num, cen_seg_num + 1:] = Projection_Matrix_int[:cen_seg_num, cen_seg_num:]
+    # Fill bottom left corner
+    Projection_Matrix[cen_seg_num + 1:, :cen_seg_num] = Projection_Matrix_int[cen_seg_num:, :cen_seg_num]
 
+    #-# Save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
 
+    util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
+    util.write_fits(vec_list, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
+    util.write_fits(NR_pairs_list_int, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
+    util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
-    #-# Get and save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
+    print('All outputs saved')
