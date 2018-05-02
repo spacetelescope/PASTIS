@@ -103,7 +103,7 @@ NR_pairs_nb = (size(NR_distance_list))[1]                 ; number of NRPs; ATLA
 
 NR_pairs_list = make_array(NR_pairs_nb, 2, value=0.)   ; Create empty array to hold NRPs [NRP number, seg1, seg2]
 
-; Loop over number of NRPs, taking into account the shift due to the central obscuration
+; Loop over number of NRPs, taking into account the shift due to the central obscuration - including center segment and giving it a number
 for i=0,NR_pairs_nb-1 do begin &$
   NR_pairs_list[i,0] = index[i] MOD nb_seg           &$                                    ; Assign first segment of the pair
   NR_pairs_list[i,1] = (index[i] - NR_pairs_list[i,0]) / nb_seg      &$                    ; Assign second segment of the pair
@@ -114,7 +114,7 @@ endfor
 ; Create the actual array of NRPs [NRP number, seg1, seg2] that will be the output
 NR_pairs_list_int = make_array(NR_pairs_nb, 2, value=0.)
 
-; Loop over number of NRPs, now not taking into account the shift due to the central obscuration
+; Loop over number of NRPs, now NOT taking into account the shift due to the central obscuration
 for i=0,NR_pairs_nb-1 do begin &$ 
   NR_pairs_list_int[i,0] = index[i] MOD nb_seg &$ 
   NR_pairs_list_int[i,1] = (index[i] - NR_pairs_list_int[i,0]) / nb_seg &$ 
@@ -146,12 +146,14 @@ vec_list_z = 0. * vec_list[*,*,1]   ; Holds no information, is needed to enable 
 ; Initialize projection matrix
 Projection_Matrix_int = make_array(nb_seg,nb_seg, 3, value = 0.)   ; [NRP #, seg1, seg2]
 
-; Loop through redundant (=all) segment pairs
+; Loop through all segment pairs
 for i=0,nb_seg*nb_seg-1 do begin &$
   ; Loop thourgh non-redundant segment pairs
   for k=0,NR_pairs_nb-1 do begin &$
-    if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0], vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],1], 0.*vec_list3[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1],0]])) LT 4. then begin &$  ; check lengths with norm
-      if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]], [vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0],vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],1],0.*vec_list3[NR_pairs_list_int[k,0],NR_pairs_list_int[k,1],0]])) LT 1000. then begin &$      ; check directions with cross product
+    ; Comparing segment pair in i against all available NRPs - if they match, tell the matrix that the pair in i corrseponds to NRP in k
+             ; compare every connecting vector of segment pair in i    ;              first segment           second segment     x of this combi         ; first segment            second segment     y of this combi            ; first segment           second segment      z of this combi (=0)
+    if abs(norm([vec_list_x[i], vec_list_y[i], vec_list_z[i]]) - norm([vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    0],   vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    1],   0.*vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    0]])) LT 4. then begin &$  ; check lengths with norm
+      if norm(crossp([vec_list_x[i], vec_list_y[i], vec_list_z[i]],   [vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    0],   vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    1],   0.*vec_list3[NR_pairs_list_int[k,0],    NR_pairs_list_int[k,1],    0]])) LT 1000. then begin &$      ; check directions with cross product
         Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 0] = k+1                     &$ ; NRP #
         Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 1] = NR_pairs_list[k,1]      &$ ; segmet 1 of NRP
         Projection_Matrix_int[i MOD nb_seg, (i-(i MOD nb_seg))/nb_seg, 2] = NR_pairs_list[k,0]      &$ ; segment 2 of NRP
@@ -173,10 +175,10 @@ vec_list = vec_list3
 return, baseline_vec
 
 ; REMEMBER TO SAVE THE OUTPUTS TO FITS FILES!!! (4 files)
-; (baseline_vec)
-; vec_list
-; NR_pairs_list_int
-; Projection_Matrix
+; (baseline_vec) - central obscuration also has a number assigned
+; vec_list - central obscuration does NOT have a number assigned
+; NR_pairs_list_int - central obscuration has NOT a number assigned
+; Projection_Matrix - central obscuration DOES have a number assigned
 
 ;writefits, 'vec_list' + '.fits', vec_list
 ;writefits, 'NR_pairs_list_int' + '.fits', NR_pairs_list_int
