@@ -39,7 +39,7 @@ import webbpsf
 if __name__ == "__main__":
 
     # Some parameters
-    NA = 18   # Number of apertures, without central obscuration
+    NA = 18   # Number of apertures, without central obscuration (= nb_seg)
 
     #-# Generate the pupil with segments and spiders or read in from fits file
 
@@ -148,33 +148,73 @@ if __name__ == "__main__":
     NR_pairs_nb = np.count_nonzero(distance_list)   # How many non-redundant (NR) pairs do we have?
 
     #-# Select non redundant vectors
-    ### NR_pairs_list is [NRP number, seg1, seg2] vector to hold non redundant vector information
+    ### NR_pairs_list(_int) is a [NRP number, seg1, seg2] vector to hold non redundant vector information
 
     # Create the array of NRPs that will be the output
-    # We are not giving the central obscuration segment a number
-    NR_pairs_list = np.zeros((NR_pairs_nb, 2))
+    # One will include the central (obscured) segment a number, one will not
+    NR_pairs_list = np.zeros((NR_pairs_nb, 2))       # including center segment and giving it a number
+    NR_pairs_list_int = np.zeros((NR_pairs_nb, 2))   # not numbering center segment - this is an output
 
     # Loop over number of NRPs
+    for i in range(NR_pairs_nb):
+        NR_pairs_list_int[i,0] = nonzero[0][i]
+        NR_pairs_list_int[i, 1] = nonzero[1][i]
+
+    # Including the central segment with a number
     for i in range(NR_pairs_nb):
         NR_pairs_list[i,0] = nonzero[0][i]
         NR_pairs_list[i, 1] = nonzero[1][i]
 
-    #-# Create NR_pairs_list_int (?) and baseline_vec
+        # Fill segments after cenral obscuration
+        if NR_pairs_list[i,0] > NA:
+            NR_pairs_list[i, 0] += 1
+        if NR_pairs_list[i,1] > NA:
+            NR_pairs_list[i, 1] += 1
+
+    # Create baseline_vec
     baseline_vec = np.copy(NR_pairs_list)
     baseline_vec[:,1] = NR_pairs_list[:,0]
     baseline_vec[:,0] = NR_pairs_list[:,1]
 
     NR_pairs_list.astype(int)
+    NR_pairs_list_int.astype(int)
 
     #-# Generate projection matrix
 
     # Set diagonal to zero (distance between a segment and itself will always be zero)
+    # Although I am pretty sure they already are.
     vec_list2 = np.copy(vec_list)
     for i in range(NA):
         for j in range(NA):
             if i ==j:
                 vec_list2[i,j,:] = [0,0]
 
+    # Initialize an intermediate version of the projection matrix
+    Projection_Matrix_int = np.zeros((NA, NA, 3))
+
+    # Reshape needed arrays so that we can loop over them easier
+    vec2_long = vec_list2.shape[0] * vec_list2.shape[1]
+    vec2_flat = np.reshape(vec_list2, (vec2_long, 2))
+
+    matrix_long = Projection_Matrix_int.shape[0] * Projection_Matrix_int.shape[1]
+    matrix_flat = np.reshape(Projection_Matrix_int, (matrix_long, 3))
+
+    for i in range(np.square(NA)):
+        for k in range(NR_pairs_nb):
+
+            if np.abs(np.linalg.norm(vec2_flat[i, :]) - np.linalg.norm(vec_list[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1], :])) <= 1.e-10:
+
+                if np.linalg.norm(np.cross(vec2_flat[i, :], vec_list[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1], :])) <= 1.e-10:
+
+                    matrix_flat[i, 0] = k # (?)
+                    matrix_flat[i, 1] = NR_pairs_list[k,1]
+                    matrix_flat[i, 2] = NR_pairs_list[k,0]
+
+    # Reshape matrix back to normal form
+
+    # Renumber and shift because of central obscuration
 
 
-    #-# Get the vectors Projection_Matrix
+
+
+    #-# Get and save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
