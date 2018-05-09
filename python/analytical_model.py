@@ -9,8 +9,10 @@ if __name__ == "__main__":
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
     wvln = CONFIG_INI.getint('filter', 'lambda')
+    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
 
     #-# Generate a dark hole
+    dh_area = circle_mask(im, im.shape[1]/2., im.shape[2]/2., inner_wa)
 
     #-# Mean subtraction for piston
 

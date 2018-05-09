@@ -44,3 +44,10 @@ def write_fits(data, filepath, header=None, metadata=None):
 
     #print('Wrote ' + filepath)
     return filepath
+
+
+def circle_mask(im, xc, yc, rcirc):
+    x, y = np.shape(im)
+    newy, newx = np.mgrid[0:y,0:x]
+    circ = (newx-xc)**2 + (newy-yc)**2 < rcirc**2
+    return circ
