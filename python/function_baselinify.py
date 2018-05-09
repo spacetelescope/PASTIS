@@ -29,21 +29,18 @@ Outputs:
 """
 
 import os
-import time
-from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage
 import poppy
-import webbpsf
 
 import util_pastis as util
+from hicat.config import CONFIG_INI
 
 
 if __name__ == "__main__":
 
     # Some parameters
-    NA = 18   # Number of apertures, without central obscuration (= nb_seg)
+    NA = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration (= nb_seg)
     cen_seg_num = 9   # SEGMENT NUMBERING STARTS WITH 0!!!
                        # Number assigned to the central segment in arrays where we include it in the numbering.
                        # It will not always be NA/2 like here, think of apertures with an uneven number of segments!
