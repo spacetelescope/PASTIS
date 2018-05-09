@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 import poppy
 
 import util_pastis as util
-from hicat.config import CONFIG_INI
+from python.config import CONFIG_INI
 
 
 if __name__ == "__main__":

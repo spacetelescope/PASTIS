@@ -1,16 +1,14 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 from astropy.io import fits
 
-import util_pastis as util
-from hicat.config import CONFIG_INI
+from python.config import CONFIG_INI
 
 
 if __name__ == "__main__":
 
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
+    wvln = CONFIG_INI.getint('filter', 'lambda')
 
     #-# Generate a dark hole
 
