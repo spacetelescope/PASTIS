@@ -9,7 +9,7 @@ function analytical_model, zernike_pol=zernike_pol, coef=coef
 lambda = 640
 s_path = 'IMGS_BLACK_HOLE-test002/'
 flux = 1e9
-ech = 2D
+ech = 2D   ; sampling - "fake" sampling; multiply by 614./708. to scale it and ge the real sampling
 n_seg = 37
 nb_seg = 7
 size_seg = 100
@@ -22,7 +22,7 @@ np = size_seg
 gap = size_gap
 np_tot = (NP+gap) * (alpha / marge)
 pupdiam = np_tot
-largeur = 614.*ech
+largeur = 614.*ech   ; size of pupil (?) with taking the sampling into account - as opposed to the 708 of total image
 D_telescope = 16.8e9 ; en nm
 Size_Telescope = D_telescope/614. ; in nm per pixel, in pupil plane (size of one pixel in pupil in nm)
 Size_Pixel = 18.e3 ; in nm per pix, in detector plane (focal plane)
@@ -35,7 +35,7 @@ PixelSquare2Rad = (Size_Telescope*Size_Pixel*Wave_number/Focal_Length) ; 528 ; (
 polaire2, rt=10.*ech*614./708., largeur=largeur, /entre4, masque=masko, /double
 polaire2, rt=4.*ech*614./708., largeur=largeur, /entre4, masque=maski, /double
 dh_area = abs(masko-maski)
-
+aff
 ;;;;;;;;;;;;;;;; MEAN SUBTRACTION ;;;;;;;;;;;;;;;;
 ; Only for piston
 
