@@ -7,11 +7,11 @@ function analytical_model, zernike_pol=zernike_pol, coef=coef
 
 ;;;;;;;;;;;;;;;;;;; PARAMETERS ;;;;;;;;;;;;;;;;;;;
 lambda = 640
-s_path = 'IMGS_BLACK_HOLE-test002/'
-flux = 1e9
+;s_path = 'IMGS_BLACK_HOLE-test002/'
+;flux = 1e9
 ech = 2D   ; sampling - "fake" sampling; multiply by 614./708. to scale it and ge the real sampling
 n_seg = 37
-nb_seg = 7
+nb_seg = 7   ; only used three lines further down - why?
 size_seg = 100
 size_gap = 1
 marge = 2.0
@@ -76,13 +76,13 @@ NR_pairs_nb = (size(Baseline_vec))[1]
 
 ; Block commented out  because I don't have any calibration files yet
 ;if zernike_pol EQ 1 then ck=sqrt(readfits('Calibration_Tip.fits'))
-if zernike_pol EQ 2 then ck=sqrt(readfits('Calibration_Tilt.fits'))
+;if zernike_pol EQ 2 then ck=sqrt(readfits('Calibration_Tilt.fits'))
 ;if zernike_pol EQ 3 then ck=sqrt(readfits('Calibration_Focus.fits'))
 ;if zernike_pol EQ 4 then ck=sqrt(readfits('Calibration_Astig45.fits'))
 ;if zernike_pol EQ 5 then ck=sqrt(readfits('Calibration_Astig0.fits'))
 
 ; When you're only about to make the calibration files, use this line for ck, otherwise comment out
-;ck = make_array(37, value=1.)
+ck = make_array(37, value=1.)
 
 ; This line doesn't ever change, it just looks weird
 coef = coef * ck
@@ -98,7 +98,7 @@ for q=0,NR_pairs_nb-1 do begin
 endfor
 
 ;;;;;;;;;;;;;;;;;;; CONSTANT SUM AND COSINE SUM ;;;;;;;;;;;;;;;;;;;
-tab_i = (dindgen(largeur, largeur) mod largeur) - largeur/2. + 0.5
+tab_i = (DINDGEN(largeur, largeur) mod largeur) - largeur/2. + 0.5
 tab_j = transpose(tab_i)
 cos_u_mat = dblarr(largeur, largeur, 63)
 PixelSquare2Rad = double(PixelSquare2Rad)

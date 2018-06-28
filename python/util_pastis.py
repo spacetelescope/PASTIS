@@ -6,6 +6,7 @@ import os
 import numpy as np
 from astropy.io import fits
 
+
 def write_fits(data, filepath, header=None, metadata=None):
     """
     Writes a fits file and adds header and metadata when necessary.
@@ -47,7 +48,32 @@ def write_fits(data, filepath, header=None, metadata=None):
 
 
 def circle_mask(im, xc, yc, rcirc):
+    """ Create a circle on array im centered on xc, yc with radius rcirc; inside circle equals 1."""
     x, y = np.shape(im)
     newy, newx = np.mgrid[0:y,0:x]
     circ = (newx-xc)**2 + (newy-yc)**2 < rcirc**2
     return circ
+
+
+def zoom(im, x, y, bb):
+    """
+    Cut out a square box from image im centered on (x,y) with half-box size bb.
+    :param im: image from which box will be taken
+    :param x: x coordinate of center of box
+    :param y: y coordinate of center of box
+    :param bb: half-box size
+    :return:
+    """
+    return(im[y-bb:y+bb, x-bb:x+bb])
+
+
+def FFT(ef):
+    """Do the numpy Fourier transform on complex array 'ef', together with all the shifting needed."""
+    FFT_E = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(ef)))
+    return FFT_E
+
+
+def IFFT(ef):
+    """Do the numpy inverse Fourier transform on complex array 'ef', together with all the shifting needed."""
+    IFFT_E = np.fft.ifftshift(np.fft.ifft2(np.fft.fftshift(ef)))
+    return IFFT_E

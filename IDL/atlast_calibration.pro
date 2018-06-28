@@ -141,7 +141,7 @@ contrastAM_vec_int = make_array(37, value=0.)
   
   for inc = 0,36 do begin
     
-    print, 'for inc = ' + inc
+    print, 'for inc = ' + string(inc)
     
     ; Put aberration on only one segment
     A = 0.*randomu(seed, nb_seg, 1)

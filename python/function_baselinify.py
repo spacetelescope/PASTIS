@@ -26,6 +26,8 @@ Outputs:
                         NR_pairs_list_int[n,*] = [i,j] means that the pair formed by the segments #i and #j is the nth
                         non-redundant pair of the non-redundant-pair basis.
     Baseline_vec:       Restructured version of NR_pairs_list_int.
+    JWST_aperture.pdf:  PDF display of the telescope pupil
+    pupil.fits:         fits file of the telescope pupil
 """
 
 import os
@@ -33,7 +35,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import poppy
 
-import util_pastis as util
+import python.util_pastis as util
 from python.config import CONFIG_INI
 
 
