@@ -35,7 +35,7 @@ PixelSquare2Rad = (Size_Telescope*Size_Pixel*Wave_number/Focal_Length) ; 528 ; (
 polaire2, rt=10.*ech*614./708., largeur=largeur, /entre4, masque=masko, /double
 polaire2, rt=4.*ech*614./708., largeur=largeur, /entre4, masque=maski, /double
 dh_area = abs(masko-maski)
-aff
+aff, dh_area
 ;;;;;;;;;;;;;;;; MEAN SUBTRACTION ;;;;;;;;;;;;;;;;
 ; Only for piston
 
