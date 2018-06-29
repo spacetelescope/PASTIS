@@ -96,14 +96,14 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
         dim_tf = na
 
     # Coordinate grids in real space
-    yy = ((np.arange(int(na)) + 0.5) - na/2.) / na
-    yy = np.expand_dims(yy, axis=0)
-    xx = np.copy(yy)
+    xx = ((np.arange(int(na)) + 0.5) - na/2.) / na
+    xx = np.expand_dims(xx, axis=0)
+    yy = np.copy(xx)
 
     # Coordinate grids in Fourier space
-    vv = ((np.arange(int(nb)) + 0.5) - nb/2.) * param / nb
-    vv = np.expand_dims(vv, axis=0)
-    uu = np.copy(vv)
+    uu = ((np.arange(int(nb)) + 0.5) - nb/2.) * param / nb
+    uu = np.expand_dims(uu, axis=0)
+    vv = np.copy(uu)
 
     # Adjust sign in FT to whether you want the inverse FT or not
     if inverse:
@@ -112,8 +112,8 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
         sign = 1
 
     # Dissect the matrix multiplications so that it's easier to deal with them
-    expo1 = np.matmul(np.transpose(xx), uu)
-    expo2 = np.matmul(np.transpose(vv), yy)
+    expo1 = np.matmul(np.transpose(yy), vv)
+    expo2 = np.matmul(np.transpose(uu), xx)
 
     squash = sign * 2.*1j*np.pi
     transform = (param / (na*nb)) + np.matmul(np.exp(squash * expo2), np.matmul(im, np.exp(squash * expo1)))
