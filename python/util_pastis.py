@@ -77,3 +77,45 @@ def IFFT(ef):
     """Do the numpy inverse Fourier transform on complex array 'ef', together with all the shifting needed."""
     IFFT_E = np.fft.ifftshift(np.fft.ifft2(np.fft.fftshift(ef)))
     return IFFT_E
+
+
+def matrix_fourier(im, param, inverse=False, dim_tf=None):
+    """
+    Calculate the Matrix FOurier Transform MTF.
+
+    Translated directly form the ONERA IDL scsript mtf.pro by bpaul.
+    :param im: array with dimensions na x na of which we want to calculate the Fourier transform
+    :param param: not quite sure what this is, but I need it and it works with my inputs so far
+    :param inverse: if True, inverse FT will beb calculated; default is False
+    :param dim_tf: optional, size of the output Fourier transform array. Without it, the FT will have same dimensions like input im
+    :return:
+    """
+    na = im.shape[0]
+    nb = dim_tf
+    if dim_tf == None:
+        dim_tf = na
+
+    # Coordinate grids in real space
+    yy = ((np.arange(int(na)) + 0.5) - na/2.) / na
+    yy = np.expand_dims(yy, axis=0)
+    xx = np.copy(yy)
+
+    # Coordinate grids in Fourier space
+    vv = ((np.arange(int(nb)) + 0.5) - nb/2.) * param / nb
+    vv = np.expand_dims(vv, axis=0)
+    uu = np.copy(vv)
+
+    # Adjust sign in FT to whether you want the inverse FT or not
+    if inverse:
+        sign = -1
+    else:
+        sign = 1
+
+    # Dissect the matrix multiplications so that it's easier to deal with them
+    expo1 = np.matmul(np.transpose(xx), uu)
+    expo2 = np.matmul(np.transpose(vv), yy)
+
+    squash = sign * 2.*1j*np.pi
+    transform = (param / (na*nb)) + np.matmul(np.exp(squash * expo2), np.matmul(im, np.exp(squash * expo1)))
+
+    return transform
