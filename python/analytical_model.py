@@ -2,7 +2,7 @@
 This script applies the analytical model in the case of one single Zernike polynomial
 on the segments.
 We're following the Noll convention starting with index 0
-0> piston, 1: tip, 2: tilt, 3: defocus, 4: 45°-astigmatism, and so on...
+0: piston, 1: tip, 2: tilt, 3: defocus, 4: 45°-astigmatism, and so on...
 """
 
 import os
@@ -20,6 +20,7 @@ if __name__ == "__main__":
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
     wvln = CONFIG_INI.getint('filter', 'lambda')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
@@ -30,12 +31,12 @@ if __name__ == "__main__":
     real_samp = sampling * tel_size_px / im_size                       # real sampling - effectively lambda/D
     largeur = tel_size_px * sampling                                   # ; size of pupil (?) with taking the sampling into account - as opposed to the 708 of total image
     wave_number = 2. * np.pi / wvln
-    focal = 2. * px_nm * CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / wvln    # focal length of the telescope
+    focal = sampling * px_nm * CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / wvln    # focal length of the telescope
     size_tel = CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / tel_size_px   # size of one pixel in pupil in nm
     px_square_2rad = size_tel * px_nm * wave_number / focal
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    zernike_pol = 0
+    zernike_pol = 2
     A = np.zeros(nb_seg + 1)
     A[9] = 1.
     coef = A
@@ -97,7 +98,7 @@ if __name__ == "__main__":
 
     #-# Constant sum and cosine sum
     # I gotta figure out in what way to actually to do int() or mod()/%, because largeur is a float here
-    tab_i = np.reshape(np.arange(int(largeur ** 2)), (int(largeur), int(largeur))) - largeur/2. + 0.5
+    tab_i = (np.reshape(np.arange(int(largeur ** 2)), (int(largeur), int(largeur))) % largeur) - largeur/2. + 0.5
     tab_j = np.transpose(tab_i)
     cos_u_mat = np.zeros((int(largeur), int(largeur), NR_pairs_nb))
 
@@ -108,12 +109,11 @@ if __name__ == "__main__":
     sum1 = np.sum(coef**2)
     sum2 = np.zeros((int(largeur), int(largeur)))
 
-    for q in range (NR_pairs_nb):
+    for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
 
     #-# Local Zernike
     # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
-    size_seg = 100
     isolated_zerns = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
 
     if zernike_pol == 0:
@@ -132,8 +132,8 @@ if __name__ == "__main__":
     #-# Final image
     # Generating the final image that will get passed on to the outer scope
     # I need to blow up the result from the FT to the size of sum2
-    TF_seg = np.abs(util.FFT(Zer)**2 * (sum1 + 2. * sum2))
-    TF_seg_zoom = util.zoom(TF_seg, TF_seg.shape[0]/2, TF_seg.shape[1]/2, 20)
-    dh_area_zoom = util.zoom(dh_area, dh_area.shape[0]/2, dh_area.shape[1]/2, 20)
+    TF_seg = np.abs(util.matrix_fourier(Zer, param=100, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 20)
+    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 20)
 
     DH_PSF = dh_area_zoom * TF_seg_zoom
