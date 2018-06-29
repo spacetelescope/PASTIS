@@ -9,7 +9,9 @@ import os
 import numpy as np
 from astropy.io import fits
 import poppy.zernike as zern
+import poppy
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
@@ -37,28 +39,35 @@ if __name__ == "__main__":
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     zernike_pol = 2
+    inc = 0
     A = np.zeros(nb_seg + 1)
-    A[9] = 1.
+    A[inc] = 1.
+    A[9] = 0.
     coef = A
     cali = False   # Determine whether you want the calibration to take place or not
 
-    # Create the pupil image
-    pup_im = np.zeros((im_size, im_size))
-
-    #-# Generate a dark hole
-    circ_inner = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., inner_wa * real_samp) * 1
-    circ_outer = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., outer_wa * real_samp) * 1
-    dh_area = circ_outer - circ_inner
-
     #-# Mean subtraction for piston
-    coef = coef / 2. * np.pi / wvln
+    coef = coef * 2. * np.pi / wvln
 
     if zernike_pol == 0:
         coef -= np.mean(coef)
 
     #-# Generic segment shape
     pupil = fits.getdata(os.path.join(dataDir, 'pupil.fits'))
-    mini_seg = np.zeros((100,100))   # jsut a stand-in for now
+    pup_im = np.zeros_like(pupil)
+    # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment
+    # one_seg = np.zeros_like(test_seg)
+    # one_seg[:110, :] = test_seg[8:, :]    # this is the centered version of the individual segment
+    # mini_seg = np.ones((size_seg, size_seg))   # jsut a stand-in for now
+    mini_seg2 = poppy.NgonAperture(name='mini', radius=1.32)   # creating real mini segment shape with poppy
+    #mini_seg2 = mini_seg2.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
+    mini_hdu = mini_seg2.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
+    mini_seg = mini_hdu[0].data      # extract the image data from the fits file
+
+    #-# Generate a dark hole
+    circ_inner = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., inner_wa * real_samp) * 1
+    circ_outer = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., outer_wa * real_samp) * 1
+    dh_area = circ_outer - circ_inner
 
     #-# Import baseline information
 
@@ -133,7 +142,10 @@ if __name__ == "__main__":
     # Generating the final image that will get passed on to the outer scope
     # I need to blow up the result from the FT to the size of sum2
     TF_seg = np.abs(util.matrix_fourier(Zer, param=100, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
-    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 20)
-    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 20)
+    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)
+    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
-    DH_PSF = dh_area_zoom * TF_seg_zoom
+    dh_psf = dh_area_zoom * TF_seg_zoom
+
+    plt.imshow(dh_psf)
+    plt.show()
