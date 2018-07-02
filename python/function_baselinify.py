@@ -26,36 +26,55 @@ Outputs:
                         NR_pairs_list_int[n,*] = [i,j] means that the pair formed by the segments #i and #j is the nth
                         non-redundant pair of the non-redundant-pair basis.
     Baseline_vec:       Restructured version of NR_pairs_list_int.
+    JWST_aperture.pdf:  PDF display of the telescope pupil
+    pupil.fits:         fits file of the telescope pupil
 """
 
 import os
-import time
-from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage
 import poppy
-import webbpsf
 
-import util_pastis as util
+import python.util_pastis as util
+from python.config import CONFIG_INI
 
 
 if __name__ == "__main__":
 
     # Some parameters
-    NA = 18   # Number of apertures, without central obscuration (= nb_seg)
+    NA = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration (= nb_seg)
     cen_seg_num = 9   # SEGMENT NUMBERING STARTS WITH 0!!!
                        # Number assigned to the central segment in arrays where we include it in the numbering.
                        # It will not always be NA/2 like here, think of apertures with an uneven number of segments!
+    flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
+    wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
+    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
+    total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
     outDir = os.path.join('..', 'data', 'py_data')
 
     #-# Generate the pupil with segments and spiders or read in from fits file
 
     # Use poppy to  create JWST aperture without spiders
     print('Creating and saving aperture')
-    jwst_pup = poppy.MultiHexagonAperture(rings=2)   # Create JWST pupil without spiders
+    jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=flat_to_flat)   # Create JWST pupil without spiders
     jwst_pup.display()   # Show pupil
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
+
+    # Get pupil as fits image
+    pupil_dir = jwst_pup.sample(wavelength=wvl, grid_size=flat_diam, return_scale=True)
+    # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
+    # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
+
+    # m_per_pix = pupil_dir[1].value   # [m/pix]
+    # dif = total_diam - flat_diam
+    # extra_px = dif / m_per_pix
+    # new_dim = pupil_dir[0].shape[0] + extra_px
+    # pupil = np.zeros((int(new_dim), int(new_dim)))
+    # low = int(extra_px/2.)
+    # high = int(pupil_dir[0].shape[0]+extra_px/2.)
+    # pupil[low:high, low:high] = pupil_dir[0]
+    # util.write_fits(pupil, os.path.join(outDir, 'pupil.fits'))
+    util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
 
     #-# Get the coordinates of the central pixel of each segment
     ### In IDL done by 'eroding' the pupil - fill each center pixel with 1 and the rest with 0.
