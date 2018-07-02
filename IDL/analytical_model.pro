@@ -89,9 +89,9 @@ coef = coef * ck
 
 ;;;;;;;;;;;;;;;;;;; GENERIC COEFFICIENTS Aq ;;;;;;;;;;;;;;;;;;;
 Generic_Coef = make_array(NR_pairs_nb,value = 0.)
-for q=0,NR_pairs_nb-1 do begin   ; coefficient in front of the non redundant pairs (C_k) / A_q in eq. 13
-  for i=0,n_seg-1 do begin
-    for j=i+1,n_seg-1 do begin
+for q=0,NR_pairs_nb-1 do begin &$  ; coefficient in front of the non redundant pairs (C_k) / A_q in eq. 13
+  for i=0,n_seg-1 do begin &$
+    for j=i+1,n_seg-1 do begin &$
       if Projection_Matrix[i,j,0] EQ q+1 then Generic_Coef[q] = Generic_Coef[q]+(coef[i]*coef[j])
     endfor
   endfor
@@ -103,14 +103,14 @@ tab_i = (DINDGEN(largeur, largeur) mod largeur) - largeur/2. + 0.5
 tab_j = transpose(tab_i)
 cos_u_mat = dblarr(largeur, largeur, 63)
 PixelSquare2Rad = double(PixelSquare2Rad)
-for q=0,NR_pairs_nb-1 do begin
+for q=0,NR_pairs_nb-1 do begin &$
   cos_u_mat[*,*,q] = cos(PixelSquare2Rad*(vec_list[NR_pairs_list_int[q,0], NR_pairs_list_int[q,1],0]*tab_i) + PixelSquare2Rad*(vec_list[NR_pairs_list_int[q,0], NR_pairs_list_int[q,1],1]*tab_j))
 endfor
 
 Somme1 = total(coef^2)                                      ; see eq. 13
 Somme2 = make_array(largeur, largeur, value=0.)             ; see eq. 13
 
-for q=0,NR_pairs_nb-1 do begin
+for q=0,NR_pairs_nb-1 do begin &$
   Somme2 = Somme2 + Generic_Coef[q] * Cos_U_mat[*,*,q]
 endfor
 

@@ -22,7 +22,9 @@ if __name__ == "__main__":
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
+    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
     wvln = CONFIG_INI.getint('filter', 'lambda')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
@@ -52,16 +54,22 @@ if __name__ == "__main__":
     if zernike_pol == 0:
         coef -= np.mean(coef)
 
-    #-# Generic segment shape
+    #-# Generic segment shapes
+    # Load pupil from file
     pupil = fits.getdata(os.path.join(dataDir, 'pupil.fits'))
-    pup_im = np.zeros_like(pupil)
+
+    # Put pupil in randomly picked, slightly larger image array
+    pup_im = np.zeros([600, 600])
+    lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
+    pup_im[lim:-lim, lim:-lim] = pupil
     # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment
     # one_seg = np.zeros_like(test_seg)
     # one_seg[:110, :] = test_seg[8:, :]    # this is the centered version of the individual segment
-    # mini_seg = np.ones((size_seg, size_seg))   # jsut a stand-in for now
-    mini_seg2 = poppy.NgonAperture(name='mini', radius=1.32)   # creating real mini segment shape with poppy
-    #mini_seg2 = mini_seg2.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
-    mini_hdu = mini_seg2.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
+
+    # Creat a mini-segment (one individual segment from the segmented aperture)
+    mini_seg_real = poppy.NgonAperture(name='mini', radius=real_size_seg)   # creating real mini segment shape with poppy
+    test = mini_seg_real.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
+    mini_hdu = mini_seg_real.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole
@@ -69,8 +77,7 @@ if __name__ == "__main__":
     circ_outer = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., outer_wa * real_samp) * 1
     dh_area = circ_outer - circ_inner
 
-    #-# Import baseline information
-
+    #-# Import baseline information form previous script
     Baseline_vec = fits.getdata(os.path.join(dataDir, 'Baseline_vec.fits'))
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'Projection_Matrix.fits'))
     vec_list = fits.getdata(os.path.join(dataDir, 'vec_list.fits'))
@@ -79,7 +86,7 @@ if __name__ == "__main__":
     # Figure out how many NRPs we're dealing with
     NR_pairs_nb = NR_pairs_list_int.shape[0]
 
-    #-# Calibration about to happen yes or no
+    #-# Chose whether calibration is about to happen yes or no
     if cali:
         if zernike_pol == 1:
             ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Tip.fits')))
@@ -147,5 +154,16 @@ if __name__ == "__main__":
 
     dh_psf = dh_area_zoom * TF_seg_zoom
 
+    plt.subplot(1, 3, 1)
+    plt.imshow(pupil)
+    plt.title('JWST pupil and diameter definition')
+    plt.plot([46.5, 464.5], [101.5, 409.5], 'r-')   # show how the diagonal of the pupil is defined
+
+    plt.subplot(1, 3, 2)
+    plt.imshow(mini_seg)
+    plt.title('JWST individual mini-segment')
+
+    plt.subplot(1, 3, 3)
     plt.imshow(dh_psf)
+    plt.title('JWST dark hole')
     plt.show()
