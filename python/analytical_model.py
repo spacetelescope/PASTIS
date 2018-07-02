@@ -40,13 +40,15 @@ if __name__ == "__main__":
     px_square_2rad = size_tel * px_nm * wave_number / focal
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    zernike_pol = 2
+    ### this is actually functional input ###
+    zernike_pol = 10
     inc = 0
     A = np.zeros(nb_seg + 1)
     A[inc] = 1.
     A[9] = 0.
     coef = A
     cali = False   # Determine whether you want the calibration to take place or not
+    ### functional input end ###
 
     #-# Mean subtraction for piston
     coef = coef * 2. * np.pi / wvln
@@ -132,28 +134,23 @@ if __name__ == "__main__":
     # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
     isolated_zerns = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
 
-    if zernike_pol == 0:
+    # Apply the currently used Zernike to the mini-segment.
+    if zernike_pol == 1:
         Zer = mini_seg
-    elif zernike_pol == 1:
-        Zer = mini_seg * isolated_zerns[1]
-    elif zernike_pol == 2:
-        Zer = mini_seg * isolated_zerns[2]
-    elif zernike_pol == 3:
-        Zer = mini_seg * isolated_zerns[3]
-    elif zernike_pol == 4:
-        Zer = mini_seg * isolated_zerns[4]
-    elif zernike_pol == 5:
-        Zer = mini_seg * isolated_zerns[5]
+    elif zernike_pol in range(2, zern_max-2):
+        Zer = mini_seg * isolated_zerns[zernike_pol-1]
 
     #-# Final image
-    # Generating the final image that will get passed on to the outer scope
-    # I need to blow up the result from the FT to the size of sum2
-    TF_seg = np.abs(util.matrix_fourier(Zer, param=100, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+    # Generating the final image that will get passed on to the outer scope.
+    TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/real_samp, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+
+    # PASTIS is only valid inside the dark hole.
     TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
     dh_psf = dh_area_zoom * TF_seg_zoom
 
+    # Create plots.
     plt.subplot(1, 3, 1)
     plt.imshow(pupil)
     plt.title('JWST pupil and diameter definition')

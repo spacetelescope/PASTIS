@@ -158,18 +158,18 @@ if __name__ == "__main__":
     # Loop over number of NRPs
     for i in range(NR_pairs_nb):
         NR_pairs_list_int[i,0] = nonzero[0][i]
-        NR_pairs_list_int[i, 1] = nonzero[1][i]
+        NR_pairs_list_int[i,1] = nonzero[1][i]
 
     # Including the central segment with a number
     for i in range(NR_pairs_nb):
         NR_pairs_list[i,0] = nonzero[0][i]
-        NR_pairs_list[i, 1] = nonzero[1][i]
+        NR_pairs_list[i,1] = nonzero[1][i]
 
         # Fill segments after cenral obscuration
         if NR_pairs_list[i,0] > NA/2:
-            NR_pairs_list[i, 0] += 1
+            NR_pairs_list[i,0] += 1
         if NR_pairs_list[i,1] > NA/2:
-            NR_pairs_list[i, 1] += 1
+            NR_pairs_list[i,1] += 1
 
     # Create baseline_vec
     baseline_vec = np.copy(NR_pairs_list)
