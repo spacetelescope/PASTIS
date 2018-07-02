@@ -85,7 +85,7 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
 
     Translated directly form the ONERA IDL scsript mtf.pro by bpaul.
     :param im: array with dimensions na x na of which we want to calculate the Fourier transform
-    :param param: not quite sure what this is, but I need it and it works with my inputs so far
+    :param param: image size in px over sampling (na/samp)
     :param inverse: if True, inverse FT will beb calculated; default is False
     :param dim_tf: optional, size of the output Fourier transform array. Without it, the FT will have same dimensions like input im
     :return:
