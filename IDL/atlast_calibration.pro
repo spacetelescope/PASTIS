@@ -1,22 +1,22 @@
 PRO atlast_calibration
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; APLC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-wfe_up_nm = 0.   ; wavefront error upstream [nm]
-ae_nm = 0.
-wfe_down_nm = 0. ; wavefront error downstream [nm]
+wfe_up_nm = 0.   ; wavefront error upstream [nm] (just needed input for functions)
+ae_nm = 0.       ; amplitude error [nm] (just needed input for functions)
+wfe_down_nm = 0. ; wavefront error downstream [nm] (just needed input for functions)
 lambda = 640; 1589. LL   ; wavelength [nm]
 
 nm2rad = 2.*!dpi/lambda    ; conversion factor
-wfe_up_rad = wfe_up_nm * nm2rad   ; wavefront error upstream [red]
-ae_rad = ae_nm*nm2rad
+wfe_up_rad = wfe_up_nm * nm2rad   ; wavefront error upstream [rad]
+ae_rad = ae_nm*nm2rad             ; amplitude error [rad]
 wfe_down_rad = wfe_down_nm * nm2rad   ; wavefront error downstream [rad]
 
 lyot = 0.9   ; size of Lyot stop, 0.9 times the entrance pupil (it is a bit smaller than entrance pupil)
 ech = 2D
 throughput = 0.44583701
 
-save = 0
-s_path = 'IMGS_BLACK_HOLE-test002/'
+;save = 0
+;s_path = 'IMGS_BLACK_HOLE-test002/'
 
 corono={type:'lyot', size:4.5D*2.*614./708., epsilon:1D}
 
@@ -43,7 +43,7 @@ tek_color
 !y.thick = 1.0
 
 
-nb_seg = 7
+nb_seg = 7    ; number of segments in diameter
 size_seg = 100
 size_gap = 1
 marge = 2.0
@@ -72,6 +72,7 @@ pup_up = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/ApodSol_APLC_quart_
 ; Load Lyot stop
 pup_do = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/LS_full_atlast.fits')
 
+; Cutting both of them to smaller sizes
 pup_up = crop(pup_up, /m, nc=614)
 pup_do = crop(pup_do, /m, nc=614)
 
@@ -80,11 +81,11 @@ spec_pup = [[[pup_up]], [[pup_do]]]   ; creating an array with the APLC in one p
 power_sp = 2.
 
 phi_up = simu_phi_fourier(pup=pup_up, wfe_rad=wfe_up_rad, seed=5678, power_sp=power_sp)   ; Creating the aberration that can be taken as input in end-to-end simulator
-ampl = simu_phi_fourier(pup= pup_up, wfe_rad=ae_rad, seed=1234, power_sp=power_sp)
+ampl = simu_phi_fourier(pup= pup_up, wfe_rad=ae_rad, seed=1234, power_sp=power_sp)        ;  (just needed input for functions)
 
-phi_up = phi_up - complex(0.,1.) * ampl
+phi_up = phi_up - complex(0.,1.) * ampl   ;  (just needed input for functions)
 
-phi_do = simu_phi_fourier(pup=pup_do, wfe_rad=wfe_down_rad, seed=5678, power_sp=power_sp)
+phi_do = simu_phi_fourier(pup=pup_do, wfe_rad=wfe_down_rad, seed=5678, power_sp=power_sp)   ;  (just needed input for functions)
 
 psf_ref = 1
 h_npc = 1
@@ -97,17 +98,17 @@ calc_psf_coro_phase, PHI_up = phi_up, $              ; input: upstream phase map
                      PUPDIAM_DO = pupdiam*lyot, $    ; input: downstream pupil diameter
                      ECH = ECH, $                    ; input: sampling
                      tab_np = tab_np, $
-                     h_sc = psf_ref, $               ; optional outup: PSF without coronagraph
+                     h_sc = psf_ref, $               ; optional output: PSF without coronagraph
                      h_npc = h_npc, $                ; output: PSF with coronagraph
                      CORONO = corono,$               ; input: coronagraph to use
                      APOD = apod, $                  ; optional input: apodizer to use
                      METH = meth                     ; input: calculation method
 ; Creates a coronagraphic PSF from a downstream and an upstream phase map
            
-p_ref = circminmaxmoy(psf_ref)
+p_ref = circminmaxmoy(psf_ref)   ; radial average
 normp = max(p_ref)
 p_ref = p_ref/normp
-N = n_elements(p_ref)
+;N = n_elements(p_ref)
 taille_image = (size(h_npc))[1]
 
 ; debut LL DARK HOLE - define dark hole by subtracting two circles of different radius
@@ -121,13 +122,12 @@ norm = max(psf_ref)   ; normalization factor for later
 
 tic = systime(1)    ; keep track of time
 
-; construction des matrices de coefficients de Zernike
-nb_zer = 6
+; construction des matrices de coefficients de Zernikeal = 6
 nb_seg = 37
 
 ;APLC_Mean_DH = make_array(37, value=0.)
 
-nb_iterations = 1.
+;nb_iterations = 1.
 nb_steps = 37.
 contrastAPLC_vec = make_array(nb_steps, value=0.)   ; for contrast of APLC end-to-end simulations
 contrastAM_vec = make_array(nb_steps, value=0.)     ; for contrast of AM = Analytical Model = PASTIS
@@ -145,13 +145,20 @@ contrastAM_vec_int = make_array(37, value=0.)
     
     ; Put aberration on only one segment
     A = 0.*randomu(seed, nb_seg, 1)
-    A[inc] = 1.
-    A[18] = 0.
+    A[inc] = 1.   ; 1 nm aberration on the segment we're currenlty working on
+    A[18] = 0.    ; 0 on the central sgment
     
     ; Define phase mask of single aberrated segment on total pupil
     isolated_coef_zern = make_array(37, nb_zer, value=0.)   ; local Zernikes
+    
+    ; !!!!!!!!!!  shape: n_seg x n_Zern
     isolated_coef_zern[*,2] = 2.*!PI*A/lambda               ; [*,0] is piston, [*,1] is tip, [*,2] is tilt and so on - you pick here what kind of aberration you want on your one segment
-    global_coef_zern = make_array(1, 5, value=0.)   ; global Zernikes over totla pupil; for us always zero, but it's needed as input for funcitno below
+    ; !!!!!!!!!!!
+    
+    ; we don't have global aberrations!
+    global_coef_zern = make_array(1, 5, value=0.)   ; global Zernikes over totla pupil; for us always zero, but it's needed as input for function below
+    
+    ; This makes the total phase map!!
     phi_ab = make_phi_atlast_ll(isolated_coef_zern=isolated_coef_zern, global_coef_zern=global_coef_zern)   ; make phase mask of total pupil where only one segment is aberrated
     phi_ab = crop(phi_ab, /m, nc=614)
     
@@ -183,6 +190,7 @@ contrastAM_vec_int = make_array(37, value=0.)
     contrastAM_vec_int[inc] = mean(ImAM[where(dh_area_zoom)])   ; get PASTIS contrast in DH
     ; ############################################################################################# ;
     
+    ; Your calibration factor for each segment will be the ration between the contrast from en-to-end simulation and PASTIS.
 
   endfor
 
@@ -202,7 +210,7 @@ curve = plot(findgen(37), contrastAM_vec_int,xrange=[0.,36.], yrange=[1.e-12,1.e
 ; Generating the calibration vector
 Calibration_Astig0 = contrastAPLC_vec_int
 Calibration_Astig0[18] = 0.   ; central obscuration
-Calibration_Astig0 = Calibration_Astig0/contrastAM_vec_int    ; C_0 is so small here that Lucie removed it, but for JWSt it is actually big, so I will need to take it into account
+Calibration_Astig0 = Calibration_Astig0/contrastAM_vec_int    ; C_0 is so small here that Lucie removed it, but for JWS it is actually big, so I will need to take it into account
 Calibration_Astig0[18] = 0.
 
 ; REMEMBER TO SAVE OUTPUTS!!! - one calibration vector
