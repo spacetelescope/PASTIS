@@ -119,3 +119,7 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
     transform = (param / (na*nb)) + np.matmul(np.exp(squash * expo2), np.matmul(im, np.exp(squash * expo1)))
 
     return transform
+
+
+def create_dark_hole():
+    pass
