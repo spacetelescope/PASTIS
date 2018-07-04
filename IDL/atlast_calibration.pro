@@ -107,7 +107,7 @@ calc_psf_coro_phase, PHI_up = phi_up, $              ; input: upstream phase map
            
 p_ref = circminmaxmoy(psf_ref)   ; radial average
 normp = max(p_ref)
-p_ref = p_ref/normp
+;p_ref = p_ref/normp
 ;N = n_elements(p_ref)
 taille_image = (size(h_npc))[1]
 
@@ -116,21 +116,21 @@ polaire2, rt = 10.*ech*614./708., largeur=taille_image, masque=masko, /double
 polaire2, rt = 4.*ech*614./708., largeur=taille_image, masque=maski, /double
 dh_area = abs(masko-maski)
 
-norm = max(psf_ref)   ; normalization factor for later
+;norm = max(psf_ref)   ; normalization factor for later
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ERROR BUDGET ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 tic = systime(1)    ; keep track of time
 
 ; construction des matrices de coefficients de Zernikeal = 6
-nb_seg = 37
+;nb_seg = 37
 
 ;APLC_Mean_DH = make_array(37, value=0.)
 
 ;nb_iterations = 1.
-nb_steps = 37.
-contrastAPLC_vec = make_array(nb_steps, value=0.)   ; for contrast of APLC end-to-end simulations
-contrastAM_vec = make_array(nb_steps, value=0.)     ; for contrast of AM = Analytical Model = PASTIS
+;nb_steps = 37.
+;contrastAPLC_vec = make_array(nb_steps, value=0.)   ; for contrast of APLC end-to-end simulations
+;contrastAM_vec = make_array(nb_steps, value=0.)     ; for contrast of AM = Analytical Model = PASTIS
 
 ;cd,'C:/Users/lleboulleux/Desktop'
 ;M = readfits('Moyennes_Matrix.fits')
