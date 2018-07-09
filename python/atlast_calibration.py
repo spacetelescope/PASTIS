@@ -1,13 +1,20 @@
 """
 Translation of atlast_calibration.pro, which makes the calibration files for PASTIS.
 """
+import os
 import numpy as np
 import webbpsf
+import poppy.zernike as zern
 
 from python.config import CONFIG_INI
 
 
 if __name__ == '__main__':
+
+    # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
+    # webbpsf.utils.get_webbpsf_data_path()
+    # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
+    os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Parameters
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
@@ -15,7 +22,9 @@ if __name__ == '__main__':
     filter = CONFIG_INI.get('filter', 'name')
     wvln = CONFIG_INI.getfloat('filter', 'lambda')
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    size_seg = CONFIG_INI.getint('numerical', 'size_seg')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     nm_aber = 1.    # [nm] amplitude of aberration
     zern_number = 2
