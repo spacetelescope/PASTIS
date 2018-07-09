@@ -46,12 +46,12 @@ if __name__ == '__main__':
     nc_coro.pupil_mask = lyot_stop
 
     # Generate the PSFs
-    psf_default = nc.calc_psf(fov_pixels=int(im_size/4))
-    psf_coro = nc_coro.calc_psf(fov_pixels=int(im_size/4))
+    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size))
+    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size))
 
-    # Extract the PSFs to image arrays
-    psf_default = psf_default[0].data
-    psf_coro = psf_coro[0].data
+    # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
+    psf_default = psf_default_hdu[1].data
+    psf_coro = psf_coro_hdu[1].data
 
     print(psf_coro.shape)
 
@@ -62,13 +62,21 @@ if __name__ == '__main__':
     contrastAPLC_vec_int = np.zeros([nb_seg+1])
     contrastAM_vec_int = np.zeros([nb_seg+1])
 
+    # Create OTE for coro
+    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)
+
+    # Create a hexike basis for individual segments
+    hexike_cube = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
+
     # Loop over each individual segment, putting always the same aberration on
     for i in range(nb_seg+1):
-        print('Working on segment ' + str(i) + '/' + str(nb_seg+1))
+        print('Working on segment ' + str(i+1) + '/' + str(nb_seg+1))
+        # We have to make sure here that we aberrate the segments in their order of numbering as it was set
+        # in the script that generates the aperture (here: function_baselinify.py)!
 
         Aber = np.zeros([nb_seg+1])
         Aber[i] = nm_aber         # aberration on the segment we're currenlty working on
-        Aber[nb_seg/2+1] = 0.     # 0 nm aberration on the central segment
+        Aber[int(nb_seg/2+1)] = 0.     # 0 nm aberration on the central segment
 
         #-# Crate OPD with only one aberrated segment
 
@@ -86,5 +94,5 @@ if __name__ == '__main__':
 
         
         # Extra comment form Lucie:
-        ### Your calibration factor for each segment will be the ratio between the contrast from en-to-end simulation
+        ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
         ### and PASTIS.
