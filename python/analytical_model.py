@@ -43,10 +43,9 @@ if __name__ == "__main__":
     ### this is actually functional input ###
     zernike_pol = 10
     inc = 0
-    A = np.zeros(nb_seg + 1)
-    A[inc] = 1.
-    A[9] = 0.
-    coef = A
+    Aber = np.zeros(nb_seg)
+    Aber[inc] = 1.
+    coef = Aber
     cali = False   # Determine whether you want the calibration to take place or not
     ### functional input end ###
 
@@ -61,7 +60,7 @@ if __name__ == "__main__":
     pupil = fits.getdata(os.path.join(dataDir, 'pupil.fits'))
 
     # Put pupil in randomly picked, slightly larger image array
-    pup_im = np.zeros([600, 600])
+    pup_im = np.zeros([im_size, im_size])
     lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
     pup_im[lim:-lim, lim:-lim] = pupil
     # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment
@@ -101,7 +100,7 @@ if __name__ == "__main__":
         elif zernike_pol == 5:
             ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Astig0.fits')))
     else:
-        ck = np.ones(nb_seg + 1)
+        ck = np.ones(nb_seg)
 
     coef = coef * ck
 
@@ -109,8 +108,8 @@ if __name__ == "__main__":
     generic_coef = np.zeros(NR_pairs_nb)
 
     for q in range(NR_pairs_nb):
-        for i in range(nb_seg + 1):
-            for j in range(i+1, nb_seg):
+        for i in range(nb_seg):
+            for j in range(i+1, nb_seg-1):
                 if Projection_Matrix[i, j, 0] == q+1:
                     generic_coef[q] = generic_coef[q] + coef[i] * coef[j]
 

@@ -146,7 +146,7 @@ contrastAM_vec_int = make_array(37, value=0.)
     ; Put aberration on only one segment
     A = 0.*randomu(seed, nb_seg, 1)
     A[inc] = 1.   ; 1 nm aberration on the segment we're currenlty working on
-    A[18] = 0.    ; 0 on the central sgment
+    A[18] = 0.    ; 0 on the central esgment
     
     ; Define phase mask of single aberrated segment on total pupil
     isolated_coef_zern = make_array(37, nb_zer, value=0.)   ; local Zernikes
@@ -190,7 +190,7 @@ contrastAM_vec_int = make_array(37, value=0.)
     contrastAM_vec_int[inc] = mean(ImAM[where(dh_area_zoom)])   ; get PASTIS contrast in DH
     ; ############################################################################################# ;
     
-    ; Your calibration factor for each segment will be the ration between the contrast from en-to-end simulation and PASTIS.
+    ; Your calibration factor for each segment will be the ratio between the contrast from en-to-end simulation and PASTIS.
 
   endfor
 
