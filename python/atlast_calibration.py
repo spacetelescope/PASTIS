@@ -7,6 +7,7 @@ import webbpsf
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
+import python.analytical_model as am
 
 
 if __name__ == '__main__':
@@ -21,11 +22,16 @@ if __name__ == '__main__':
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
     wvln = CONFIG_INI.getfloat('filter', 'lambda')
+    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
+    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
+    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    real_samp = sampling * tel_size_px / im_size
 
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')    # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
@@ -59,6 +65,9 @@ if __name__ == '__main__':
 
     # Get maximum of PSF for the normalization later
     normp = np.max(psf_default)
+
+    # Create the dark hole
+    dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, real_samp)
 
     # Create the arrays to hold the contrast values from the iterations
     contrastAPLC_vec_int = np.zeros([nb_seg])
@@ -95,13 +104,24 @@ if __name__ == '__main__':
         psf_end = psf_end / normp
 
         #-# Crop coro PSF and DH to same small size (like in analytical_model.py)
+        psf_end_zoom = util.zoom(psf_end, int(psf_end.shape[0] / 2.), int(psf_end.shape[1] / 2.), 25)
+        dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0] / 2.), int(dh_area.shape[1] / 2.), 25)
 
         #-# get end-to-end image in DH, calculate the contrast (mean) and put it in array
+        im_end = psf_end_zoom * dh_area_zoom
+        contrastAPLC_vec_int[i] = np.mean(im_end[dh_area_zoom])
 
         #-# Create image from analytical model, calculate contrast (mean) and put in array
+        im_am = am.analytical_model(zern_number, Aber, cali=False)
+        contrastAM_vec_int[i] = np.mean(im_am[dh_area_zoom])
+
+        # Calculate calibration vector
 
         #-# Save calibration vector
+        util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
 
+        # Generate some plots
+        
         
         # Extra comment form Lucie:
         ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
