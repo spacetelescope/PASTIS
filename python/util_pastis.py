@@ -121,8 +121,20 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
     return transform
 
 
-def create_dark_hole():
-    pass
+def create_dark_hole(pup_im, iwa, owa, samp):
+    """
+    Create a dark hole on pupil image pup_im.
+    :param pup_im: np.array of pupil image
+    :param iwa: inner working angle in lambda/D
+    :param owa: outer working angle in lambda/D
+    :param samp: sampling factor
+    :return: dh_area, np.array
+    """
+    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1
+    circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
+    dh_area = circ_outer - circ_inner
+
+    return dh_area
 
 
 def noll_to_wss(zern):
