@@ -123,3 +123,90 @@ def matrix_fourier(im, param, inverse=False, dim_tf=None):
 
 def create_dark_hole():
     pass
+
+
+def noll_to_wss(zern):
+    """
+    Transform a Noll Zernike index into a JWST WSS framework Zernike index.
+    :param zern: int; Noll Zernike index
+    :return: WSS Zernike index
+    """
+    noll = {1: 'piston', 2: 'tip', 3: 'tilt', 4: 'defocus', 5: 'astig45', 6: 'astig0', 7: 'ycoma', 8: 'xcoma',
+            9: 'ytrefoil', 10: 'xtrefoil', 11: 'spherical'}
+    wss = {'piston': 1, 'tip': 2, 'tilt': 3, 'defocus': 5, 'astig45': 4, 'astig0': 6, 'ycoma': 8, 'xcoma': 7,
+            'ytrefoil': 10, 'xtrefoil': 11, 'spherical': 9}
+    wss_ind = wss[noll[zern]]
+
+    return wss_ind
+
+
+def wss_to_noll(zern):
+    """
+    Transform a JWST WSS framework Zernike index into a Noll Zernike index.
+    :param zern: int; WSS Zernike index
+    :return: Noll Zernike index
+    """
+    noll = {'piston': 1, 'tip': 2, 'tilt': 3, 'defocus': 4, 'astig45': 5, 'astig0': 6, 'ycoma': 7, 'xcoma': 8,
+            'ytrefoil': 9, 'xtrefoil': 10, 'spherical': 11}
+    wss = {1: 'piston', 2: 'tip', 3: 'tilt', 5: 'defocus', 4: 'astig45', 6: 'astig0', 8: 'ycoma', 7: 'xcoma',
+            10: 'ytrefoil', 11: 'xtrefoil', 9: 'spherical'}
+    noll_ind = noll[wss[zern]]
+
+    return noll_ind
+
+
+def zernike_name(index, framework='Noll'):
+    """Get the name of the Zernike with input index in inpit framework (Noll or WSS)."""
+    noll_names = {1: 'piston', 2: 'tip', 3: 'tilt', 4: 'defocus', 5: 'astig45', 6: 'astig0', 7: 'ycoma', 8: 'xcoma',
+                  9: 'ytrefoil', 10: 'xtrefoil', 11: 'spherical'}
+    wss_names = {1: 'piston', 2: 'tip', 3: 'tilt', 5: 'defocus', 4: 'astig45', 6: 'astig0', 8: 'ycoma', 7: 'xcoma',
+                 10: 'ytrefoil', 11: 'xtrefoil', 9: 'spherical'}
+
+    if framework == 'Noll':
+        zern_name = noll_names[index]
+    elif framework == 'WSS':
+        zern_name = wss_names[index]
+    else:
+        raise ValueError('No known Zernike convention passed.')
+
+    return zern_name
+
+
+class ZernikeMode:
+    """
+    A Zernike mode with Zernike mode index, name of mode and name of ordering convention.
+
+    It can use framework = 'Noll' or 'WSS' and an index = between 1 and 11.
+    It initializes with framework = 'Noll', but needs an index given.
+    If you change ZernikeMode.convention directly, you screw things up... there are methods to change naming convention
+    which are capable of changing everything that comes with that.
+    """
+
+    def __init__(self, index, framework='Noll'):
+        self.convention = framework
+        self.index = index
+
+    def get_info(self):
+        """Prints full Zernike mode info."""
+        print('This is Zernike mode', self.index, 'in the', self.convention, 'convention, which is:', self.name)
+
+    def change_to_wss(self):
+        """Change form Noll to WSS Zernike index."""
+        if self.convention == 'WSS':
+            print('You are already in the WSS convention!')
+        else:
+            self.index = noll_to_wss(self.index)
+            self.convention = 'WSS'
+
+    def change_to_noll(self):
+        """Change from WSS to Noll Zernike index."""
+        if self.convention == 'Noll':
+            print('You are already in the Noll convention!')
+        else:
+            self.index = wss_to_noll(self.index)
+            self.convention = 'Noll'
+
+    @property
+    def name(self):
+        zern_name = zernike_name(self.index, self.convention)
+        return zern_name
