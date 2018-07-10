@@ -17,7 +17,8 @@ from python.config import CONFIG_INI
 import python.util_pastis as util
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
@@ -39,15 +40,6 @@ if __name__ == "__main__":
     size_tel = CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / tel_size_px   # size of one pixel in pupil in nm
     px_square_2rad = size_tel * px_nm * wave_number / focal
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-
-    ### this is actually functional input ###
-    zernike_pol = 10
-    inc = 0
-    Aber = np.zeros(nb_seg)
-    Aber[inc] = 1.
-    coef = Aber
-    cali = False   # Determine whether you want the calibration to take place or not
-    ### functional input end ###
 
     #-# Mean subtraction for piston
     coef = coef * 2. * np.pi / wvln
@@ -74,9 +66,7 @@ if __name__ == "__main__":
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole
-    circ_inner = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., inner_wa * real_samp) * 1
-    circ_outer = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., outer_wa * real_samp) * 1
-    dh_area = circ_outer - circ_inner
+    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, real_samp)
 
     #-# Import baseline information form previous script
     Baseline_vec = fits.getdata(os.path.join(dataDir, 'Baseline_vec.fits'))
@@ -149,6 +139,7 @@ if __name__ == "__main__":
 
     dh_psf = dh_area_zoom * TF_seg_zoom
 
+    """
     # Create plots.
     plt.subplot(1, 3, 1)
     plt.imshow(pupil)
@@ -163,3 +154,6 @@ if __name__ == "__main__":
     plt.imshow(dh_psf)
     plt.title('JWST dark hole')
     plt.show()
+    """
+
+    return dh_psf
