@@ -146,7 +146,5 @@ if __name__ == '__main__':
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
     ### and PASTIS.
 
-    ### PSF normalization of AM PSF?
-
     ### If there were an apodizer, leave it in when calculating psf_default.
     # Leave Lyot stop in for psf_default?? -> try it, check max of value, because that's our normalization factor
