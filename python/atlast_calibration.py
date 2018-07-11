@@ -133,13 +133,13 @@ if __name__ == '__main__':
     calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
 
     #-# Save calibration vector
-    filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '.fits'
-    util.write_fits(calibration, os.path.join(outDir, filename), header=None, metadata=None)
+    filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
 
     # Generate some plots
     plt.plot(contrastAPLC_vec_int)
     plt.plot(contrastAM_vec_int)
-    plt.show()
+    plt.savefig(os.path.join(outDir, filename+'.pdf'))
 
         
     # Extra comments from Lucie:
