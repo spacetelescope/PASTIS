@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
         #-# Create image from analytical model, (normalize,) calculate contrast (mean) and put in array
         im_am = am.analytical_model(zern_number, Aber[:,zern_number-1], cali=False)
-        contrastAM_vec_int[i] = np.mean(im_am[np.where(im_end != 0)])
+        contrastAM_vec_int[i] = np.mean(im_am[np.where(im_am != 0)])
 
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
