@@ -1,6 +1,7 @@
 """This program constructs the matrix M for PASTIS."""
 
 import os
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,6 +11,9 @@ import python.analytical_model as am
 
 
 if __name__ == '__main__':
+
+    # Keep track of time
+    start_time = time.time()
 
     # Parameters
     outDir = os.path.join('..', 'data', 'py_data')
@@ -74,5 +78,9 @@ if __name__ == '__main__':
     contrast_final = contrast_am / result
     print('Mean contrast with AM:', contrast_am)
     print('Mean contrast with matrices:', contrast_final)
+
+    # Tell us how long it took to finish.
+    end_time = time.time()
+    print('Runtime for analytical_model_mbuild.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
 
 

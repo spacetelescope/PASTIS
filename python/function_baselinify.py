@@ -31,6 +31,7 @@ Outputs:
 """
 
 import os
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import poppy
@@ -40,6 +41,9 @@ from python.config import CONFIG_INI
 
 
 if __name__ == "__main__":
+
+    # Keep track of time
+    start_time = time.time()
 
     # Some parameters
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration (= nb_seg)
@@ -228,3 +232,7 @@ if __name__ == "__main__":
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
     print('All outputs saved')
+
+    # Tell us how long it took to finish.
+    end_time = time.time()
+    print('Runtime for function_baselinify.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')
