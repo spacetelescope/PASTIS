@@ -3,6 +3,7 @@ Translation of atlast_calibration.pro, which makes the calibration files for PAS
 """
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import webbpsf
 
 from python.config import CONFIG_INI
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Parameters
+    outDir = os.path.join('..', 'data', 'py_data')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
@@ -37,6 +39,9 @@ if __name__ == '__main__':
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
+    # Create Zernike mode object for easier handling
+    zern_mode = util.ZernikeMode(zern_number)
+
     # Create NIRCam objects, for perfect PSF and one with coronagraph
     nc = webbpsf.NIRCam()
     # Don't include NIRCam specific WFE, because it is currently not available in WebbPSF
@@ -54,20 +59,26 @@ if __name__ == '__main__':
     nc_coro.pupil_mask = lyot_stop
 
     # Generate the PSFs
+    print('Calculating perfect PSF without coronograph...')
     psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size))
+    print('Calculating perfect PSF with coronagraph...\n')
     psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size))
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[1].data
     psf_coro = psf_coro_hdu[1].data
 
-    print(psf_coro.shape)
-
-    # Get maximum of PSF for the normalization later
+    # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
+    psf_default = psf_default / normp
+    psf_coro = psf_coro / normp
 
-    # Create the dark hole
+    # Create the dark hole and cut out the inner part of it
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, real_samp)
+    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0] / 2.), int(dh_area.shape[1] / 2.), 25)
+
+    # Calculate the baseline contrast *with* the coronograph and *without* aberrations
+    contrast_base = np.mean(psf_coro[dh_area_zoom])
 
     # Create the arrays to hold the contrast values from the iterations
     contrastAPLC_vec_int = np.zeros([nb_seg])
@@ -90,6 +101,7 @@ if __name__ == '__main__':
         Aber[i, wss_zern_nb-1] = nm_aber * 0.001      # aberration on the segment we're currenlty working on; 0.001 converts to microns
 
         #-# Crate OPD with aberrated segment(s)
+        print('Applying aberration to OTE.')
         ote_coro._apply_hexikes_to_seg(seg, Aber[i,:])
 
         # If you want to display it:
@@ -97,7 +109,8 @@ if __name__ == '__main__':
         #plt.show()
 
         #-# Generate the coronagraphic PSF
-        psf_endsim = nc_coro.calc_psf()
+        print('Calculating coronagraphic PSF.')
+        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size))
         psf_end = psf_endsim[1].data
 
         #-# Normalize coro PSF
@@ -105,24 +118,35 @@ if __name__ == '__main__':
 
         #-# Crop coro PSF and DH to same small size (like in analytical_model.py)
         psf_end_zoom = util.zoom(psf_end, int(psf_end.shape[0] / 2.), int(psf_end.shape[1] / 2.), 25)
-        dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0] / 2.), int(dh_area.shape[1] / 2.), 25)
 
-        #-# get end-to-end image in DH, calculate the contrast (mean) and put it in array
+        #-# Get end-to-end image in DH, calculate the contrast (mean) and put it in array
         im_end = psf_end_zoom * dh_area_zoom
-        contrastAPLC_vec_int[i] = np.mean(im_end[dh_area_zoom])
+        contrastAPLC_vec_int[i] = np.mean(im_end[np.where(im_end != 0)])
 
-        #-# Create image from analytical model, calculate contrast (mean) and put in array
-        im_am = am.analytical_model(zern_number, Aber, cali=False)
-        contrastAM_vec_int[i] = np.mean(im_am[dh_area_zoom])
+        #-# Create image from analytical model, (normalize,) calculate contrast (mean) and put in array
+        im_am = am.analytical_model(zern_number, Aber[:,zern_number-1], cali=False)
+        contrastAM_vec_int[i] = np.mean(im_am[np.where(im_end != 0)])
 
-        # Calculate calibration vector
+    print('\n--- All PSFs calculated. ---\n')
+    # Calculate calibration vector
+    calibration = np.zeros_like(contrastAPLC_vec_int)
+    calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
 
-        #-# Save calibration vector
-        util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
+    #-# Save calibration vector
+    filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '.fits'
+    util.write_fits(calibration, os.path.join(outDir, filename), header=None, metadata=None)
 
-        # Generate some plots
+    # Generate some plots
+    plt.plot(contrastAPLC_vec_int)
+    plt.plot(contrastAM_vec_int)
+    plt.show()
+
         
-        
-        # Extra comment form Lucie:
-        ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
-        ### and PASTIS.
+    # Extra comments from Lucie:
+    ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
+    ### and PASTIS.
+
+    ### PSF normalization of AM PSF?
+
+    ### If there were an apodizer, leave it in when calculating psf_default.
+    # Leave Lyot stop in for psf_default?? -> try it, check max of value, because that's our normalization factor
