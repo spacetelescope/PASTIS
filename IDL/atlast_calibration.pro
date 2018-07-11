@@ -98,8 +98,8 @@ calc_psf_coro_phase, PHI_up = phi_up, $              ; input: upstream phase map
                      PUPDIAM_DO = pupdiam*lyot, $    ; input: downstream pupil diameter
                      ECH = ECH, $                    ; input: sampling
                      tab_np = tab_np, $
-                     h_sc = psf_ref, $               ; optional output: PSF without coronagraph
-                     h_npc = h_npc, $                ; output: PSF with coronagraph
+                     h_sc = psf_ref, $               ; optional output: PSF without FPM
+                     h_npc = h_npc, $                ; output: PSF with full coronagraph
                      CORONO = corono,$               ; input: coronagraph to use
                      APOD = apod, $                  ; optional input: apodizer to use
                      METH = meth                     ; input: calculation method
@@ -149,7 +149,7 @@ contrastAM_vec_int = make_array(37, value=0.)
     A[18] = 0.    ; 0 on the central esgment
     
     ; Define phase mask of single aberrated segment on total pupil
-    isolated_coef_zern = make_array(37, nb_zer, value=0.)   ; local Zernikes
+    isolated_coef_zern = make_array(37, 5, value=0.)   ; local Zernikes
     
     ; !!!!!!!!!!  shape: n_seg x n_Zern
     isolated_coef_zern[*,2] = 2.*!PI*A/lambda               ; [*,0] is piston, [*,1] is tip, [*,2] is tilt and so on - you pick here what kind of aberration you want on your one segment
