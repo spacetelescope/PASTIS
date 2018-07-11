@@ -42,10 +42,10 @@ from python.config import CONFIG_INI
 if __name__ == "__main__":
 
     # Some parameters
-    NA = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration (= nb_seg)
+    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration (= nb_seg)
     cen_seg_num = 9   # SEGMENT NUMBERING STARTS WITH 0!!!
                        # Number assigned to the central segment in arrays where we include it in the numbering.
-                       # It will not always be NA/2 like here, think of apertures with an uneven number of segments!
+                       # It will not always be nb_seg/2 like here, think of apertures with an uneven number of segments!
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
     flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
@@ -81,18 +81,21 @@ if __name__ == "__main__":
     ### Then use 'where' to find the 1s.
     ### seg_position is a [2, nb_seg] array that holds x and y position of each central pixel
 
-    seg_position = np.zeros((NA, 2))
-    for i in range(NA):
-        seg_position[i, 1], seg_position[i, 0] = jwst_pup._hex_center(i)   # y, x = center position
-        # The units of seg_posiiton are currently physical meters. I don't think I need to do it in pixels as long
-        # as it stays consistent.
+    seg_position = np.zeros((nb_seg, 2))
+    for i in range(nb_seg+1):
+        if i == 0:     # Segment 0 is the central segment, which we want to skip
+            continue   # Continues with the next iteration of the loop
+        else:
+            seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
+            # The units of seg_position are currently physical meters. I don't think I need to do it in pixels here, as long
+            # as it stays consistent.
 
     #-# Make distance list with distances between all of the central pixels among each other
     ### vec_list is a [nb_seg, nb_seg, 2] array
 
-    vec_list = np.zeros((NA, NA, 2))
-    for i in range(NA):
-        for j in range(NA):
+    vec_list = np.zeros((nb_seg, nb_seg, 2))
+    for i in range(nb_seg):
+        for j in range(nb_seg):
             vec_list[i,j,:] = seg_position[i,:] - seg_position[j,:]
 
     #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
@@ -108,7 +111,7 @@ if __name__ == "__main__":
     rp = 0
 
     print('Nulling redundant segment pairs')
-    for i in range(np.square(NA)):
+    for i in range(np.square(nb_seg)):
         for j in range(i):
 
             # Some print statements for testing
@@ -158,18 +161,18 @@ if __name__ == "__main__":
     # Loop over number of NRPs
     for i in range(NR_pairs_nb):
         NR_pairs_list_int[i,0] = nonzero[0][i]
-        NR_pairs_list_int[i, 1] = nonzero[1][i]
+        NR_pairs_list_int[i,1] = nonzero[1][i]
 
     # Including the central segment with a number
     for i in range(NR_pairs_nb):
         NR_pairs_list[i,0] = nonzero[0][i]
-        NR_pairs_list[i, 1] = nonzero[1][i]
+        NR_pairs_list[i,1] = nonzero[1][i]
 
         # Fill segments after cenral obscuration
-        if NR_pairs_list[i,0] > NA/2:
-            NR_pairs_list[i, 0] += 1
-        if NR_pairs_list[i,1] > NA/2:
-            NR_pairs_list[i, 1] += 1
+        if NR_pairs_list[i,0] > nb_seg/2:
+            NR_pairs_list[i,0] += 1
+        if NR_pairs_list[i,1] > nb_seg/2:
+            NR_pairs_list[i,1] += 1
 
     # Create baseline_vec
     baseline_vec = np.copy(NR_pairs_list)
@@ -184,13 +187,13 @@ if __name__ == "__main__":
     # Set diagonal to zero (distance between a segment and itself will always be zero)
     # Although I am pretty sure they already are.
     vec_list2 = np.copy(vec_list)
-    for i in range(NA):
-        for j in range(NA):
+    for i in range(nb_seg):
+        for j in range(nb_seg):
             if i ==j:
                 vec_list2[i,j,:] = [0,0]
 
     # Initialize an intermediate version of the projection matrix
-    Projection_Matrix_int = np.zeros((NA, NA, 3))
+    Projection_Matrix_int = np.zeros((nb_seg, nb_seg, 3))
 
     # Reshape needed arrays so that we can loop over them easier
     vec2_long = vec_list2.shape[0] * vec_list2.shape[1]
@@ -199,8 +202,8 @@ if __name__ == "__main__":
     matrix_long = Projection_Matrix_int.shape[0] * Projection_Matrix_int.shape[1]
     matrix_flat = np.reshape(Projection_Matrix_int, (matrix_long, 3))
 
-    print('Creating projectino matrix')
-    for i in range(np.square(NA)):
+    print('Creating projection matrix')
+    for i in range(np.square(nb_seg)):
         for k in range(NR_pairs_nb):
 
             if np.abs(np.linalg.norm(vec2_flat[i, :]) - np.linalg.norm(vec_list[NR_pairs_list_int[k,0], NR_pairs_list_int[k,1], :])) <= 1.e-10:
@@ -212,19 +215,10 @@ if __name__ == "__main__":
                     matrix_flat[i, 2] = NR_pairs_list[k,0]
 
     # Reshape matrix back to normal form
-    Projection_Matrix_int = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
+    Projection_Matrix = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
 
-    # Renumber and shift because of central obscuration
-    Projection_Matrix = np.zeros((NA+1, NA+1, 3))
-
-    # Fill top left corner from cross with zeros that marks the central segment in the matrix
-    Projection_Matrix[:cen_seg_num, :cen_seg_num] = Projection_Matrix_int[:cen_seg_num, :cen_seg_num]
-    # Fill bottom right corner
-    Projection_Matrix[cen_seg_num + 1:, cen_seg_num + 1:] = Projection_Matrix_int[cen_seg_num:, cen_seg_num:]
-    # Fill top right corner
-    Projection_Matrix[:cen_seg_num, cen_seg_num + 1:] = Projection_Matrix_int[:cen_seg_num, cen_seg_num:]
-    # Fill bottom left corner
-    Projection_Matrix[cen_seg_num + 1:, :cen_seg_num] = Projection_Matrix_int[cen_seg_num:, :cen_seg_num]
+    # I omitted the part about restructuring the matrix form IDL, because here, we don't even have the central
+    # obscuration in our calculations, we get rid of it when we define the segment centers.
 
     #-# Save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
 

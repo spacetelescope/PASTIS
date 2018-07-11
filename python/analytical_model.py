@@ -17,7 +17,8 @@ from python.config import CONFIG_INI
 import python.util_pastis as util
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Define parameters
     dataDir = os.path.join('..', 'data', 'py_data')
@@ -40,14 +41,6 @@ if __name__ == "__main__":
     px_square_2rad = size_tel * px_nm * wave_number / focal
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    zernike_pol = 2
-    inc = 0
-    A = np.zeros(nb_seg + 1)
-    A[inc] = 1.
-    A[9] = 0.
-    coef = A
-    cali = False   # Determine whether you want the calibration to take place or not
-
     #-# Mean subtraction for piston
     coef = coef * 2. * np.pi / wvln
 
@@ -59,7 +52,7 @@ if __name__ == "__main__":
     pupil = fits.getdata(os.path.join(dataDir, 'pupil.fits'))
 
     # Put pupil in randomly picked, slightly larger image array
-    pup_im = np.zeros([600, 600])
+    pup_im = np.zeros([im_size, im_size])
     lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
     pup_im[lim:-lim, lim:-lim] = pupil
     # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment
@@ -73,9 +66,7 @@ if __name__ == "__main__":
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole
-    circ_inner = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., inner_wa * real_samp) * 1
-    circ_outer = util.circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., outer_wa * real_samp) * 1
-    dh_area = circ_outer - circ_inner
+    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, real_samp)
 
     #-# Import baseline information form previous script
     Baseline_vec = fits.getdata(os.path.join(dataDir, 'Baseline_vec.fits'))
@@ -99,7 +90,7 @@ if __name__ == "__main__":
         elif zernike_pol == 5:
             ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Astig0.fits')))
     else:
-        ck = np.ones(nb_seg + 1)
+        ck = np.ones(nb_seg)
 
     coef = coef * ck
 
@@ -107,8 +98,8 @@ if __name__ == "__main__":
     generic_coef = np.zeros(NR_pairs_nb)
 
     for q in range(NR_pairs_nb):
-        for i in range(nb_seg + 1):
-            for j in range(i+1, nb_seg):
+        for i in range(nb_seg):
+            for j in range(i+1, nb_seg-1):
                 if Projection_Matrix[i, j, 0] == q+1:
                     generic_coef[q] = generic_coef[q] + coef[i] * coef[j]
 
@@ -132,28 +123,24 @@ if __name__ == "__main__":
     # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
     isolated_zerns = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
 
-    if zernike_pol == 0:
+    # Apply the currently used Zernike to the mini-segment.
+    if zernike_pol == 1:
         Zer = mini_seg
-    elif zernike_pol == 1:
-        Zer = mini_seg * isolated_zerns[1]
-    elif zernike_pol == 2:
-        Zer = mini_seg * isolated_zerns[2]
-    elif zernike_pol == 3:
-        Zer = mini_seg * isolated_zerns[3]
-    elif zernike_pol == 4:
-        Zer = mini_seg * isolated_zerns[4]
-    elif zernike_pol == 5:
-        Zer = mini_seg * isolated_zerns[5]
+    elif zernike_pol in range(2, zern_max-2):
+        Zer = mini_seg * isolated_zerns[zernike_pol-1]
 
     #-# Final image
-    # Generating the final image that will get passed on to the outer scope
-    # I need to blow up the result from the FT to the size of sum2
-    TF_seg = np.abs(util.matrix_fourier(Zer, param=100, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+    # Generating the final image that will get passed on to the outer scope.
+    TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/real_samp, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+
+    # PASTIS is only valid inside the dark hole.
     TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
     dh_psf = dh_area_zoom * TF_seg_zoom
 
+    """
+    # Create plots.
     plt.subplot(1, 3, 1)
     plt.imshow(pupil)
     plt.title('JWST pupil and diameter definition')
@@ -167,3 +154,6 @@ if __name__ == "__main__":
     plt.imshow(dh_psf)
     plt.title('JWST dark hole')
     plt.show()
+    """
+
+    return dh_psf

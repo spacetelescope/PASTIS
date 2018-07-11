@@ -93,7 +93,7 @@ endfor
 
 N = M
 
-; Fillign the off-axis elements
+; Filling the off-axis elements
 n_seg = 37
 for i=0,n_seg-1 do begin
   for j=0,n_seg-1 do begin
