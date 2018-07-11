@@ -34,17 +34,20 @@ def analytical_model(zernike_pol, coef, cali=False):
     px_nm = CONFIG_INI.getfloat('numerical', 'px_size_nm')                      # pixel size in nm
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # "fake" sampling; multiply by tel_size_px/im_size to scale it and get the real sampling
     real_samp = sampling * tel_size_px / im_size                       # real sampling - effectively lambda/D
-    largeur = tel_size_px * sampling                                   # ; size of pupil (?) with taking the sampling into account - as opposed to the 708 of total image
+    largeur = tel_size_px * sampling                                   # size of pupil (?) with taking the sampling into account - as opposed to the 708 of total image
     wave_number = 2. * np.pi / wvln
     focal = sampling * px_nm * CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / wvln    # focal length of the telescope
     size_tel = CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / tel_size_px   # size of one pixel in pupil in nm
     px_square_2rad = size_tel * px_nm * wave_number / focal
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    #-# Mean subtraction for piston
-    coef = coef * 2. * np.pi / wvln
+    # Create Zernike mode object for easier handling
+    zern_mode = util.ZernikeMode(zernike_pol)
 
-    if zernike_pol == 0:
+    #-# Mean subtraction for piston
+    coef = coef * 2. * np.pi / wvln   # conversion to radians
+
+    if zernike_pol == 1:
         coef -= np.mean(coef)
 
     #-# Generic segment shapes
@@ -79,16 +82,8 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Chose whether calibration is about to happen yes or no
     if cali:
-        if zernike_pol == 1:
-            ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Tip.fits')))
-        elif zernike_pol == 2:
-            ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Tilt.fits')))
-        elif zernike_pol == 3:
-            ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Focus.fits')))
-        elif zernike_pol == 4:
-            ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Astig45.fits')))
-        elif zernike_pol == 5:
-            ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'Calibration_Astig0.fits')))
+        filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+        ck = np.sqrt(fits.getdata(os.path.join(dataDir, filename+'.fits')))
     else:
         ck = np.ones(nb_seg)
 
