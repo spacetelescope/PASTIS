@@ -81,7 +81,7 @@ def IFFT(ef):
 
 def matrix_fourier(im, param, inverse=False, dim_tf=None):
     """
-    Calculate the Matrix FOurier Transform MTF.
+    Calculate the Matrix Fourier Transform MTF.
 
     Translated directly form the ONERA IDL scsript mtf.pro by bpaul.
     :param im: array with dimensions na x na of which we want to calculate the Fourier transform
