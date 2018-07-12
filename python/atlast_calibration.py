@@ -104,12 +104,17 @@ if __name__ == '__main__':
         # We have to make sure here that we aberrate the segments in their order of numbering as it was set
         # in the script that generates the aperture (here: function_baselinify.py)!
 
-        Aber = np.zeros([nb_seg, zern_max])
-        Aber[i, wss_zern_nb-1] = nm_aber * 0.001      # aberration on the segment we're currenlty working on; 0.001 converts to microns
+        Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
+                                                          # Because it goes into _apply_hexikes_to_seg().
+        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for later.
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber * 0.001      # Aberration on the segment we're currenlty working on; 0.001
+                                                          # converts to microns; -1 on the Zernike because Python starts
+                                                          # numbering at 0.
+        Aber_Noll[i, zern_number-1] = nm_aber * 0.001     # Noll version.
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
-        ote_coro._apply_hexikes_to_seg(seg, Aber[i,:])
+        ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
         # If you want to display it:
         #ote_coro.display_opd()
@@ -131,7 +136,7 @@ if __name__ == '__main__':
         contrastAPLC_vec_int[i] = np.mean(im_end[np.where(im_end != 0)])
 
         #-# Create image from analytical model, (normalize,) calculate contrast (mean) and put in array
-        im_am = am.analytical_model(zern_number, Aber[:,zern_number-1], cali=False)
+        im_am = am.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
         contrastAM_vec_int[i] = np.mean(im_am[np.where(im_am != 0)])
 
     print('\n--- All PSFs calculated. ---\n')
