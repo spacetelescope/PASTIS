@@ -64,15 +64,14 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     # Creat a mini-segment (one individual segment from the segmented aperture)
     mini_seg_real = poppy.NgonAperture(name='mini', radius=real_size_seg)   # creating real mini segment shape with poppy
-    test = mini_seg_real.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
+    #test = mini_seg_real.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
     mini_hdu = mini_seg_real.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, real_samp)
 
-    #-# Import baseline information form previous script
-    Baseline_vec = fits.getdata(os.path.join(dataDir, 'Baseline_vec.fits'))
+    #-# Import information form previous script
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'Projection_Matrix.fits'))
     vec_list = fits.getdata(os.path.join(dataDir, 'vec_list.fits'))
     NR_pairs_list_int = fits.getdata(os.path.join(dataDir, 'NR_pairs_list_int.fits'))
@@ -96,7 +95,7 @@ def analytical_model(zernike_pol, coef, cali=False):
         for i in range(nb_seg):
             for j in range(i+1, nb_seg-1):
                 if Projection_Matrix[i, j, 0] == q+1:
-                    generic_coef[q] = generic_coef[q] + coef[i] * coef[j]
+                    generic_coef[q] += + coef[i] * coef[j]
 
     #-# Constant sum and cosine sum
     # I gotta figure out in what way to actually to do int() or mod()/%, because largeur is a float here
