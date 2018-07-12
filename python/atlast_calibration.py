@@ -107,10 +107,10 @@ if __name__ == '__main__':
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
         Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for later.
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber * 0.001      # Aberration on the segment we're currenlty working on; 0.001
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber * 0.000001      # Aberration on the segment we're currenlty working on; 0.001
                                                           # converts to microns; -1 on the Zernike because Python starts
                                                           # numbering at 0.
-        Aber_Noll[i, zern_number-1] = nm_aber * 0.001     # Noll version.
+        Aber_Noll[i, zern_number-1] = nm_aber * 0.000001     # Noll version.
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
