@@ -17,6 +17,7 @@ if __name__ == '__main__':
 
     # Parameters
     outDir = os.path.join('..', 'data', 'py_data')
+    # outDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')

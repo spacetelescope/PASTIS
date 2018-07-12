@@ -48,6 +48,7 @@ if __name__ == "__main__":
 
     # Some parameters
     outDir = os.path.join('..', 'data', 'py_data')
+    # outDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m

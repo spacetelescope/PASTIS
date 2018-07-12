@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
     # Parameters
     outDir = os.path.join('..', 'data', 'py_data')
+    # outDir = CONFIG_INI.get('local', 'local_data_path')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
