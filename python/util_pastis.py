@@ -137,6 +137,17 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     return dh_area
 
 
+def pastis_contrast(Aber, matrix_pastis):
+    """
+    Calculate the contrast with PASTIS matrix model.
+    :param Aber: aberration vector, its length is number of segments, aberration coeffitiones in nm
+    :param matrix_pastis: PASTIS matrix
+    :return:
+    """
+    result = np.matmul(np.matmul(Aber, matrix_pastis), Aber)
+    return result
+
+
 def noll_to_wss(zern):
     """
     Transform a Noll Zernike index into a JWST WSS framework Zernike index.
