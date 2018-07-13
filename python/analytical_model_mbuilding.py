@@ -1,4 +1,5 @@
-"""This program constructs the matrix M for PASTIS."""
+"""This program constructs the matrix M for PASTIS and compares the contrast of PASTIS with image generation with
+the contrast from matrix PASTIS."""
 
 import os
 import time
@@ -13,10 +14,10 @@ import python.analytical_model as am
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()
+    start_time = time.time()   # runtime currently is around 11 minutes
 
     # Parameters
-    outDir = CONFIG_INI.get('local', 'local_data_path')
+    dataDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
     # Save matrix to file
         filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-        util.write_fits(matrix_pastis, os.path.join(outDir, filename + '.fits'), header=None, metadata=None)
+        util.write_fits(matrix_pastis, os.path.join(dataDir, 'results', filename + '.fits'), header=None, metadata=None)
 
     #-# Compare PASTIS contrast from PSF generation and PASTIS contrast from matrix PASTIS
     # Create random aberration coefficients

@@ -15,7 +15,7 @@ import python.analytical_model as am
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()
+    start_time = time.time()   # runtime currently is around 29 minutes
 
     # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
     # webbpsf.utils.get_webbpsf_data_path()
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Parameters
-    outDir = CONFIG_INI.get('local', 'local_data_path')
+    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'calibration')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
@@ -42,6 +42,10 @@ if __name__ == '__main__':
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')    # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
+
+    # If subfolder "calibration" doesn't exist yet, create it.
+    if not os.path.isdir(outDir):
+        os.mkdir(outDir)
 
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zern_number)

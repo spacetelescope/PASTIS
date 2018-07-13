@@ -54,7 +54,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Generic segment shapes
     # Load pupil from file
-    pupil = fits.getdata(os.path.join(dataDir, 'pupil.fits'))
+    pupil = fits.getdata(os.path.join(dataDir, 'segmentation', 'pupil.fits'))
 
     # Put pupil in randomly picked, slightly larger image array
     pup_im = np.zeros([im_size, im_size])
@@ -74,9 +74,9 @@ def analytical_model(zernike_pol, coef, cali=False):
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, real_samp)
 
     #-# Import information form previous script
-    Projection_Matrix = fits.getdata(os.path.join(dataDir, 'Projection_Matrix.fits'))
-    vec_list = fits.getdata(os.path.join(dataDir, 'vec_list.fits'))
-    NR_pairs_list_int = fits.getdata(os.path.join(dataDir, 'NR_pairs_list_int.fits'))
+    Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
+    vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))
+    NR_pairs_list_int = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
 
     # Figure out how many NRPs we're dealing with
     NR_pairs_nb = NR_pairs_list_int.shape[0]
@@ -84,7 +84,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     #-# Chose whether calibration is about to happen yes or no
     if cali:
         filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-        ck = np.sqrt(fits.getdata(os.path.join(dataDir, filename+'.fits')))
+        ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'calibration', filename+'.fits')))
     else:
         ck = np.ones(nb_seg)
 
