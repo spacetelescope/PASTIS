@@ -153,8 +153,12 @@ if __name__ == '__main__':
     util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
 
     # Generate some plots
-    plt.plot(contrastAPLC_vec_int)
-    plt.plot(contrastAM_vec_int)
+    plt.plot(contrastAPLC_vec_int, label='WebbPSF')
+    plt.plot(contrastAM_vec_int, label='imagePASTIS')
+    plt.title('Aberration per segment: ' + str(nm_aber) + ' nm')
+    plt.xlabel('Segment number')
+    plt.ylabel('Contrast')
+    plt.legend()
     plt.savefig(os.path.join(outDir, filename+'.pdf'))
 
     # Tell us how long it took to finish.
