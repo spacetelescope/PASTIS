@@ -1,7 +1,7 @@
 """
 This is a module containing functions to create JWST coronagraphic images.
 """
-import  os
+import os
 import webbpsf
 from python.config import CONFIG_INI
 
@@ -20,6 +20,14 @@ filter = CONFIG_INI.get('filter', 'name')
 
 
 def nircam_coro(filter, fpm, ppm, Aber_WSS):
+    """
+    Create NIRCam image with specified filter and coronagraph, and aberration input.
+    :param filter: str, filter name
+    :param fpm: focal plane mask
+    :param ppm: pupil plane mask - Lyot stop
+    :param Aber_WSS: list or array holding Zernike coefficients ordered in WSS convention
+    :return:
+    """
 
     # Set up NIRCam and coronagraph
     nc = webbpsf.NIRCam()
