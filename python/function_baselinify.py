@@ -44,22 +44,32 @@ from python.config import CONFIG_INI
 if __name__ == "__main__":
 
     # Keep track of time
-    start_time = time.time()
+    start_time = time.time()   # runtime currently is around 2 seconds
 
     # Some parameters
-    outDir = CONFIG_INI.get('local', 'local_data_path')
+    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'segmentation')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
     flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
     total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
 
+    # If subfolder "segmentation" doesn't exist yet, create it.
+    if not os.path.isdir(outDir):
+        os.mkdir(outDir)
+
     #-# Generate the pupil with segments and spiders or read in from fits file
 
     # Use poppy to create JWST aperture without spiders
     print('Creating and saving aperture')
     jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=flat_to_flat)   # Create JWST pupil without spiders
-    jwst_pup.display()   # Show pupil
+    jwst_pup.display(colorbar=False)   # Show pupil
+    plt.title('JWST telescope pupil')
+    # Number the segments
+    for i in range(nb_seg+1):
+        ycen, xcen = jwst_pup._hex_center(i)
+        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
+    # Save a PDF version of the pupil
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
     # Get pupil as fits image
