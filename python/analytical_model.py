@@ -15,14 +15,15 @@ from matplotlib.colors import LogNorm
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
+#from config import CONFIG_INI
+#import util_pastis as util
 
 
 #if __name__ == "__main__":
 def analytical_model(zernike_pol, coef, cali=False):
 
-    #-# Define parameters
-    dataDir = os.path.join('..', 'data', 'py_data')
-    # dataDir = CONFIG_INI.get('local', 'local_data_path')
+    #-# Define parametersf
+    dataDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
