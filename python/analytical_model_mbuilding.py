@@ -38,12 +38,12 @@ if __name__ == '__main__':
 
             print('STEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
 
-            # Putting 1 nm only on segments i and j - why 1nm again, not random? Or is it actually always 1 nm?
-            tempA = np.zeros([nb_seg, nb_seg])
+            # Putting 1 nm only on segments i and j
+            tempA = np.zeros([nb_seg])
             tempA[i] = nm_aber
             tempA[j] = nm_aber
 
-            temp_im_am = am.analytical_model(zern_number, tempA[:,zern_number-1], cali=True)
+            temp_im_am = am.analytical_model(zern_number, tempA, cali=True)
             matrix_pastis[i,j] = np.mean(temp_im_am[np.where(temp_im_am != 0)])
 
     # Filling the off-axis elements
