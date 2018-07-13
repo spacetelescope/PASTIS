@@ -1,4 +1,7 @@
-"""This program compares contrast calculation from different methods."""
+"""This program compares contrast calculation from different methods:
+WebbPSF coronagraph
+Image-based PASTIS
+Matrix-based PASTIS"""
 
 import os
 import time
@@ -7,14 +10,14 @@ from astropy.io import fits
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
-import python.analytical_model as am
+import python.image_pastis as impastis
 import python.webbpsf_imaging as webbim
 
 
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around ? minutes
+    start_time = time.time()   # runtime currently is around 2 minutes
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -55,7 +58,7 @@ if __name__ == '__main__':
     print('Generating contrast from image-PASTIS')
     start_impastis = time.time()
     # Create calibrated image from analytical model
-    psf_am = am.analytical_model(zern_number, Aber, cali=True)
+    psf_am = impastis.analytical_model(zern_number, Aber, cali=True)
     # Get the mean contrast from image PASTIS
     contrast_am = np.mean(psf_am[np.where(psf_am != 0)])
     end_impastis = time.time()
@@ -73,6 +76,7 @@ if __name__ == '__main__':
 
     ratio = contrast_am / contrast_matrix
 
+    # Outputs
     print('\n--- CONTRASTS: ---')
     print('Mean contrast from WebbPSF:', contrast_webbpsf)
     print('Mean contrast with image PASTIS:', contrast_am)

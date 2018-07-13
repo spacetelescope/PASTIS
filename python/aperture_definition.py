@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # Keep track of time
     start_time = time.time()   # runtime currently is around 2 seconds
 
-    # Some parameters
+    # Parameters
     outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'segmentation')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
@@ -79,9 +79,7 @@ if __name__ == "__main__":
     util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
 
     #-# Get the coordinates of the central pixel of each segment
-    # seg_position is a [2, nb_seg] array that holds x and y position of each central pixel
-
-    seg_position = np.zeros((nb_seg, 2))
+    seg_position = np.zeros((nb_seg, 2))   # holds x and y position of each central pixel
     for i in range(nb_seg+1):   # our pupil is still counting the central segment as seg 0, so we need to include it
                                 # in the loop, however, we will just discard the values for the center
         if i == 0:     # Segment 0 is the central segment, which we want to skip and not put into seg_position
@@ -92,8 +90,6 @@ if __name__ == "__main__":
             # long as it stays consistent.
 
     #-# Make distance list with distances between all of the central pixels among each other
-    # vec_list is a [nb_seg, nb_seg, 2] array
-
     vec_list = np.zeros((nb_seg, nb_seg, 2))
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -216,4 +212,4 @@ if __name__ == "__main__":
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for function_baselinify.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')
+    print('Runtime for aperture_definition.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')

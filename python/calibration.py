@@ -9,7 +9,7 @@ import webbpsf
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
-import python.analytical_model as am
+import python.image_pastis as impastis
 
 
 if __name__ == '__main__':
@@ -143,7 +143,7 @@ if __name__ == '__main__':
         contrastAPLC_vec_int[i] = np.mean(im_end[np.where(im_end != 0)])
 
         #-# Create image from analytical model, (normalize,) calculate contrast (mean) and put in array
-        im_am = am.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
+        im_am = impastis.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
         contrastAM_vec_int[i] = np.mean(im_am[np.where(im_am != 0)])
 
     print('\n--- All PSFs calculated. ---\n')
