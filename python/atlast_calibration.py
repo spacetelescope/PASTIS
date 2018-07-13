@@ -69,11 +69,11 @@ if __name__ == '__main__':
     # Generate the PSFs
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
-    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), monochromatic=wvln/1e9)
+    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
     psf_end_time = time.time()
     print('Calculating the PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
     print('Calculating perfect PSF with coronagraph...\n')
-    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), monochromatic=wvln/1e9)
+    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[1].data
@@ -88,8 +88,11 @@ if __name__ == '__main__':
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, real_samp)
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0] / 2.), int(dh_area.shape[1] / 2.), 25)
 
-    # Calculate the baseline contrast *with* the coronograph and *without* aberrations
+    # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save value to file
     contrast_base = np.mean(psf_coro[dh_area_zoom])
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
+    np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
     # Create the arrays to hold the contrast values from the iterations
     contrastAPLC_vec_int = np.zeros([nb_seg])
@@ -126,7 +129,7 @@ if __name__ == '__main__':
 
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
-        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), monochromatic=wvln/1e9)
+        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
         psf_end = psf_endsim[1].data
 
         #-# Normalize coro PSF
