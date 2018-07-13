@@ -72,13 +72,19 @@ if __name__ == '__main__':
 
     # Get the mean contrast from AM
     contrast_am = np.mean(dh_psf[np.where(dh_psf != 0)])
-    print('Dark hole mean from analytical model:', contrast_am)
+
+    # Load in baseline contast
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     # Calculate final contrast
-    result = np.matmul(np.matmul(Aber, matrix_pastis), Aber)   # generating final matriix PASTIS result
-    contrast_final = contrast_am / result
-    print('Mean contrast with AM:', contrast_am)
-    print('Mean contrast with matrices:', contrast_final)
+    contrast_matrix = util.pastis_contrast(Aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    ratio = contrast_am / contrast_matrix
+
+    print('Mean contrast from WebbPSF:', '?')
+    print('Mean contrast with image PASTIS:', contrast_am)
+    print('Contrast from matrix PASTIS:', contrast_matrix)
+    print('Ratio image PASTIS / matrix PASTIS:', ratio)
 
     # Tell us how long it took to finish.
     end_time = time.time()
