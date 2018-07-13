@@ -144,11 +144,9 @@ if __name__ == '__main__':
     calibration = np.zeros_like(contrastAPLC_vec_int)
     calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
 
-    #-# Save calibration vector and base contrast
+    #-# Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_base)
 
     # Generate some plots
     plt.plot(contrastAPLC_vec_int)
