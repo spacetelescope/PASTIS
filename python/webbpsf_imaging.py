@@ -31,7 +31,6 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
     # Set up NIRCam and coronagraph
     nc = webbpsf.NIRCam()
-    nc.insert_si_wfe = False
     nc.filter = filter
     nc.image_mask = fpm
     nc.pupil_mask = ppm
