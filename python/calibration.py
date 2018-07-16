@@ -78,15 +78,15 @@ if __name__ == '__main__':
 
     # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
-    psf_default = psf_default / normp
-    psf_coro = psf_coro / normp
+    psf_default = psf_default / normp   # NORM
+    psf_coro = psf_coro / normp         # NORM
 
-    # Create the dark hole and cut out the inner part of it
+    # Create the dark hole
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, real_samp)
-    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0] / 2.), int(dh_area.shape[1] / 2.), 25)
 
-    # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save value to file
-    contrast_base = np.mean(psf_coro[dh_area_zoom])
+    # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
+    contrast_im = psf_coro * dh_area
+    contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
@@ -130,16 +130,13 @@ if __name__ == '__main__':
         psf_end = psf_endsim[1].data
 
         #-# Normalize coro PSF
-        psf_end = psf_end / normp
-
-        #-# Crop coro PSF and DH to same small size (like in analytical_model.py)
-        psf_end_zoom = util.zoom(psf_end, int(psf_end.shape[0] / 2.), int(psf_end.shape[1] / 2.), 25)
+        psf_end = psf_end / normp   # NORM
 
         #-# Get end-to-end image in DH, calculate the contrast (mean) and put it in array
-        im_end = psf_end_zoom * dh_area_zoom
+        im_end = psf_end * dh_area
         contrastAPLC_vec_int[i] = np.mean(im_end[np.where(im_end != 0)])
 
-        #-# Create image from analytical model, (normalize,) calculate contrast (mean) and put in array
+        #-# Create image from analytical model, calculate contrast (mean, in DH) and put in array
         im_am = impastis.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
         contrastAM_vec_int[i] = np.mean(im_am[np.where(im_am != 0)])
 
