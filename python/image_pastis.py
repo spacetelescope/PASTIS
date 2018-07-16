@@ -47,8 +47,6 @@ def analytical_model(zernike_pol, coef, cali=False):
     zern_mode = util.ZernikeMode(zernike_pol)
 
     #-# Mean subtraction for piston
-    coef = coef * 2. * np.pi / wvln   # conversion to radians
-
     if zernike_pol == 1:
         coef -= np.mean(coef)
 
@@ -106,8 +104,10 @@ def analytical_model(zernike_pol, coef, cali=False):
     cos_u_mat = np.zeros((int(largeur), int(largeur), NR_pairs_nb))
 
     # Please explain what on Earth is happening here
+    # The -1 with each NR_pairs_list_int is because the segment names are saved starting from 1, but Python starts
+    # its indexing at zero, so we have to make it start at zero here too.
     for q in range(NR_pairs_nb):
-        cos_u_mat[:,:,q] = np.cos(px_square_2rad * (vec_list[NR_pairs_list_int[q,0], NR_pairs_list_int[q, 1], 0] * tab_i) + px_square_2rad * (vec_list[NR_pairs_list_int[q, 0], NR_pairs_list_int[q, 1], 1] * tab_j))
+        cos_u_mat[:,:,q] = np.cos(px_square_2rad * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 0] * tab_i) + px_square_2rad * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 1] * tab_j))
 
     sum1 = np.sum(coef**2)
     sum2 = np.zeros((int(largeur), int(largeur)))
@@ -130,7 +130,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/real_samp, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
 
     # PASTIS is only valid inside the dark hole.
-    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)
+    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
     dh_psf = dh_area_zoom * TF_seg_zoom
