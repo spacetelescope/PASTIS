@@ -50,16 +50,13 @@ if __name__ == '__main__':
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zern_number)
 
-    # Create NIRCam objects, for perfect PSF and one with coronagraph
+    # Create NIRCam objects, one for perfect PSF and one with coronagraph
     nc = webbpsf.NIRCam()
-    # Don't include NIRCam specific WFE, because it is currently not available in WebbPSF
-    nc.insert_si_wfe = False
     # Set filter
     nc.filter = filter
 
     # Same for coronagraphic case
     nc_coro = webbpsf.NIRCam()
-    nc_coro.insert_si_wfe = False
     nc_coro.filter = filter
 
     # Add coronagraphic elements to nc_coro
