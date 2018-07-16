@@ -6,9 +6,9 @@ No inputs.
 
 nb_seg is the number of segments WITHOUT the central obscuration.
 nb_seg+1 is the number of segemts WITH the central obscuration, but it shouldn't be needed anywhere.
-Segments are numbered from 0 to nb_seg at its creation with Poppy, but the central segments gets discarded once we
+Segments are numbered from 0 to nb_seg at its creation with Poppy, but the central segment gets discarded once we
 are getting the coordinates of the segment centers.
-NRPs are numbered from 1 to NR_pairs_nb (total number of NRPs).
+NRPs are numbered from 0 to NR_pairs_nb-1 (NR_pairs_nb = total number of NRPs).
 
 Outputs:
     Projection_Matrix:  [nb_seg, nb_seg, 3] array
@@ -89,7 +89,7 @@ if __name__ == "__main__":
             # The units of seg_position are currently physical meters. I don't think I need to do it in pixels here, as
             # long as it stays consistent.
 
-    #-# Make distance list with distances between all of the central pixels among each other
+    #-# Make distance list with distances between all of the segment centers among each other - in meters
     vec_list = np.zeros((nb_seg, nb_seg, 2))
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -143,9 +143,9 @@ if __name__ == "__main__":
 
     # Create vector that holds distances between segments (instead of distance COORDINATES like in vec_list)
     distance_list = np.square(vec_list_nulled[:,:,0]) + np.square(vec_list_nulled[:,:,1])   # We use square distances so that we don't miss out on negative values
-    nonzero = np.nonzero(distance_list)
-    NR_distance_list = distance_list[nonzero]
-    NR_pairs_nb = np.count_nonzero(distance_list)   # Counting many non-redundant (NR) pairs we have
+    nonzero = np.nonzero(distance_list)             # get indices of non-redundant segment pairs
+    NR_distance_list = distance_list[nonzero]       # extract the list of distances between segments of NR pairs
+    NR_pairs_nb = np.count_nonzero(distance_list)   # Counting how many non-redundant (NR) pairs we have
 
     #-# Select non redundant vectors
     # NR_pairs_list_int is a [NRP number, seg1, seg2] vector to hold non-redundant vector information.
@@ -159,11 +159,10 @@ if __name__ == "__main__":
         NR_pairs_list_int[i,0] = nonzero[0][i]
         NR_pairs_list_int[i,1] = nonzero[1][i]
 
-
-    # Create baseline_vec
-    baseline_vec = np.copy(NR_pairs_list_int)
-    baseline_vec[:,1] = NR_pairs_list_int[:,0]
-    baseline_vec[:,0] = NR_pairs_list_int[:,1]
+    # # Create baseline_vec
+    # baseline_vec = np.copy(NR_pairs_list_int)
+    # baseline_vec[:,1] = NR_pairs_list_int[:,0]
+    # baseline_vec[:,0] = NR_pairs_list_int[:,1]
 
     NR_pairs_list_int = NR_pairs_list_int.astype(int)
 
@@ -180,7 +179,7 @@ if __name__ == "__main__":
     # Initialize the projection matrix
     Projection_Matrix_int = np.zeros((nb_seg, nb_seg, 3))
 
-    # Reshape needed arrays so that we can loop over them easier
+    # Reshape arrays so that we can loop over them easier
     vec2_long = vec_list2.shape[0] * vec_list2.shape[1]
     vec2_flat = np.reshape(vec_list2, (vec2_long, 2))
 
@@ -202,8 +201,12 @@ if __name__ == "__main__":
     # Reshape matrix back to normal form
     Projection_Matrix = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
 
+    # Since we're starting to count our segments at 1, we need to add 1 to all the segment "names"/numbers in this
+    # array, since it got created by reading the indices of the segments, and Python starts its indices at 0.
+    NR_pairs_list_int += 1
+
     #-# Save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
-    util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
+    # util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
     util.write_fits(vec_list, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
     util.write_fits(NR_pairs_list_int, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
