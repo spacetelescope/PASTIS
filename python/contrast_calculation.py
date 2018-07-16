@@ -25,6 +25,12 @@ if __name__ == '__main__':
     filter = CONFIG_INI.get('filter', 'name')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
+    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
+    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
+    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    real_samp = sampling * tel_size_px / im_size
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
@@ -50,8 +56,11 @@ if __name__ == '__main__':
     start_webb = time.time()
     # Set up NIRCam and coronagraph
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
+    # Create dark hole
+    dh_area = util.create_dark_hole(psf_webbpsf, inner_wa, outer_wa, real_samp)
     # Get the mean conrast from the WebbPSF coronagraph
-    contrast_webbpsf = np.mean(psf_webbpsf[np.where(psf_webbpsf != 0)])
+    webb_dh_psf = psf_webbpsf * dh_area
+    contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()
 
     ### IMAGE PASTIS
