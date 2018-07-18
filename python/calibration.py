@@ -122,6 +122,8 @@ if __name__ == '__main__':
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
+        ote_coro.reset()   # Making sure there are no previous movements on the segments.
+        ote_coro.zero()    # For now, ignore internal WFE.
         ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
         # If you want to display it:
