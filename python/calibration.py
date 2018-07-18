@@ -105,12 +105,51 @@ if __name__ == '__main__':
     # Loop over each individual segment, putting always the same aberration on
     for i in range(nb_seg):
 
+        iter_start = time.time()
+
         # Create the name of the segment the loop is currently at
         seg = wss_segs[i].split('-')[0]
 
+        print('')
         print('Working on segment ' + str(i+1) + '/' + str(nb_seg) + ': ' + seg)
         # We have to make sure here that we aberrate the segments in their order of numbering as it was set
         # in the script that generates the aperture (here: function_baselinify.py)!
+        # Currently there is a bug in WebbPSF though that numbers the segments wrong when used in the exit pupil
+        # orientation, hence I added this quickfix until it is fixed inside WebbPSF:
+
+        ### FIX FOR MISSING LEFT_RIGHT FLIP IN WEBBPSF'S EXIT PUPIL ### - remove when it gets fixed in WebbPSF
+        # inner circle of segments
+        if seg == 'A6':
+            seg = 'A2'
+        elif seg == 'A2':
+            seg = 'A6'
+        if seg == 'A5':
+            seg = 'A3'
+        elif seg == 'A3':
+            seg = 'A5'
+
+        # outer circle of segments
+        if seg == 'C6':
+            seg = 'C1'
+        elif seg == 'C1':
+            seg = 'C6'
+        if seg == 'B6':
+            seg = 'B2'
+        elif seg == 'B2':
+            seg = 'B6'
+        if seg == 'C5':
+            seg = 'C2'
+        elif seg == 'C2':
+            seg = 'C5'
+        if seg == 'B5':
+            seg = 'B3'
+        elif seg == 'B3':
+            seg = 'B5'
+        if seg == 'C4':
+            seg = 'C3'
+        elif seg == 'C3':
+            seg = 'C4'
+        ### FIX END ###
 
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
