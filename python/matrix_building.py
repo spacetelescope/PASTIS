@@ -45,7 +45,7 @@ if __name__ == '__main__':
             tempA[i] = nm_aber
             tempA[j] = nm_aber
 
-            temp_im_am = impastis.analytical_model(zern_number, tempA, cali=True)
+            temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)
             matrix_pastis[i,j] = np.mean(temp_im_am[np.where(temp_im_am != 0)])
 
     # Filling the off-axis elements

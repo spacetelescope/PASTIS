@@ -17,7 +17,7 @@ import python.webbpsf_imaging as webbim
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 2 minutes
+    start_time = time.time()   # runtime currently is around 20 sec
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -43,9 +43,9 @@ if __name__ == '__main__':
     if zern_number == 1:   # piston
         Aber = np.random.random([nb_seg]) * 10   # piston values
 
-    # Mean subtraction for piston
-    if zern_number == 1:
-        Aber -= np.mean(Aber)
+    # Mean subtraction for piston   - we already have this in image_pastis.py
+    #if zern_number == 1:
+    #    Aber -= np.mean(Aber)
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     print('Generating contrast from image-PASTIS')
     start_impastis = time.time()
     # Create calibrated image from analytical model
-    psf_am = impastis.analytical_model(zern_number, Aber, cali=True)
+    psf_am, full_psf = impastis.analytical_model(zern_number, Aber, cali=True)
     # Get the mean contrast from image PASTIS
     contrast_am = np.mean(psf_am[np.where(psf_am != 0)])
     end_impastis = time.time()

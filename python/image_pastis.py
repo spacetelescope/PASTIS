@@ -27,7 +27,6 @@ def analytical_model(zernike_pol, coef, cali=False):
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
-    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
     wvln = CONFIG_INI.getint('filter', 'lambda')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
@@ -152,4 +151,4 @@ def analytical_model(zernike_pol, coef, cali=False):
     plt.show()
     """
 
-    return dh_psf
+    return dh_psf, TF_seg

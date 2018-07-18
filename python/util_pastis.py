@@ -130,7 +130,7 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     :param samp: sampling factor
     :return: dh_area, np.array
     """
-    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1
+    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 coverts from booleans to integers
     circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
     dh_area = circ_outer - circ_inner
 
