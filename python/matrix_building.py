@@ -47,10 +47,10 @@ if __name__ == '__main__':
 
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    util.write_fits(matrix_pastis, os.path.join(dataDir, 'results', filename + '.fits'), header=None, metadata=None)
+    util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
 
-    print('Matrix saved to:', os.path.join(dataDir, 'results', filename + '.fits'))
+    print('Matrix saved to:', os.path.join(resDir, filename + '.fits'))
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for analytical_model_mbuild.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')

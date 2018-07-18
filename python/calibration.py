@@ -47,6 +47,10 @@ if __name__ == '__main__':
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
+    # If subfolder "calibration" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(outDir, 'images')):
+        os.mkdir(os.path.join(outDir, 'images'))
+
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zern_number)
 
