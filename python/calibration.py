@@ -66,11 +66,11 @@ if __name__ == '__main__':
     # Generate the PSFs
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
-    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+    psf_default_hdu = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
     psf_end_time = time.time()
     print('Calculating the PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
     print('Calculating perfect PSF with coronagraph...\n')
-    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+    psf_coro_hdu = nc_coro.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[1].data
