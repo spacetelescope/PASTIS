@@ -1,8 +1,10 @@
 """
-This is a module containing functions to create JWST coronagraphic images.
+This is a module containing convenience functions to create JWST coronagraphic images.
 """
 import os
 import webbpsf
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from python.config import CONFIG_INI
 
 # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
@@ -42,7 +44,42 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
     # Calculate PSF
-    psf_nc = nc.calc_psf(fov_pixels=int(im_size), nlambda=1)
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1)
     psf_webbpsf = psf_nc[1].data
 
     return psf_webbpsf
+
+
+def setup_coro(filter, fpm, ppm):
+    """
+    Set up a NIRCam coronagraph object.
+    :param filter: str, filter name
+    :param fpm: focal plane mask
+    :param ppm: pupil plane mask - Lyot stop
+    :return:
+    """
+    nc = webbpsf.NIRCam()
+    nc.filter = filter
+    nc.image_mask = fpm
+    nc.pupil_mask = ppm
+
+    return nc
+
+
+if __name__ == '__main__':
+
+    nc_coro = setup_coro('F335M', 'MASK335R', 'CIRCLYOT')
+    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)
+
+    ote_coro.zero()
+    #ote_coro._apply_hexikes_to_seg('A1', [1e-6])
+    #ote_coro._apply_hexikes_to_seg('A3', [1e-6])
+    #ote_coro.move_seg_local('A6', xtilt=0.5)
+    psf = nc_coro.calc_psf(oversample=1)
+    psf = psf[1].data
+
+    plt.subplot(1,2,1)
+    ote_coro.display_opd()
+    plt.subplot(1,2,2)
+    plt.imshow(psf, norm=LogNorm())
+    plt.show()
