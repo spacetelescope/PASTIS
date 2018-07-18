@@ -15,19 +15,8 @@ if __name__ == '__main__':
     start_time = time.time()   # runtime currently is around 11 minutes
 
     # Parameters
-    dataDir = CONFIG_INI.get('local', 'local_data_path')
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
-    largeur = tel_size_px * sampling
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get('filter', 'name')
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
-    real_samp = sampling * tel_size_px / im_size
-    wvln = CONFIG_INI.getint('filter', 'lambda')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
