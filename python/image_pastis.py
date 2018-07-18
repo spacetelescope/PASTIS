@@ -107,7 +107,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     # The -1 with each NR_pairs_list_int is because the segment names are saved starting from 1, but Python starts
     # its indexing at zero, so we have to make it start at zero here too.
     for q in range(NR_pairs_nb):
-        cos_u_mat[:,:,q] = np.cos(px_square_2rad * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 0] * tab_i) + px_square_2rad * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 1] * tab_j))
+        cos_u_mat[:,:,q] = np.cos(px_scale * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 0] * tab_i) + px_scale * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 1] * tab_j))
 
     sum1 = np.sum(coef**2)
     sum2 = np.zeros((int(largeur), int(largeur)))
