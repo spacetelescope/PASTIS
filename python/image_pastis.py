@@ -34,12 +34,13 @@ def analytical_model(zernike_pol, coef, cali=False):
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')             # image array size in px
     px_nm = CONFIG_INI.getfloat('numerical', 'px_size_nm')                      # pixel size in nm
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # "fake" sampling; multiply by tel_size_px/im_size to scale it and get the real sampling
-    real_samp = sampling * tel_size_px / im_size                       # real sampling - effectively lambda/D
+    #real_samp = sampling * tel_size_px / im_size                       # real sampling - effectively lambda/D
     largeur = tel_size_px * sampling                                   # size of pupil (?) with taking the sampling into account - as opposed to the 708 of total image
     wave_number = 2. * np.pi / wvln
     focal = sampling * px_nm * CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / wvln    # focal length of the telescope
     size_tel = CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / tel_size_px   # size of one pixel in pupil in nm
     px_square_2rad = size_tel * px_nm * wave_number / focal
+    px_scale = CONFIG_INI.getfloat('numerical', 'pixel_scale')
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Create Zernike mode object for easier handling
@@ -68,7 +69,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole
-    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, real_samp)
+    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
 
     #-# Import information form previous script
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
@@ -126,7 +127,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope.
-    TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/real_samp, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+    TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/sampling, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
 
     # PASTIS is only valid inside the dark hole.
     TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH

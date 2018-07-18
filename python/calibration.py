@@ -37,7 +37,7 @@ if __name__ == '__main__':
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    real_samp = sampling * tel_size_px / im_size
+    #real_samp = sampling * tel_size_px / im_size
 
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')    # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     psf_coro = psf_coro / normp         # NORM
 
     # Create the dark hole
-    dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, real_samp)
+    dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, sampling)
 
     # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
     contrast_im = psf_coro * dh_area
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
-        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+        psf_endsim = nc_coro.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
         psf_end = psf_endsim[1].data
 
         #-# Normalize coro PSF
