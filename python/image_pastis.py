@@ -93,9 +93,9 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     for q in range(NR_pairs_nb):
         for i in range(nb_seg):
-            for j in range(i+1, nb_seg-1):
+            for j in range(i+1, nb_seg):
                 if Projection_Matrix[i, j, 0] == q+1:
-                    generic_coef[q] += + coef[i] * coef[j]
+                    generic_coef[q] += coef[i] * coef[j]
 
     #-# Constant sum and cosine sum
     # I gotta figure out in what way to actually to do int() or mod()/%, because largeur is a float here
