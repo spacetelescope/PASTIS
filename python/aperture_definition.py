@@ -159,11 +159,6 @@ if __name__ == "__main__":
         NR_pairs_list_int[i,0] = nonzero[0][i]
         NR_pairs_list_int[i,1] = nonzero[1][i]
 
-    # # Create baseline_vec
-    # baseline_vec = np.copy(NR_pairs_list_int)
-    # baseline_vec[:,1] = NR_pairs_list_int[:,0]
-    # baseline_vec[:,0] = NR_pairs_list_int[:,1]
-
     NR_pairs_list_int = NR_pairs_list_int.astype(int)
 
     #-# Generate projection matrix
@@ -204,9 +199,10 @@ if __name__ == "__main__":
     # Since we're starting to count our segments at 1, we need to add 1 to all the segment "names"/numbers in this
     # array, since it got created by reading the indices of the segments, and Python starts its indices at 0.
     NR_pairs_list_int += 1
+    Projection_Matrix[:,:,1] += 1
+    Projection_Matrix[:, :, 2] += 1
 
-    #-# Save the arrays: baseline_vec, vec_list, NR_pairs_list_int, Projection_Matrix
-    # util.write_fits(baseline_vec, os.path.join(outDir, 'baseline_vec.fits'), header=None, metadata=None)
+    #-# Save the arrays: vec_list, NR_pairs_list_int, Projection_Matrix
     util.write_fits(vec_list, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
     util.write_fits(NR_pairs_list_int, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
