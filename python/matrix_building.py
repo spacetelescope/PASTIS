@@ -1,4 +1,4 @@
-"""This program constructs the matrix M for PASTIS and aves it."""
+"""This program constructs the matrix M for PASTIS and saves it."""
 
 import os
 import time
