@@ -67,6 +67,12 @@ if __name__ == '__main__':
     nc_coro.image_mask = fpm
     nc_coro.pupil_mask = lyot_stop
 
+    # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
+    nc, ote = webbpsf.enable_adjustable_ote(nc)                     # create OTE for default PSF
+    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
+    ote.zero()          # set OTE for default PSF to zero
+    ote_coro.zero()     # set OTE for coronagraph to zero
+
     # Generate the PSFs
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
@@ -98,9 +104,6 @@ if __name__ == '__main__':
     # Create the arrays to hold the contrast values from the iterations
     contrastAPLC_vec_int = np.zeros([nb_seg])
     contrastAM_vec_int = np.zeros([nb_seg])
-
-    # Create OTE for coro
-    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)
 
     # Loop over each individual segment, putting always the same aberration on
     for i in range(nb_seg):
