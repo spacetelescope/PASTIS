@@ -191,18 +191,18 @@ if __name__ == '__main__':
         print('Contrast WebbPSF:', contrastAPLC_vec_int[i])
         print('Contrast image-PASTIS, uncalibrated:', contrastAM_vec_int[i])
 
-        # Save images for testing
-        im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        util.write_fits(full_im_am, os.path.join(outDir, 'images', im_am_name + '.fits'))
-        #dh_im_am - for image with DH
-        im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        util.write_fits(psf_end, os.path.join(outDir, 'images', im_end_name + '.fits'))
-        #im_end - for image with DH
-        # Save OTE OPD
-        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        plt.clf()
-        ote_coro.display_opd()
-        plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
+        # # Save images for testing
+        # im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        # util.write_fits(full_im_am, os.path.join(outDir, 'images', im_am_name + '.fits'))
+        # #dh_im_am - for image with DH
+        # im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        # util.write_fits(psf_end, os.path.join(outDir, 'images', im_end_name + '.fits'))
+        # #im_end - for image with DH
+        # # Save OTE OPD
+        # opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        # plt.clf()
+        # ote_coro.display_opd()
+        # plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
 
         iter_end = time.time()
         print('Iteration', i+1, 'runtime:', iter_end-iter_start, 'sec =', (iter_end-iter_start)/60, 'min')
