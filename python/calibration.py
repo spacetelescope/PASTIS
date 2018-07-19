@@ -210,8 +210,8 @@ if __name__ == '__main__':
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
     calibration = np.zeros_like(contrastAPLC_vec_int)
-    #calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
-    calibration = contrastAPLC_vec_int / contrastAM_vec_int
+    calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
+    #calibration = contrastAPLC_vec_int / contrastAM_vec_int   # without taking C_0 into account
 
     #-# Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
