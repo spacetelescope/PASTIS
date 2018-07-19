@@ -41,7 +41,7 @@ DH_PSF = analytical_model(zernike_pol=1, coef=Piston_vec)
 toc = systime(1)
 print, toc-tic
 
-; Create dark hole; 708... total size of image (D), 614... wavelength (lambda)?
+; Create dark hole; 708... total size of image (D), 614... 
 ech = 2D
 largeur = 614.*ech
 polaire2, rt=10.*ech*614./708., largeur=largeur, /entre4, masque=masko, /double
@@ -71,6 +71,12 @@ lambda = 640.
 A = A*2.*!PI/lambda
 mean_A = mean(A)
 A = A - mean_A   ; gettin rid of general offset, global PSF wouldn't affect PSF at all; here it effects the pupil - so we have to get rid of global piston
+
+
+
+
+
+
 M = make_array(37, 37, value=0.)
 
 ;;;;;;;;;;;;; MATRIX M BUILDING ;;;;;;;;;;;;;;;;
