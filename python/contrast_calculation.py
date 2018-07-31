@@ -49,19 +49,29 @@ if __name__ == '__main__':
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = Aber   # index "0" works because we're using piston currently
+    Aber_WSS[:,0] = Aber / 1e9   # index "0" works because we're using piston currently; convert to meters
+
+    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
+    psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
+    normp = np.max(psf_perfect)
+    psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
     print('Generating WebbPSF contrast')
     start_webb = time.time()
-    # Set up NIRCam and coronagraph
+    # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
+    psf_webbpsf = psf_webbpsf / normp
     # Create dark hole
-    dh_area = util.create_dark_hole(psf_webbpsf, inner_wa, outer_wa, real_samp)
+    dh_area = util.create_dark_hole(psf_webbpsf, inner_wa, outer_wa, sampling)
     # Get the mean conrast from the WebbPSF coronagraph
     webb_dh_psf = psf_webbpsf * dh_area
     contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()
+
+    # Load in baseline contrast
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
     print('Generating contrast from image-PASTIS')
@@ -69,12 +79,8 @@ if __name__ == '__main__':
     # Create calibrated image from analytical model
     psf_am, full_psf = impastis.analytical_model(zern_number, Aber, cali=True)
     # Get the mean contrast from image PASTIS
-    contrast_am = np.mean(psf_am[np.where(psf_am != 0)])
+    contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
     end_impastis = time.time()
-
-    # Load in baseline contast
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
