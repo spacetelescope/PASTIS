@@ -88,8 +88,8 @@ if __name__ == '__main__':
 
     # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
-    psf_default = psf_default / normp   # NORM
-    psf_coro = psf_coro / normp         # NORM
+    psf_default = psf_default / normp
+    psf_coro = psf_coro / normp
 
     # Create the dark hole
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, sampling)

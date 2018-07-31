@@ -7,6 +7,7 @@ import os
 import time
 import numpy as np
 from astropy.io import fits
+import webbpsf
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    real_samp = sampling * tel_size_px / im_size
+    #real_samp = sampling * tel_size_px / im_size
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
@@ -41,7 +42,8 @@ if __name__ == '__main__':
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 10   # piston values
+        Aber = np.random.random([nb_seg]) * 1000   # piston values
+        print('PISTON ABERRATIONS:', Aber)
 
     # Mean subtraction for piston   - we already have this in image_pastis.py
     #if zern_number == 1:

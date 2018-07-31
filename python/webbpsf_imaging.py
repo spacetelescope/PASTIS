@@ -27,7 +27,7 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
     :param filter: str, filter name
     :param fpm: focal plane mask
     :param ppm: pupil plane mask - Lyot stop
-    :param Aber_WSS: list or array holding Zernike coefficients ordered in WSS convention
+    :param Aber_WSS: list or array holding Zernike coefficients ordered in WSS convention and in METERS
     :return:
     """
 
@@ -39,6 +39,33 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
     # Adjust OTE with aberrations
     nc, ote = webbpsf.enable_adjustable_ote(nc)
+    ote.zero()
+    for i in range(nb_seg):
+        seg = wss_segs[i].split('-')[0]
+        ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
+
+    # Calculate PSF
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1)
+    psf_webbpsf = psf_nc[1].data
+
+    return psf_webbpsf
+
+
+def nircam_nocoro(filter, Aber_WSS):
+    """
+    Create PSF
+    :param filter:
+    :param Aber_WSS:
+    :return:
+    """
+    # Create NIRCam object
+    nc = webbpsf.NIRCam()
+    # Set filter
+    nc.filter = filter
+
+    # Adjust OTE with aberrations
+    nc, ote = webbpsf.enable_adjustable_ote(nc)
+    ote.zero()
     for i in range(nb_seg):
         seg = wss_segs[i].split('-')[0]
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
