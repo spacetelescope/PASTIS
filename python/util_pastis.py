@@ -230,6 +230,7 @@ class ZernikeMode:
             self.convention = 'Noll'
 
     @property
+    # this property needs some fixing
     def name(self):
         zern_name = zernike_name(self.index, self.convention)
         return zern_name

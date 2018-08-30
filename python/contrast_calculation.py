@@ -18,7 +18,7 @@ import python.webbpsf_imaging as webbim
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 20 sec
+    start_time = time.time()   # runtime currently is around 30 sec
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')

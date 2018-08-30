@@ -6,7 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/IDL" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/new_stuff" isTestSource="false" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.6 (pastis)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
