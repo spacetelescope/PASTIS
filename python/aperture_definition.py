@@ -88,12 +88,18 @@ if __name__ == "__main__":
             seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
             # The units of seg_position are currently physical meters. I don't think I need to do it in pixels here, as
             # long as it stays consistent.
+    # Save the segment center positions just in case we want to check them without running the code
+    np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
+    # units meters; 18 segments, central segment (0) not included
 
     #-# Make distance list with distances between all of the segment centers among each other - in meters
     vec_list = np.zeros((nb_seg, nb_seg, 2))
     for i in range(nb_seg):
         for j in range(nb_seg):
             vec_list[i,j,:] = seg_position[i,:] - seg_position[j,:]
+    # Save, but gotta save x and y coordinate separately because of the function I use for saving
+    np.savetxt(os.path.join(outDir, 'vec_list_x.txt'), vec_list[:,:,0], fmt='%2.2f')   # x distance; units: meters
+    np.savetxt(os.path.join(outDir, 'vec_list_y.txt'), vec_list[:,:,1], fmt='%2.2f')   # y distance; units: meters
 
     #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
     # This was really hard to figure out, so I simply went with exactly the same way like in IDL.
@@ -101,6 +107,8 @@ if __name__ == "__main__":
     # Reshape vec_list array to one dimension so that we can implement the loop below
     longshape = vec_list.shape[0] * vec_list.shape[1]
     vec_flat = np.reshape(vec_list, (longshape, 2))
+    # Save for testing
+    np.savetxt(os.path.join(outDir, 'vec_flat.txt'), vec_flat)
 
     # Create array that will hold the nulled coordinates
     vec_null = np.copy(vec_flat)
@@ -138,6 +146,9 @@ if __name__ == "__main__":
 
     # Reshape nulled array back into proper shape of vec_list
     vec_list_nulled = np.reshape(vec_null, (vec_list.shape[0], vec_list.shape[1], 2))
+    # Save for testing
+    np.savetxt(os.path.join(outDir, 'vec_list_nulled_x.txt'), vec_list_nulled[:, :, 0], fmt='%2.2f')
+    np.savetxt(os.path.join(outDir, 'vec_list_nulled_y.txt'), vec_list_nulled[:, :, 1], fmt='%2.2f')
 
     #-# Extract the (number of) non redundant vectors: NR_distance_list
 
