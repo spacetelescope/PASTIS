@@ -74,7 +74,7 @@ if __name__ == "__main__":
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
     # Get pupil as fits image
-    pupil_dir = jwst_pup.sample(wavelength=wvl, grid_size=flat_diam, return_scale=True)
+    pupil_dir = jwst_pup.sample(wavelength=wvl, npix=1024, grid_size=flat_diam, return_scale=True)
     # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
     # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
     util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
