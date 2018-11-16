@@ -90,7 +90,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     coef = coef * ck
 
     #-# Generic coefficients
-    generic_coef = np.zeros(NR_pairs_nb)
+    generic_coef = np.zeros(NR_pairs_nb)   # coefficients in front of the non redundant pairs, the A_q in eq. 13 in Leboulleux et al. 2018
 
     for q in range(NR_pairs_nb):
         for i in range(nb_seg):
