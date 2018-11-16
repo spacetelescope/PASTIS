@@ -47,7 +47,7 @@ if __name__ == '__main__':
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
-    # If subfolder "calibration" doesn't exist yet, create it.
+    # If subfolder "images" in "calibration" doesn't exist yet, create it.
     if not os.path.isdir(os.path.join(outDir, 'images')):
         os.mkdir(os.path.join(outDir, 'images'))
 
@@ -98,11 +98,12 @@ if __name__ == '__main__':
 
     # Create the dark hole
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, sampling)
+    util.write_fits(dh_area, os.path.join(outDir, 'dh_area.fits'), header=None, metadata=None)
 
     # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the file name include a Zernike if this is supposed to be the perfect PSF without aberrations?
     contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
@@ -246,5 +247,5 @@ if __name__ == '__main__':
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
     ### and PASTIS.
 
-    ### If there were an apodizer, leave it in when calculating psf_default.
+    ### If there were an apodizer, leave it in when calculating psf_default ("no coronagraph").
     # Leave Lyot stop in for psf_default?? -> try it, check max of value, because that's our normalization factor
