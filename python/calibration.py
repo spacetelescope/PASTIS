@@ -55,6 +55,7 @@ if __name__ == '__main__':
     zern_mode = util.ZernikeMode(zern_number)
 
     # Create NIRCam objects, one for perfect PSF and one with coronagraph
+    print('Setting up the E2E simulation.')
     nc = webbpsf.NIRCam()
     # Set filter
     nc.filter = filter
@@ -73,18 +74,22 @@ if __name__ == '__main__':
     ote.zero()          # set OTE for default PSF to zero
     ote_coro.zero()     # set OTE for coronagraph to zero
 
-    # Generate the PSFs
+    # Generate the E2E PSFs with and without coronagraph
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
-    psf_default_hdu = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
     psf_end_time = time.time()
-    print('Calculating the PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
+    print('Calculating this PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
     print('Calculating perfect PSF with coronagraph...\n')
-    psf_coro_hdu = nc_coro.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[1].data
     psf_coro = psf_coro_hdu[1].data
+
+    # Save the PSFs for testing
+    util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
+    util.write_fits(psf_coro, os.path.join(outDir, 'psf_coro.fits'), header=None, metadata=None)
 
     # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
@@ -174,7 +179,7 @@ if __name__ == '__main__':
 
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
-        psf_endsim = nc_coro.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1) # monochromatic=wvln/1e9)
+        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
         psf_end = psf_endsim[1].data
 
         #-# Normalize coro PSF
