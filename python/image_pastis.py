@@ -98,39 +98,48 @@ def analytical_model(zernike_pol, coef, cali=False):
                 if Projection_Matrix[i, j, 0] == q+1:
                     generic_coef[q] += coef[i] * coef[j]
 
-    #-# Constant sum and cosine sum
-    # I gotta figure out in what way to actually to do int() or mod()/%, because largeur is a float here
-    tab_i = (np.reshape(np.arange(int(largeur ** 2)), (int(largeur), int(largeur))) % largeur) - largeur/2. + 0.5
-    tab_j = np.transpose(tab_i)
+    #-# Constant sum and cosine sum - calculating eq. 13 from Leboulleux et al. 2018
+    i_line = np.linspace(-largeur/2., largeur/2., largeur)
+    tab_i, tab_j = np.meshgrid(i_line, i_line)
     cos_u_mat = np.zeros((int(largeur), int(largeur), NR_pairs_nb))
 
-    # Please explain what on Earth is happening here
-    # The -1 with each NR_pairs_list_int is because the segment names are saved starting from 1, but Python starts
+    # Calculating the cosine terms from eq. 13.
+    # The -1 with each NR_pairs_list is because the segment names are saved starting from 1, but Python starts
     # its indexing at zero, so we have to make it start at zero here too.
     for q in range(NR_pairs_nb):
-        cos_u_mat[:,:,q] = np.cos(px_scale * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 0] * tab_i) + px_scale * (vec_list[NR_pairs_list_int[q,0]-1, NR_pairs_list_int[q,1]-1, 1] * tab_j))
+        # cos(b_q <dot> u): b_q with 1 <= q <= NR_pairs_nb is the basis of NRPS, meaning the distance vectors between
+        #                   two segments of one NRP. We can read these out from vec_list.
+        #                   u is the position (vector) in the detector plane. Here, those are the grids tab_i and tab_j.
+        # We need to calculate the dot product between all b_q and u, so in each iteration (for q), we simply add the
+        # x and y component.
+        cos_u_mat[:,:,q] = np.cos(px_scale * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 0] * tab_i) +
+                                  px_scale * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j))
 
-    sum1 = np.sum(coef**2)
+    sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
     sum2 = np.zeros((int(largeur), int(largeur)))
 
     for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
 
     #-# Local Zernike
-    # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
+    # Generate a basis of Zernikes with the mini segment being the support
     isolated_zerns = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
 
+    # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
     # Apply the currently used Zernike to the mini-segment.
     if zernike_pol == 1:
         Zer = mini_seg
     elif zernike_pol in range(2, zern_max-2):
         Zer = mini_seg * isolated_zerns[zernike_pol-1]
 
-    #-# Final image
-    # Generating the final image that will get passed on to the outer scope.
-    TF_seg = np.abs(util.matrix_fourier(Zer, param=Zer.shape[0]/sampling, dim_tf=largeur)**2 * (sum1 + 2. * sum2))
+    # Fourier Transform of the Zernike - the global envelope
+    ft_zern = util.matrix_fourier(Zer, param=Zer.shape[0]/sampling, dim_tf=largeur)
 
-    # PASTIS is only valid inside the dark hole.
+    #-# Final image
+    # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
+    TF_seg = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
+
+    # PASTIS is only valid inside the dark hole, so we cut out only that part.
     TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
