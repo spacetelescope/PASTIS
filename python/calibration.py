@@ -37,7 +37,6 @@ if __name__ == '__main__':
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    #real_samp = sampling * tel_size_px / im_size
 
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')    # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
