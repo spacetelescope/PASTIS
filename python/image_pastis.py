@@ -55,12 +55,14 @@ def analytical_model(zernike_pol, coef, cali=False):
     pupil = fits.getdata(os.path.join(dataDir, 'segmentation', 'pupil.fits'))
 
     # Put pupil in randomly picked, slightly larger image array
-    pup_im = np.zeros([im_size, im_size])
-    lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
-    pup_im[lim:-lim, lim:-lim] = pupil
-    # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment
+    pup_im = np.copy(pupil)   # remove if lines below this are active
+    #pup_im = np.zeros([im_size, im_size])
+    #lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
+    #pup_im[lim:-lim, lim:-lim] = pupil
+    # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment when the pupil is 512
+    # test_seg = pupil[:203,392:631]    # ... when the pupil is 1024
     # one_seg = np.zeros_like(test_seg)
-    # one_seg[:110, :] = test_seg[8:, :]    # this is the centered version of the individual segment
+    # one_seg[:110, :] = test_seg[8:, :]    # this is the centered version of the individual segment for 512 px pupil
 
     # Creat a mini-segment (one individual segment from the segmented aperture)
     mini_seg_real = poppy.NgonAperture(name='mini', radius=real_size_seg)   # creating real mini segment shape with poppy
