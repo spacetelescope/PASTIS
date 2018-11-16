@@ -36,6 +36,7 @@ polaire2, rt=10.*ech*614./708., largeur=largeur, /entre4, masque=masko, /double
 polaire2, rt=4.*ech*614./708., largeur=largeur, /entre4, masque=maski, /double
 dh_area = abs(masko-maski)
 aff, dh_area
+
 ;;;;;;;;;;;;;;;; MEAN SUBTRACTION ;;;;;;;;;;;;;;;;
 ; Only for piston
 
@@ -93,10 +94,10 @@ for q=0,NR_pairs_nb-1 do begin &$  ; coefficient in front of the non redundant p
   for i=0,n_seg-1 do begin &$
     for j=i+1,n_seg-1 do begin &$
       if Projection_Matrix[i,j,0] EQ q+1 then Generic_Coef[q] = Generic_Coef[q]+(coef[i]*coef[j])
-    endfor
-  endfor
+    endfor &$
+  endfor &$
 endfor
-
+stop
 ;;;;;;;;;;;;;;;;;;; CONSTANT SUM AND COSINE SUM ;;;;;;;;;;;;;;;;;;;
 ; Calculating the cosine factors (eq. 13) as a cube
 tab_i = (DINDGEN(largeur, largeur) mod largeur) - largeur/2. + 0.5
