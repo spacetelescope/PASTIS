@@ -75,10 +75,10 @@ def analytical_model(zernike_pol, coef, cali=False):
     #-# Import information form previous script
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
     vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))
-    NR_pairs_list_int = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
+    NR_pairs_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
 
     # Figure out how many NRPs we're dealing with
-    NR_pairs_nb = NR_pairs_list_int.shape[0]
+    NR_pairs_nb = NR_pairs_list.shape[0]
 
     #-# Chose whether calibration is about to happen yes or no
     if cali:
