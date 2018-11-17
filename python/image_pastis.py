@@ -22,10 +22,18 @@ import python.util_pastis as util
 
 #if __name__ == "__main__":
 def analytical_model(zernike_pol, coef, cali=False):
+    """
+
+    :param zernike_pol:
+    :param coef:
+    :param cali: bool; True if we already have calibration coefficients to use. False if we still need to create them.
+    :return:
+    """
 
     #-# Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    tel_size_m = CONFIG_INI.getfloat('telescope', 'diameter')
     real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
     wvln = CONFIG_INI.getint('filter', 'lambda')
@@ -33,14 +41,9 @@ def analytical_model(zernike_pol, coef, cali=False):
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')             # image array size in px
-    px_nm = CONFIG_INI.getfloat('numerical', 'px_size_nm')                      # pixel size in nm
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
-    largeur = tel_size_px * sampling                                   # size of pupil (?) with taking the sampling into account
-    wave_number = 2. * np.pi / wvln
-    focal = sampling * px_nm * CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / wvln    # focal length of the telescope
-    #size_tel = CONFIG_INI.getfloat('telescope', 'diameter')*1e9 / tel_size_px   # size of one pixel in pupil in nm; in pupil plane
-    #px_square_2rad = size_tel * px_nm * wave_number / focal
-    px_scale = CONFIG_INI.getfloat('numerical', 'pixel_scale')
+    size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
+    px_sq_to_rad = size_px_tel * np.pi / tel_size_m
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Create Zernike mode object for easier handling

@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the file name include a Zernike if this is supposed to be the perfect PSF without aberrations?
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
     contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
