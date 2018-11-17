@@ -9,7 +9,7 @@ import os
 import numpy as np
 from astropy.io import fits
 import poppy.zernike as zern
-import poppy.matrixDFT as mtf
+import poppy.matrixDFT as mft
 import poppy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -134,7 +134,7 @@ def analytical_model(zernike_pol, coef, cali=False):
         Zer = mini_seg * isolated_zerns[zernike_pol-1]
 
     # Fourier Transform of the Zernike - the global envelope
-    mf = mtf.MatrixFourierTransform()
+    mf = mft.MatrixFourierTransform()
     ft_zern = mf.perform(Zer, im_size / sampling, im_size)
 
     #-# Final image
