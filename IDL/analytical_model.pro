@@ -58,7 +58,7 @@ mini_seg = mini_seg/sqrt(36.*total(mini_seg))
 ;writefits, 'vec_list.fits', vec_list
 ;writefits, 'NR_pairs_list_int.fits', NR_pairs_list_int
 ;;;;;;;;;;;;;; Instead, we just import them: ;;;;;;;;;;;;;;;;
-cd, '/Users/ilaginja/Documents/Git/PASTIS/data'
+cd, '/Users/ilaginja/Documents/data_from_repos/pastis_data/segmentation'
 Baseline_vec = readfits('Baseline_vec.fits')
 Projection_Matrix = readfits('Projection_Matrix.fits')
 vec_list = readfits('vec_list.fits')
