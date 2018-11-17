@@ -9,6 +9,7 @@ import os
 import numpy as np
 from astropy.io import fits
 import poppy.zernike as zern
+import poppy.matrixDFT as mtf
 import poppy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -133,17 +134,18 @@ def analytical_model(zernike_pol, coef, cali=False):
         Zer = mini_seg * isolated_zerns[zernike_pol-1]
 
     # Fourier Transform of the Zernike - the global envelope
-    ft_zern = util.matrix_fourier(Zer, param=Zer.shape[0]/sampling, dim_tf=largeur)
+    mf = mtf.MatrixFourierTransform()
+    ft_zern = mf.perform(Zer, im_size / sampling, im_size)
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
-    TF_seg = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
+    intensity = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
 
-    # PASTIS is only valid inside the dark hole, so we cut out only that part.
-    TF_seg_zoom = util.zoom(TF_seg, int(TF_seg.shape[0]/2.), int(TF_seg.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH
+    # PASTIS is only valid inside the dark hole, so we cut out only that part
+    intensity_zoom = util.zoom(intensity, int(intensity.shape[0]/2.), int(intensity.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH
     dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
 
-    dh_psf = dh_area_zoom * TF_seg_zoom
+    dh_psf = dh_area_zoom * intensity_zoom
 
     """
     # Create plots.
@@ -162,4 +164,4 @@ def analytical_model(zernike_pol, coef, cali=False):
     plt.show()
     """
 
-    return dh_psf, TF_seg
+    return dh_psf, intensity
