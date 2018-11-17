@@ -54,6 +54,8 @@ if __name__ == "__main__":
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
     flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
     total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
+    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    m_to_px = im_size/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     # If subfolder "segmentation" doesn't exist yet, create it.
     if not os.path.isdir(outDir):
@@ -87,11 +89,11 @@ if __name__ == "__main__":
             continue   # Continues with the next iteration of the loop
         else:
             seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
-            # The units of seg_position are currently physical meters. I don't think I need to do it in pixels here, as
-            # long as it stays consistent.
+            # Units are meters!!!
+
     # Save the segment center positions just in case we want to check them without running the code
     np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
-    # units meters; 18 segments, central segment (0) not included
+    # 18 segments, central segment (0) not included
 
     #-# Make distance list with distances between all of the segment centers among each other - in meters
     vec_list = np.zeros((nb_seg, nb_seg, 2))
@@ -232,8 +234,11 @@ if __name__ == "__main__":
     # Reshape matrix back to normal form
     Projection_Matrix = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
 
+    # Convert the segment positions in vec_list from meters to pixels
+    vec_list_px = vec_list * m_to_px
+
     #-# Save the arrays: vec_list, NR_pairs_list, Projection_Matrix
-    util.write_fits(vec_list, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
+    util.write_fits(vec_list_px, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
     util.write_fits(NR_pairs_list, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
