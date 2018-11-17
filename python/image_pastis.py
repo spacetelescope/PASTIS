@@ -100,9 +100,9 @@ def analytical_model(zernike_pol, coef, cali=False):
                     generic_coef[q] += coef[i] * coef[j]
 
     #-# Constant sum and cosine sum - calculating eq. 13 from Leboulleux et al. 2018
-    i_line = np.linspace(-largeur/2., largeur/2., largeur)
+    i_line = np.linspace(-im_size/2., im_size/2., im_size)
     tab_i, tab_j = np.meshgrid(i_line, i_line)
-    cos_u_mat = np.zeros((int(largeur), int(largeur), NR_pairs_nb))
+    cos_u_mat = np.zeros((int(im_size), int(im_size), NR_pairs_nb))
 
     # Calculating the cosine terms from eq. 13.
     # The -1 with each NR_pairs_list is because the segment names are saved starting from 1, but Python starts
@@ -113,11 +113,11 @@ def analytical_model(zernike_pol, coef, cali=False):
         #                   u is the position (vector) in the detector plane. Here, those are the grids tab_i and tab_j.
         # We need to calculate the dot product between all b_q and u, so in each iteration (for q), we simply add the
         # x and y component.
-        cos_u_mat[:,:,q] = np.cos(px_scale * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 0] * tab_i) +
-                                  px_scale * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j))
+        cos_u_mat[:,:,q] = np.cos(px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 0] * tab_i) +
+                                  px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j))
 
     sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
-    sum2 = np.zeros((int(largeur), int(largeur)))
+    sum2 = np.zeros((int(im_size), int(im_size)))
 
     for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
