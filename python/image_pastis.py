@@ -145,8 +145,8 @@ def analytical_model(zernike_pol, coef, cali=False):
     intensity = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
 
     # PASTIS is only valid inside the dark hole, so we cut out only that part
-    intensity_zoom = util.zoom(intensity, int(intensity.shape[0]/2.), int(intensity.shape[1]/2.), 25)       # zoom box must be big enough to capture entire DH
-    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), 25)
+    intensity_zoom = util.zoom(intensity, int(intensity.shape[0]/2.), int(intensity.shape[1]/2.), sampling*(outer_wa+3))       # zoom box is (owa + 3*lambda/D) wide, in terms of lambda/D
+    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), sampling*(outer_wa+3))
 
     dh_psf = dh_area_zoom * intensity_zoom
 
