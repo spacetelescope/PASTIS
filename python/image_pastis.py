@@ -73,7 +73,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     mini_hdu = mini_seg_real.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
-    #-# Generate a dark hole
+    #-# Generate a dark hole mask
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
 
     #-# Import information form previous script
