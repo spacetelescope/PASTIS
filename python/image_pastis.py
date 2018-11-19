@@ -138,7 +138,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     # Fourier Transform of the Zernike - the global envelope
     mf = mft.MatrixFourierTransform()
-    ft_zern = mf.perform(Zer, im_size / sampling, im_size)
+    ft_zern = mf.perform(Zer, im_size/sampling, im_size)
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13

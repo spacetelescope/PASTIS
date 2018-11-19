@@ -15,7 +15,7 @@ import python.image_pastis as impastis
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 5 minutes
+    start_time = time.time()   # runtime currently is around 10 minutes
 
     # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
     # webbpsf.utils.get_webbpsf_data_path()

@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
             print('STEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
 
-            # Putting 1 nm only on segments i and j
+            # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
             tempA[i] = nm_aber
             tempA[j] = nm_aber
