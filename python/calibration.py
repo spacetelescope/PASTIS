@@ -107,8 +107,8 @@ if __name__ == '__main__':
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
     # Create the arrays to hold the contrast values from the iterations
-    contrastAPLC_vec_int = np.zeros([nb_seg])
-    contrastAM_vec_int = np.zeros([nb_seg])
+    contrast_e2e = np.zeros([nb_seg])
+    contrast_pastis = np.zeros([nb_seg])
 
     # Loop over each individual segment, putting always the same aberration on
     for i in range(nb_seg):
@@ -187,36 +187,36 @@ if __name__ == '__main__':
 
         #-# Get end-to-end image in DH, calculate the contrast (mean) and put it in array
         im_end = psf_end * dh_area
-        contrastAPLC_vec_int[i] = np.mean(im_end[np.where(im_end != 0)])
+        contrast_e2e[i] = np.mean(im_end[np.where(im_end != 0)])
 
-        #-# Create image from analytical model, calculate contrast (mean, in DH) and put in array
+        #-# Create image from PASTIS (analytical model), calculate contrast (mean, in DH) and put in array
         dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
-        contrastAM_vec_int[i] = np.mean(dh_im_am[np.where(dh_im_am != 0)])
+        contrast_pastis[i] = np.mean(dh_im_am[np.where(dh_im_am != 0)])
 
-        print('Contrast WebbPSF:', contrastAPLC_vec_int[i])
-        print('Contrast image-PASTIS, uncalibrated:', contrastAM_vec_int[i])
+        print('Contrast WebbPSF:', contrast_e2e[i])
+        print('Contrast image-PASTIS, uncalibrated:', contrast_pastis[i])
 
-        # # Save images for testing
-        # im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        # util.write_fits(full_im_am, os.path.join(outDir, 'images', im_am_name + '.fits'))
-        # #dh_im_am - for image with DH
-        # im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        # util.write_fits(psf_end, os.path.join(outDir, 'images', im_end_name + '.fits'))
-        # #im_end - for image with DH
-        # # Save OTE OPD
-        # opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
-        # plt.clf()
-        # ote_coro.display_opd()
-        # plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
+        # Save images for testing
+        im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        util.write_fits(full_im_am, os.path.join(outDir, 'images', im_am_name + '.fits'))
+        #dh_im_am - for image with DH
+        im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        util.write_fits(psf_end, os.path.join(outDir, 'images', im_end_name + '.fits'))
+        #im_end - for image with DH
+        # Save OTE OPD
+        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        plt.clf()
+        ote_coro.display_opd()
+        plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
 
         iter_end = time.time()
         print('Iteration', i+1, 'runtime:', iter_end-iter_start, 'sec =', (iter_end-iter_start)/60, 'min')
 
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
-    calibration = np.zeros_like(contrastAPLC_vec_int)
-    calibration = (contrastAPLC_vec_int - contrast_base) / contrastAM_vec_int
-    #calibration = contrastAPLC_vec_int / contrastAM_vec_int   # without taking C_0 into account
+    calibration = np.zeros_like(contrast_e2e)
+    calibration = (contrast_e2e - contrast_base) / contrast_pastis
+    #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account
 
     #-# Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
@@ -225,13 +225,13 @@ if __name__ == '__main__':
     # Save contrast vectors for WebbPSF and image-PASTIS so that we can look at the values if needed
     name_webbpsf = 'calibration_contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     name_impastis = 'calibration_contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    util.write_fits(contrastAPLC_vec_int, os.path.join(outDir, name_webbpsf+'.fits'), header=None, metadata=None)
-    util.write_fits(contrastAM_vec_int, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
+    util.write_fits(contrast_e2e, os.path.join(outDir, name_webbpsf+'.fits'), header=None, metadata=None)
+    util.write_fits(contrast_pastis, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
 
     # Generate some plots
     plt.clf()
-    plt.plot(contrastAPLC_vec_int, label='WebbPSF')
-    plt.plot(contrastAM_vec_int, label='imagePASTIS')
+    plt.plot(contrast_e2e, label='WebbPSF')
+    plt.plot(contrast_pastis, label='imagePASTIS')
     plt.title('Aberration per segment: ' + str(nm_aber) + ' nm')
     plt.xlabel('Segment number')
     plt.ylabel('Contrast')
