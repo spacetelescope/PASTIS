@@ -3,6 +3,7 @@
 import os
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 import webbpsf
 
 from python.config import CONFIG_INI
@@ -75,6 +76,12 @@ if __name__ == '__main__':
             # If you want to display it:
             # ote_coro.display_opd()
             # plt.show()
+
+            # Save ODP images for testing
+            opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            plt.clf()
+            ote_coro.display_opd()
+            plt.savefig(os.path.join(resDir, opd_name + '.pdf'))
 
             print('Calculating WebbPSF image')
             image = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
