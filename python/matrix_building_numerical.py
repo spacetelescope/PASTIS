@@ -15,7 +15,7 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 10 minutes
+    start_time = time.time()   # runtime currently is around 140 minutes
 
     # Parameters
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
@@ -87,14 +87,6 @@ if __name__ == '__main__':
 
             # Fill according entry in the matrix
             matrix_pastis[i,j] = contrast
-
-    # Filling the off-axis elements
-    matrix_two_N = np.copy(matrix_pastis)
-
-    for i in range(nb_seg):
-        for j in range(nb_seg):
-            if i != j:
-                matrix_pastis[i,j] = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
 
     # Save matrix to file
     filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
