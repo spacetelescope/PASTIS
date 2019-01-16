@@ -79,48 +79,6 @@ def IFFT(ef):
     return IFFT_E
 
 
-def matrix_fourier(im, param, inverse=False, dim_tf=None):
-    """
-    Calculate the Matrix Fourier Transform MTF.
-
-    Translated directly form the ONERA IDL scsript mtf.pro by bpaul.
-    :param im: array with dimensions na x na of which we want to calculate the Fourier transform
-    :param param: image size in px over sampling (na/samp)
-    :param inverse: if True, inverse FT will beb calculated; default is False
-    :param dim_tf: optional, size of the output Fourier transform array. Without it, the FT will have same dimensions like input im
-    :return:
-    """
-    na = im.shape[0]
-    nb = dim_tf
-    if dim_tf == None:
-        dim_tf = na
-
-    # Coordinate grids in real space
-    xx = ((np.arange(int(na)) + 0.5) - na/2.) / na
-    xx = np.expand_dims(xx, axis=0)
-    yy = np.copy(xx)
-
-    # Coordinate grids in Fourier space
-    uu = ((np.arange(int(nb)) + 0.5) - nb/2.) * param / nb
-    uu = np.expand_dims(uu, axis=0)
-    vv = np.copy(uu)
-
-    # Adjust sign in FT to whether you want the inverse FT or not
-    if inverse:
-        sign = -1
-    else:
-        sign = 1
-
-    # Dissect the matrix multiplications so that it's easier to deal with them
-    expo1 = np.matmul(np.transpose(yy), vv)
-    expo2 = np.matmul(np.transpose(uu), xx)
-
-    squash = sign * 2.*1j*np.pi
-    transform = (param / (na*nb)) + np.matmul(np.exp(squash * expo2), np.matmul(im, np.exp(squash * expo1)))
-
-    return transform
-
-
 def create_dark_hole(pup_im, iwa, owa, samp):
     """
     Create a dark hole on pupil image pup_im.
