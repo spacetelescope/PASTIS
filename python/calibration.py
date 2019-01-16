@@ -125,6 +125,7 @@ if __name__ == '__main__':
         # Currently there is a bug in WebbPSF though that numbers the segments wrong when used in the exit pupil
         # orientation, hence I added this quickfix until it is fixed inside WebbPSF:
 
+        """
         ### FIX FOR MISSING LEFT_RIGHT FLIP IN WEBBPSF'S EXIT PUPIL ### - remove when it gets fixed in WebbPSF
         # inner circle of segments
         if seg == 'A6':
@@ -158,6 +159,7 @@ if __name__ == '__main__':
         elif seg == 'C3':
             seg = 'C4'
         ### FIX END ###
+        """
 
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
