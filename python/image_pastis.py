@@ -167,4 +167,6 @@ def analytical_model(zernike_pol, coef, cali=False):
     plt.show()
     """
 
+    # dh_psf is the image of the dark hole only, the pixels outside of it are zero
+    # intensity is the entire final image
     return dh_psf, intensity
