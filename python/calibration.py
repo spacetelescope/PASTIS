@@ -83,8 +83,8 @@ if __name__ == '__main__':
     psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
-    psf_default = psf_default_hdu[1].data
-    psf_coro = psf_coro_hdu[1].data
+    psf_default = psf_default_hdu[0].data
+    psf_coro = psf_coro_hdu[0].data
 
     # Save the PSFs for testing
     util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
         psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
-        psf_end = psf_endsim[1].data
+        psf_end = psf_endsim[0].data
 
         #-# Normalize coro PSF
         psf_end = psf_end / normp   # NORM
