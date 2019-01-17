@@ -18,7 +18,7 @@ import python.webbpsf_imaging as webbim
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 30 sec
+    start_time = time.time()   # runtime currently is around 1 min
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -54,6 +54,7 @@ if __name__ == '__main__':
     Aber_WSS[:,0] = Aber / 1e9   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
+    print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
     psf_perfect = psf_perfect / normp

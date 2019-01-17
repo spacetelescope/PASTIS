@@ -36,6 +36,7 @@ polaire2, rt=10.*ech*614./708., largeur=largeur, /entre4, masque=masko, /double
 polaire2, rt=4.*ech*614./708., largeur=largeur, /entre4, masque=maski, /double
 dh_area = abs(masko-maski)
 aff, dh_area
+
 ;;;;;;;;;;;;;;;; MEAN SUBTRACTION ;;;;;;;;;;;;;;;;
 ; Only for piston
 
@@ -57,7 +58,7 @@ mini_seg = mini_seg/sqrt(36.*total(mini_seg))
 ;writefits, 'vec_list.fits', vec_list
 ;writefits, 'NR_pairs_list_int.fits', NR_pairs_list_int
 ;;;;;;;;;;;;;; Instead, we just import them: ;;;;;;;;;;;;;;;;
-cd, '/Users/ilaginja/Documents/Git/PASTIS/data'
+cd, '/Users/ilaginja/Documents/Git/PASTIS/old_data'
 Baseline_vec = readfits('Baseline_vec.fits')
 Projection_Matrix = readfits('Projection_Matrix.fits')
 vec_list = readfits('vec_list.fits')
@@ -93,8 +94,8 @@ for q=0,NR_pairs_nb-1 do begin &$  ; coefficient in front of the non redundant p
   for i=0,n_seg-1 do begin &$
     for j=i+1,n_seg-1 do begin &$
       if Projection_Matrix[i,j,0] EQ q+1 then Generic_Coef[q] = Generic_Coef[q]+(coef[i]*coef[j])
-    endfor
-  endfor
+    endfor &$
+  endfor &$
 endfor
 
 ;;;;;;;;;;;;;;;;;;; CONSTANT SUM AND COSINE SUM ;;;;;;;;;;;;;;;;;;;
@@ -130,7 +131,7 @@ TF_seg = (abs(mft(Zer, param=100, dim_tf=largeur, double=double))^2.) * (Somme1+
 TF_seg_zoom = crop(TF_seg,/m,nc=40)    ; pastis is not valid outside of the dark hole, because outside of the dh, you have diffration; PASITS only works where you have the high contrast, which is inside the dh
 dh_area_zoom = crop(dh_area,/m,nc=40)
 DH_PSF = dh_area_zoom * TF_seg_zoom
-
+stop
 return, DH_PSF
 
 end

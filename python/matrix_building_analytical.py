@@ -29,13 +29,15 @@ if __name__ == '__main__':
 
             print('STEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
 
-            # Putting 1 nm only on segments i and j
+            # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
             tempA[i] = nm_aber
             tempA[j] = nm_aber
 
             temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)
-            matrix_pastis[i,j] = np.mean(temp_im_am[np.where(temp_im_am != 0)])
+            contrast = np.mean(temp_im_am[np.where(temp_im_am != 0)])
+            matrix_pastis[i,j] = contrast
+            print('contrast =', contrast)
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_pastis)
@@ -43,7 +45,9 @@ if __name__ == '__main__':
     for i in range(nb_seg):
         for j in range(nb_seg):
             if i != j:
-                matrix_pastis[i,j] = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                matrix_pastis[i,j] = matrix_off_val
+                print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
 
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
