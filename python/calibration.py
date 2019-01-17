@@ -161,9 +161,13 @@ if __name__ == '__main__':
         ### FIX END ###
         """
 
+        # Create arrays to hold Zernike aberration coefficients
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
         Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for later.
+
+        # Feed the aberration nm_aber into the array position
+        # that corresponds to the correct Zernike, but only on segment i
         Aber_WSS[i, wss_zern_nb-1] = nm_aber / 1e9        # Aberration on the segment we're currently working on;
                                                           # convert to meters; -1 on the Zernike because Python starts
                                                           # numbering at 0.
@@ -192,7 +196,7 @@ if __name__ == '__main__':
         contrast_e2e[i] = np.mean(im_end[np.where(im_end != 0)])
 
         #-# Create image from PASTIS (analytical model), calculate contrast (mean, in DH) and put in array
-        dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:,zern_number-1], cali=False)
+        dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:, zern_number-1], cali=False)
         contrast_pastis[i] = np.mean(dh_im_am[np.where(dh_im_am != 0)])
 
         print('Contrast WebbPSF:', contrast_e2e[i])
