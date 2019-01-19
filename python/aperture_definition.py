@@ -78,6 +78,7 @@ if __name__ == "__main__":
     # Since WebbPSF creates images by controlling the exit pupil,
     # let's also create teh exit pupil instead of the entrance pupil.
     # I do this by flipping the y-coordinates of the segments.
+    plt.clf()
     jwst_pup.display(colorbar=False)   # Show pupil
     plt.title('JWST telescope pupil')
     # Number the segments
