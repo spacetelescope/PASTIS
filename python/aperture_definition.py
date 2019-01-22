@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # I do this by flipping the y-coordinates of the segments.
     plt.clf()
     jwst_pup.display(colorbar=False)   # Show pupil
-    plt.title('JWST telescope pupil')
+    plt.title('JWST telescope exit pupil')
     # Number the segments
     for i in range(nb_seg+1):
         ycen, xcen = jwst_pup._hex_center(i)

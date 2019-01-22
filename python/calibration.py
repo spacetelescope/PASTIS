@@ -128,7 +128,7 @@ if __name__ == '__main__':
         # Create arrays to hold Zernike aberration coefficients
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
-        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for later.
+        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for imput into PASTIS.
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
