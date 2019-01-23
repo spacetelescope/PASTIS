@@ -83,8 +83,8 @@ if __name__ == '__main__':
     psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
-    psf_default = psf_default_hdu[1].data
-    psf_coro = psf_coro_hdu[1].data
+    psf_default = psf_default_hdu[0].data
+    psf_coro = psf_coro_hdu[0].data
 
     # Save the PSFs for testing
     util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
@@ -123,48 +123,12 @@ if __name__ == '__main__':
         # We have to make sure here that we aberrate the segments in their order of numbering as it was set
         # in the script that generates the aperture (here: function_baselinify.py)!
         # Currently there is a bug in WebbPSF though that numbers the segments wrong when used in the exit pupil
-        # orientation, hence I added this quickfix until it is fixed inside WebbPSF:
-
-        """
-        ### FIX FOR MISSING LEFT_RIGHT FLIP IN WEBBPSF'S EXIT PUPIL ### - remove when it gets fixed in WebbPSF
-        # inner circle of segments
-        if seg == 'A6':
-            seg = 'A2'
-        elif seg == 'A2':
-            seg = 'A6'
-        if seg == 'A5':
-            seg = 'A3'
-        elif seg == 'A3':
-            seg = 'A5'
-
-        # outer circle of segments
-        if seg == 'C6':
-            seg = 'C1'
-        elif seg == 'C1':
-            seg = 'C6'
-        if seg == 'B6':
-            seg = 'B2'
-        elif seg == 'B2':
-            seg = 'B6'
-        if seg == 'C5':
-            seg = 'C2'
-        elif seg == 'C2':
-            seg = 'C5'
-        if seg == 'B5':
-            seg = 'B3'
-        elif seg == 'B3':
-            seg = 'B5'
-        if seg == 'C4':
-            seg = 'C3'
-        elif seg == 'C3':
-            seg = 'C4'
-        ### FIX END ###
-        """
+        # orientation, so don't be confused when the segments are numbered wrong in the exit pupil!
 
         # Create arrays to hold Zernike aberration coefficients
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
-        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for later.
+        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for imput into PASTIS.
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
@@ -186,7 +150,7 @@ if __name__ == '__main__':
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
         psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
-        psf_end = psf_endsim[1].data
+        psf_end = psf_endsim[0].data
 
         #-# Normalize coro PSF
         psf_end = psf_end / normp   # NORM

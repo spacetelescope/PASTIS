@@ -132,9 +132,10 @@ def analytical_model(zernike_pol, coef, cali=False):
     # Calculate the Zernike that is currently being used and put it on one single subaperture, the result is Zer
     # Apply the currently used Zernike to the mini-segment.
     if zernike_pol == 1:
-        Zer = mini_seg
+        Zer = np.copy(mini_seg)
     elif zernike_pol in range(2, zern_max-2):
-        Zer = mini_seg * isolated_zerns[zernike_pol-1]
+        Zer = np.copy(mini_seg)
+        Zer = Zer * isolated_zerns[zernike_pol-1]
 
     # Fourier Transform of the Zernike - the global envelope
     mf = mft.MatrixFourierTransform()

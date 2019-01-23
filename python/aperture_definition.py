@@ -75,6 +75,20 @@ if __name__ == "__main__":
     # Save a PDF version of the pupil
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
+    # Since WebbPSF creates images by controlling the exit pupil,
+    # let's also create teh exit pupil instead of the entrance pupil.
+    # I do this by flipping the y-coordinates of the segments.
+    plt.clf()
+    jwst_pup.display(colorbar=False)   # Show pupil
+    plt.title('JWST telescope exit pupil')
+    # Number the segments
+    for i in range(nb_seg+1):
+        ycen, xcen = jwst_pup._hex_center(i)
+        ycen *= -1
+        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
+    # Save a PDF version of the exit pupil
+    plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
+
     # Get pupil as fits image
     pupil_dir = jwst_pup.sample(wavelength=wvl, npix=im_size, grid_size=flat_diam, return_scale=True)
     # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
@@ -89,6 +103,7 @@ if __name__ == "__main__":
             continue   # Continues with the next iteration of the loop
         else:
             seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
+            seg_position[i - 1, 1] *= -1       # inverting the y-axis because we want to work with the EXIT PUPIL!!!
             # Units are meters!!!
 
     # Save the segment center positions just in case we want to check them without running the code
