@@ -23,6 +23,9 @@ if __name__ == '__main__':
 
     #-# Generating the PASTIS matrix
     matrix_pastis = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    all_ims = []
+    all_dhs = []
+    all_contrasts = []
 
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -34,10 +37,25 @@ if __name__ == '__main__':
             tempA[i] = nm_aber
             tempA[j] = nm_aber
 
+            # Create PASTIS image and save full image as well as DH image
             temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)
+
+            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            util.write_fits(full_psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
+            all_ims.append(full_psf)
+
+            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            util.write_fits(temp_im_am, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
+            all_dhs.append(temp_im_am)
+
             contrast = np.mean(temp_im_am[np.where(temp_im_am != 0)])
             matrix_pastis[i,j] = contrast
             print('contrast =', contrast)
+            all_contrasts.append(contrast)
+
+    all_ims = np.array(all_ims)
+    all_dhs = np.array(all_dhs)
+    all_contrasts = np.array(all_contrasts)
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_pastis)
@@ -54,6 +72,11 @@ if __name__ == '__main__':
     util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
 
     print('Matrix saved to:', os.path.join(resDir, filename + '.fits'))
+
+    # Save the PSF and DH image cubes as well
+    util.write_fits(all_ims, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
+    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
 
     # Tell us how long it took to finish.
     end_time = time.time()
