@@ -47,6 +47,7 @@ if __name__ == '__main__':
 
     # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
     nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
+    nc_coro.include_si_wfe = False                                  # set SI internal WFE to zero
 
     #-# Generating the PASTIS matrix and a list for all contrasts
     matrix_pastis = np.zeros([nb_seg, nb_seg])   # Generate empty matrix

@@ -70,8 +70,10 @@ if __name__ == '__main__':
     # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
     nc, ote = webbpsf.enable_adjustable_ote(nc)                     # create OTE for default PSF
     nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
-    ote.zero()          # set OTE for default PSF to zero
-    ote_coro.zero()     # set OTE for coronagraph to zero
+    ote.zero()                        # set OTE for default PSF to zero
+    ote_coro.zero()                   # set OTE for coronagraph to zero
+    nc.include_si_wfe = False         # set SI internal WFE to zero
+    nc_coro.include_si_wfe = False    # set SI internal WFE to zero
 
     # Generate the E2E PSFs with and without coronagraph
     print('Calculating perfect PSF without coronograph...')
