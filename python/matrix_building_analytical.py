@@ -15,7 +15,7 @@ if __name__ == '__main__':
     start_time = time.time()   # runtime currently is around 10 minutes
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')

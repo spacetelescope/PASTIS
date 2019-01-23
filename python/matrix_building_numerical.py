@@ -16,10 +16,10 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 140 minutes
+    start_time = time.time()
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_numerical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     im_size = CONFIG_INI.getint('numerical', 'im_size_px')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
@@ -48,18 +48,22 @@ if __name__ == '__main__':
     # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
     nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
 
-    #-# Generating the PASTIS matrix
+    #-# Generating the PASTIS matrix and a list for all contrasts
     matrix_pastis = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    all_psfs = []
+    all_dhs = []
+    all_contrasts = []
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('STEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
+            print('\nSTEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
 
             # Get names of segments, they're being addressed by their names in the ote functions.
             seg_i = wss_segs[i].split('-')[0]
             seg_j = wss_segs[j].split('-')[0]
 
+            # Put the aberration on the correct segments
             Aber_WSS = np.zeros([nb_seg, zern_max])         # The Zernikes here will be filled in the WSS order!!!
                                                             # Because it goes into _apply_hexikes_to_seg().
             Aber_WSS[i, wss_zern_nb - 1] = nm_aber / 1e9    # Aberration on the segment we're currently working on;
@@ -70,7 +74,7 @@ if __name__ == '__main__':
             # Putting aberrations on segments i and j
             ote_coro.reset()    # Making sure there are no previous movements on the segments.
             ote_coro.zero()     # set OTE for coronagraph to zero
-            ote_coro._apply_hexikes_to_seg(seg_i, Aber_WSS[i, :])    # set segment i
+            ote_coro._apply_hexikes_to_seg(seg_i, Aber_WSS[i, :])    # set segment i  (segment numbering starts at 1)
             ote_coro._apply_hexikes_to_seg(seg_j, Aber_WSS[j, :])    # set segment j
 
             # If you want to display it:
@@ -81,26 +85,53 @@ if __name__ == '__main__':
             opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
             plt.clf()
             ote_coro.display_opd()
-            plt.savefig(os.path.join(resDir, opd_name + '.pdf'))
+            plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating WebbPSF image')
             image = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
-            psf = image[1].data
+            psf = image[0].data
+
+            # Save WebbPSF image to disk
+            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
+            all_psfs.append(psf)
 
             print('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_area
             contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
             print('contrast:', contrast)
 
+            # Save DH image to disk and put current contrast in list
+            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            util.write_fits(dh_intensity, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
+            all_dhs.append(dh_intensity)
+            all_contrasts.append(contrast)
+
             # Fill according entry in the matrix
             matrix_pastis[i,j] = contrast
 
-    # Save matrix to file
-    filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
+    # Transform saved lists to arrays
+    all_psfs = np.array(all_psfs)
+    all_dhs = np.array(all_dhs)
+    all_contrasts = np.array(all_contrasts)
 
-    print('Matrix saved to:', os.path.join(resDir, filename + '.fits'))
+    # Save matrix to file
+    filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
+    print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+
+    # Save extra data to disk
+    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
+    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
 
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+
+    # -- Runtime notes: --
+    #
+    # im_size = 128
+    # oversampling = 1
+    # nb_seg = 18
+    # runtime = 20 min
