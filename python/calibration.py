@@ -29,7 +29,7 @@ if __name__ == '__main__':
     filter = CONFIG_INI.get('filter', 'name')
     wvln = CONFIG_INI.getfloat('filter', 'lambda')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
@@ -78,11 +78,11 @@ if __name__ == '__main__':
     # Generate the E2E PSFs with and without coronagraph
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
-    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
     psf_end_time = time.time()
     print('Calculating this PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
     print('Calculating perfect PSF with coronagraph...\n')
-    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[0].data
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
-        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
         psf_end = psf_endsim[0].data
 
         #-# Normalize coro PSF

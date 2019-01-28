@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # Parameters
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_numerical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
     # Create the dark hole mask.
-    pup_im = np.zeros([im_size, im_size])    # this is just used for DH mask generation
+    pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
 
     # Set up NIRCam object from WebbPSF
@@ -89,7 +89,7 @@ if __name__ == '__main__':
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating WebbPSF image')
-            image = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+            image = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
             psf = image[0].data
 
             # Save WebbPSF image to disk

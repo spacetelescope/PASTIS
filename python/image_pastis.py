@@ -14,10 +14,10 @@ import poppy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-#from config import CONFIG_INI
-#import util_pastis as util
+#from python.config import CONFIG_INI
+#import python.util_pastis as util
+from config import CONFIG_INI
+import util_pastis as util
 
 
 #if __name__ == "__main__":
@@ -40,7 +40,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')             # image array size in px
+    im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
     px_sq_to_rad = size_px_tel * np.pi / tel_size_m
@@ -59,7 +59,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     # Put pupil in randomly picked, slightly larger image array
     pup_im = np.copy(pupil)   # remove if lines below this are active
-    #pup_im = np.zeros([im_size, im_size])
+    #pup_im = np.zeros([im_size_pastis, im_size_pastis])
     #lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
     #pup_im[lim:-lim, lim:-lim] = pupil
     # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment when the pupil is 512
@@ -103,9 +103,9 @@ def analytical_model(zernike_pol, coef, cali=False):
                     generic_coef[q] += coef[i] * coef[j]
 
     #-# Constant sum and cosine sum - calculating eq. 13 from Leboulleux et al. 2018
-    i_line = np.linspace(-im_size/2., im_size/2., im_size)
+    i_line = np.linspace(-im_size_pastis/2., im_size_pastis/2., im_size_pastis)
     tab_i, tab_j = np.meshgrid(i_line, i_line)
-    cos_u_mat = np.zeros((int(im_size), int(im_size), NR_pairs_nb))
+    cos_u_mat = np.zeros((int(im_size_pastis), int(im_size_pastis), NR_pairs_nb))
 
     # Calculating the cosine terms from eq. 13.
     # The -1 with each NR_pairs_list is because the segment names are saved starting from 1, but Python starts
@@ -120,7 +120,7 @@ def analytical_model(zernike_pol, coef, cali=False):
                                   px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j))
 
     sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
-    sum2 = np.zeros((int(im_size), int(im_size)))
+    sum2 = np.zeros((int(im_size_pastis), int(im_size_pastis)))
 
     for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
@@ -139,7 +139,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     # Fourier Transform of the Zernike - the global envelope
     mf = mft.MatrixFourierTransform()
-    ft_zern = mf.perform(Zer, im_size/sampling, im_size)
+    ft_zern = mf.perform(Zer, im_size_pastis/sampling, im_size_pastis)
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
