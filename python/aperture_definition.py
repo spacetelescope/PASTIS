@@ -54,8 +54,8 @@ if __name__ == "__main__":
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
     flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
     total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
-    m_to_px = im_size/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
+    im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
+    m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     # If subfolder "segmentation" doesn't exist yet, create it.
     if not os.path.isdir(outDir):
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
 
     # Get pupil as fits image
-    pupil_dir = jwst_pup.sample(wavelength=wvl, npix=im_size, grid_size=flat_diam, return_scale=True)
+    pupil_dir = jwst_pup.sample(wavelength=wvl, npix=im_size_pupil, grid_size=flat_diam, return_scale=True)
     # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
     # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
     util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
