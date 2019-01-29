@@ -14,10 +14,10 @@ import poppy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-#from python.config import CONFIG_INI
-#import python.util_pastis as util
-from config import CONFIG_INI
-import util_pastis as util
+from python.config import CONFIG_INI
+import python.util_pastis as util
+#from config import CONFIG_INI
+#import util_pastis as util
 
 
 #if __name__ == "__main__":
@@ -74,9 +74,9 @@ def analytical_model(zernike_pol, coef, cali=False):
     mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
     #-# Generate a dark hole mask
-    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
+    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)   # this might become a problem if pupil size is not same like pastis image size. fine for now though.
 
-    #-# Import information form previous script
+    #-# Import information form segmentation script
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
     vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))
     NR_pairs_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
@@ -84,7 +84,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     # Figure out how many NRPs we're dealing with
     NR_pairs_nb = NR_pairs_list.shape[0]
 
-    #-# Chose whether calibration is about to happen yes or no
+    #-# Chose whether calibration factors to do the calibraiton with
     if cali:
         filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
         ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'calibration', filename+'.fits')))

@@ -18,7 +18,10 @@ import python.webbpsf_imaging as webbim
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 1 min
+    start_time = time.time()   # runtime currently is around 12 min
+
+    # Do you want to use the analytical or the numerical matrix
+    matrix_mode = 'analytical'    # 'analytical' or 'numerical'
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -36,12 +39,16 @@ if __name__ == '__main__':
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Import PASTIS matrix
-    filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_numerical', filename + '.fits'))
+    if matrix_mode == 'analytical':
+        filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+        matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_numerical', filename + '.fits'))
+    elif matrix_mode == 'numerical':
+        filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+        matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_analytical', filename + '.fits'))
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 1000   # piston values
+        Aber = np.random.random([nb_seg]) * 100   # piston values
         print('PISTON ABERRATIONS:', Aber)
 
     # Mean subtraction for piston   - we already have this in image_pastis.py
@@ -75,7 +82,6 @@ if __name__ == '__main__':
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
-    """
     ### IMAGE PASTIS
     print('Generating contrast from image-PASTIS')
     start_impastis = time.time()
@@ -84,7 +90,6 @@ if __name__ == '__main__':
     # Get the mean contrast from image PASTIS
     contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
     end_impastis = time.time()
-    """
 
     ### MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
@@ -93,18 +98,18 @@ if __name__ == '__main__':
     contrast_matrix = util.pastis_contrast(Aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
-    #ratio = contrast_am / contrast_matrix
+    ratio = contrast_am / contrast_matrix
 
     # Outputs
     print('\n--- CONTRASTS: ---')
     print('Mean contrast from WebbPSF:', contrast_webbpsf)
-    #print('Mean contrast with image PASTIS:', contrast_am)
+    print('Mean contrast with image PASTIS:', contrast_am)
     print('Contrast from matrix PASTIS:', contrast_matrix)
-    #print('Ratio image PASTIS / matrix PASTIS:', ratio)
+    print('Ratio image PASTIS / matrix PASTIS:', ratio)
 
     print('\n--- RUNTIMES: ---')
     print('WebbPSF: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
-    #print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
+    print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
     print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
 
     end_time = time.time()

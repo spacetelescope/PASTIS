@@ -18,7 +18,7 @@ if __name__ == '__main__':
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     #-# Generating the PASTIS matrix

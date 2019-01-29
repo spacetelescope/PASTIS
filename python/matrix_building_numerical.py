@@ -116,6 +116,16 @@ if __name__ == '__main__':
     all_dhs = np.array(all_dhs)
     all_contrasts = np.array(all_contrasts)
 
+    # Filling the off-axis elements
+    matrix_two_N = np.copy(matrix_pastis)
+
+    for i in range(nb_seg):
+        for j in range(nb_seg):
+            if i != j:
+                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                matrix_pastis[i,j] = matrix_off_val
+                print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
+
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)

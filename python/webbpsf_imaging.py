@@ -15,7 +15,7 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
 nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
 wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
 fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')  # focal plane mask
 lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')  # Lyot stop
 filter = CONFIG_INI.get('filter', 'name')
@@ -39,13 +39,15 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
     # Adjust OTE with aberrations
     nc, ote = webbpsf.enable_adjustable_ote(nc)
+    nc.include_si_wfe = False  # set SI internal WFE to zero
+    ote.reset()
     ote.zero()
     for i in range(nb_seg):
         seg = wss_segs[i].split('-')[0]
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
     # Calculate PSF
-    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1)
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size_e2e), nlambda=1)
     psf_webbpsf = psf_nc[1].data
 
     return psf_webbpsf
@@ -65,13 +67,15 @@ def nircam_nocoro(filter, Aber_WSS):
 
     # Adjust OTE with aberrations
     nc, ote = webbpsf.enable_adjustable_ote(nc)
+    nc.include_si_wfe = False  # set SI internal WFE to zero
+    ote.reset()
     ote.zero()
     for i in range(nb_seg):
         seg = wss_segs[i].split('-')[0]
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
     # Calculate PSF
-    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size), nlambda=1)
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size_e2e), nlambda=1)
     psf_webbpsf = psf_nc[1].data
 
     return psf_webbpsf
