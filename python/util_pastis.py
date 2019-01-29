@@ -55,7 +55,7 @@ def circle_mask(im, xc, yc, rcirc):
     return circ
 
 
-def zoom(im, x, y, bb):
+def zoom_point(im, x, y, bb):
     """
     Cut out a square box from image im centered on (x,y) with half-box size bb.
     :param im: image from which box will be taken
@@ -65,6 +65,18 @@ def zoom(im, x, y, bb):
     :return:
     """
     return(im[y-bb:y+bb, x-bb:x+bb])
+
+
+def zoom_cen(im, bb):
+    """
+    Cut out a square box from the image center with half-box size bb.
+    :param im: image from which box will be taken
+    :param bb: half-box size
+    :return:
+    """
+    x = int(im.shape[1]/2)
+    y = int(im.shape[0]/2)
+    return im[y-bb:y+bb, x-bb:x+bb]
 
 
 def FFT(ef):
