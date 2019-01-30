@@ -146,24 +146,25 @@ def analytical_model(zernike_pol, coef, cali=False):
     intensity = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
 
     # PASTIS is only valid inside the dark hole, so we cut out only that part
-    intensity_zoom = util.zoom(intensity, int(intensity.shape[0]/2.), int(intensity.shape[1]/2.), sampling*(outer_wa+3))       # zoom box is (owa + 3*lambda/D) wide, in terms of lambda/D
-    dh_area_zoom = util.zoom(dh_area, int(dh_area.shape[0]/2.), int(dh_area.shape[1]/2.), sampling*(outer_wa+3))
+    tot_dh_im_size = sampling * (outer_wa + 3)
+    intensity_zoom = util.zoom_cen(intensity, tot_dh_im_size)       # zoom box is (owa + 3*lambda/D) wide, in terms of lambda/D
+    dh_area_zoom = util.zoom_cen(dh_area, tot_dh_im_size)
 
     dh_psf = dh_area_zoom * intensity_zoom
 
     """
     # Create plots.
     plt.subplot(1, 3, 1)
-    plt.imshow(pupil)
+    plt.imshow(pupil, origin='lower')
     plt.title('JWST pupil and diameter definition')
     plt.plot([46.5, 464.5], [101.5, 409.5], 'r-')   # show how the diagonal of the pupil is defined
 
     plt.subplot(1, 3, 2)
-    plt.imshow(mini_seg)
+    plt.imshow(mini_seg, origin='lower')
     plt.title('JWST individual mini-segment')
 
     plt.subplot(1, 3, 3)
-    plt.imshow(dh_psf)
+    plt.imshow(dh_psf, origin='lower')
     plt.title('JWST dark hole')
     plt.show()
     """
