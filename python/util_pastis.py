@@ -107,6 +107,18 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     return dh_area
 
 
+def dh_mean(im, dh):
+    """
+    Return the dark hole contrast.
+
+    Calculate the mean intensity in the dark hole area dh of the image im.
+    im and dh have to have the same array size and shape.
+    """
+    darkh = im * dh
+    con = np.mean(darkh[np.where(darkh != 0)])
+    return con
+
+
 def pastis_contrast(Aber, matrix_pastis):
     """
     Calculate the contrast with PASTIS matrix model.
