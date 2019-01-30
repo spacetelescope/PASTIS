@@ -8,6 +8,7 @@ import webbpsf
 
 from python.config import CONFIG_INI
 import python.util_pastis as util
+import python.webbpsf_imaging as webbim
 
 # Set WebbPSF environment variable
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
@@ -39,7 +40,13 @@ if __name__ == '__main__':
     pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
 
-    # Set up NIRCam object from WebbPSF
+    # Create a direct WebbPSF image for normalization factor
+    fake_aber = np.zeros([nb_seg, zern_max])
+    psf_perfect = webbim.nircam_nocoro(filter, fake_aber)
+    normp = np.max(psf_perfect)
+    psf_perfect = psf_perfect / normp
+
+    # Set up NIRCam coro object from WebbPSF
     nc_coro = webbpsf.NIRCam()
     nc_coro.filter = filter
     nc_coro.image_mask = fpm
@@ -90,7 +97,7 @@ if __name__ == '__main__':
 
             print('Calculating WebbPSF image')
             image = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
-            psf = image[0].data
+            psf = image[0].data / normp
 
             # Save WebbPSF image to disk
             filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)

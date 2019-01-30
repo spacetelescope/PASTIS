@@ -66,7 +66,7 @@ if __name__ == '__main__':
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating WebbPSF contrast')
+    print('Generating WebbPSF coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)

@@ -88,14 +88,14 @@ if __name__ == '__main__':
     psf_default = psf_default_hdu[0].data
     psf_coro = psf_coro_hdu[0].data
 
-    # Save the PSFs for testing
-    util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
-    util.write_fits(psf_coro, os.path.join(outDir, 'psf_coro.fits'), header=None, metadata=None)
-
     # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
     psf_default = psf_default / normp
     psf_coro = psf_coro / normp
+
+    # Save the PSFs for testing
+    util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
+    util.write_fits(psf_coro, os.path.join(outDir, 'psf_coro.fits'), header=None, metadata=None)
 
     # Create the dark hole
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, sampling)
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
-    contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
+    contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert into array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
     # Create the arrays to hold the contrast values from the iterations
