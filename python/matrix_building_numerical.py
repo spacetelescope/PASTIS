@@ -82,8 +82,11 @@ if __name__ == '__main__':
             # Putting aberrations on segments i and j
             ote_coro.reset()    # Making sure there are no previous movements on the segments.
             ote_coro.zero()     # set OTE for coronagraph to zero
+
+            # Apply both aberrations to OTE. If i=j, apply only once!
             ote_coro._apply_hexikes_to_seg(seg_i, Aber_WSS[i, :])    # set segment i  (segment numbering starts at 1)
-            ote_coro._apply_hexikes_to_seg(seg_j, Aber_WSS[j, :])    # set segment j
+            if i != j:
+                ote_coro._apply_hexikes_to_seg(seg_j, Aber_WSS[j, :])    # set segment j
 
             # If you want to display it:
             # ote_coro.display_opd()
