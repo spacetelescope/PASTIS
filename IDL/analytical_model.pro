@@ -131,7 +131,7 @@ TF_seg = (abs(mft(Zer, param=100, dim_tf=largeur, double=double))^2.) * (Somme1+
 TF_seg_zoom = crop(TF_seg,/m,nc=40)    ; pastis is not valid outside of the dark hole, because outside of the dh, you have diffration; PASITS only works where you have the high contrast, which is inside the dh
 dh_area_zoom = crop(dh_area,/m,nc=40)
 DH_PSF = dh_area_zoom * TF_seg_zoom
-stop
+;stop
 return, DH_PSF
 
 end
