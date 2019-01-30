@@ -201,6 +201,7 @@ if __name__ == '__main__':
     util.write_fits(contrast_pastis, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
 
     # Generate some plots
+    """
     plt.clf()
     plt.plot(contrast_e2e, label='WebbPSF')
     plt.plot(contrast_pastis, label='imagePASTIS')
@@ -209,6 +210,23 @@ if __name__ == '__main__':
     plt.ylabel('Contrast')
     plt.legend()
     plt.savefig(os.path.join(outDir, filename+'.pdf'))
+
+    plt.clf()
+    plt.plot(contrast_e2e, label='WebbPSF')
+    plt.title('Aberration per segment: ' + str(nm_aber) + ' nm')
+    plt.xlabel('Segment number')
+    plt.ylabel('Contrast')
+    plt.legend()
+    plt.savefig(os.path.join(outDir, 'only_webbpsf'+'.pdf'))
+
+    plt.clf()
+    plt.plot(contrast_pastis, label='imagePASTIS')
+    plt.title('Aberration per segment: ' + str(nm_aber) + ' nm')
+    plt.xlabel('Segment number')
+    plt.ylabel('Contrast')
+    plt.legend()
+    plt.savefig(os.path.join(outDir, 'only_pastis'+'.pdf'))
+    """
 
     # Tell us how long it took to finish.
     end_time = time.time()
