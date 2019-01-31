@@ -12,17 +12,21 @@ import python.image_pastis as impastis
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 10 minutes
+    start_time = time.time()   # runtime currently is around 12 minutes
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_analytical')
+    datadir = CONFIG_INI.get('local', 'local_data_path')
+    resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
+    # Load baseline contrast
+    blcontr = np.loadtxt(os.path.join(datadir, 'calibration', 'base-contrast_piston_Noll1.txt'))
+
     #-# Generating the PASTIS matrix
-    matrix_pastis = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix for contrast values from loop.
     all_ims = []
     all_dhs = []
     all_contrasts = []
@@ -49,7 +53,7 @@ if __name__ == '__main__':
             all_dhs.append(temp_im_am)
 
             contrast = np.mean(temp_im_am[np.where(temp_im_am != 0)])
-            matrix_pastis[i,j] = contrast
+            matrix_direct[i,j] = contrast
             print('contrast =', contrast)
             all_contrasts.append(contrast)
 
@@ -58,12 +62,14 @@ if __name__ == '__main__':
     all_contrasts = np.array(all_contrasts)
 
     # Filling the off-axis elements
-    matrix_two_N = np.copy(matrix_pastis)
+    matrix_two_N = np.copy(matrix_direct)     # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(matrix_direct)    # This will be the final PASTIS matrix.
 
     for i in range(nb_seg):
         for j in range(nb_seg):
             if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                #matrix_off_val = (matrix_two_N[i,j] - blcontr - matrix_two_N[i,i] * nm_aber**2 - matrix_two_N[j,j] * nm_aber**2) / 2.
+                matrix_off_val = (matrix_two_N[i, j] - blcontr - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
 

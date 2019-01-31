@@ -57,7 +57,7 @@ if __name__ == '__main__':
     nc_coro.include_si_wfe = False                                  # set SI internal WFE to zero
 
     #-# Generating the PASTIS matrix and a list for all contrasts
-    matrix_pastis = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_dhs = []
     all_contrasts = []
@@ -119,7 +119,7 @@ if __name__ == '__main__':
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix
-            matrix_pastis[i,j] = contrast
+            matrix_direct[i,j] = contrast
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
@@ -127,7 +127,8 @@ if __name__ == '__main__':
     all_contrasts = np.array(all_contrasts)
 
     # Filling the off-axis elements
-    matrix_two_N = np.copy(matrix_pastis)
+    matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(matrix_direct)     # This will be the final PASTIS matrix.
 
     for i in range(nb_seg):
         for j in range(nb_seg):
