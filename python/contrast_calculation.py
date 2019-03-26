@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 100   # piston values in input units
+        Aber = np.random.random([nb_seg]) * 1   # piston values in input units
         print('PISTON ABERRATIONS:', Aber)
 
     # Mean subtraction for piston   - we already have this in image_pastis.py

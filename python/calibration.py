@@ -235,6 +235,7 @@ if __name__ == '__main__':
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for calibration.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Data saved to {}'.format(outDir))
 
     # Extra comments from Lucie:
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation

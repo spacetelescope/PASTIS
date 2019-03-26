@@ -145,7 +145,7 @@ if __name__ == '__main__':
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
     print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
 
-    # Save extra data to disk
+    # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
     np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
@@ -153,6 +153,7 @@ if __name__ == '__main__':
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Data saved to {}'.format(resDir))
 
     # -- Runtime notes: --
     #

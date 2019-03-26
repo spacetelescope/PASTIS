@@ -75,10 +75,9 @@ if __name__ == '__main__':
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
-
     print('Matrix saved to:', os.path.join(resDir, filename + '.fits'))
 
-    # Save the PSF and DH image cubes as well
+    # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_ims, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
     np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
@@ -86,3 +85,4 @@ if __name__ == '__main__':
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Data saved to {}'.format(resDir))
