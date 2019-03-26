@@ -74,10 +74,10 @@ if __name__ == '__main__':
             # Put the aberration on the correct segments
             Aber_WSS = np.zeros([nb_seg, zern_max])         # The Zernikes here will be filled in the WSS order!!!
                                                             # Because it goes into _apply_hexikes_to_seg().
-            Aber_WSS[i, wss_zern_nb - 1] = nm_aber / 1e9    # Aberration on the segment we're currently working on;
+            Aber_WSS[i, wss_zern_nb - 1] = nm_aber / 1e6    # Aberration on the segment we're currently working on;
                                                             # convert to meters; -1 on the Zernike because Python starts
                                                             # numbering at 0.
-            Aber_WSS[j, wss_zern_nb - 1] = nm_aber / 1e9    # same for other segment
+            Aber_WSS[j, wss_zern_nb - 1] = nm_aber / 1e6    # same for other segment
 
             # Putting aberrations on segments i and j
             ote_coro.reset()    # Making sure there are no previous movements on the segments.

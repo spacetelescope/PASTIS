@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber / 1e9        # Aberration on the segment we're currently working on;
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber / 1e6        # Aberration on the segment we're currently working on;
                                                           # convert to meters; -1 on the Zernike because Python starts
                                                           # numbering at 0.
         Aber_Noll[i, zern_number-1] = nm_aber             # Noll version - in nm!
