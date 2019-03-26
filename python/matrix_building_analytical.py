@@ -68,8 +68,7 @@ if __name__ == '__main__':
     for i in range(nb_seg):
         for j in range(nb_seg):
             if i != j:
-                #matrix_off_val = (matrix_two_N[i,j] - blcontr - matrix_two_N[i,i] * nm_aber**2 - matrix_two_N[j,j] * nm_aber**2) / 2.
-                matrix_off_val = (matrix_two_N[i, j] - blcontr - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
+                matrix_off_val = (matrix_two_N[i, j] - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
 
