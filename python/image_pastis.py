@@ -87,7 +87,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     #-# Chose whether calibration factors to do the calibraiton with
     if cali:
         filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-        ck = np.sqrt(fits.getdata(os.path.join(dataDir, 'calibration', filename+'.fits')))
+        ck = fits.getdata(os.path.join(dataDir, 'calibration', filename+'.fits'))
     else:
         ck = np.ones(nb_seg)
 

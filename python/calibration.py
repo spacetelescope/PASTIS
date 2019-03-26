@@ -187,16 +187,18 @@ if __name__ == '__main__':
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
     calibration = np.zeros_like(contrast_e2e)
-    calibration = (contrast_e2e - contrast_base) / contrast_pastis
+    calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
     #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account
+
+    #calibration /= nm_aber    # TODO: this normalization needs to be incorporated
 
     #-# Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
 
     # Save contrast vectors for WebbPSF and image-PASTIS so that we can look at the values if needed
-    name_webbpsf = 'calibration_contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    name_impastis = 'calibration_contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    name_webbpsf = 'contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    name_impastis = 'contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(contrast_e2e, os.path.join(outDir, name_webbpsf+'.fits'), header=None, metadata=None)
     util.write_fits(contrast_pastis, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
 
