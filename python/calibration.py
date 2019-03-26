@@ -7,9 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import webbpsf
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-import python.image_pastis as impastis
+from config import CONFIG_INI
+import util_pastis as util
+import image_pastis as impastis
 
 
 if __name__ == '__main__':

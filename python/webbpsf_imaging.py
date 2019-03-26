@@ -5,8 +5,7 @@ import os
 import webbpsf
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from python.config import CONFIG_INI
-#from config import CONFIG_INI
+from config import CONFIG_INI
 
 # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
 # webbpsf.utils.get_webbpsf_data_path()

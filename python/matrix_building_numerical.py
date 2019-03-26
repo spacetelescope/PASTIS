@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import webbpsf
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-import python.webbpsf_imaging as webbim
+from config import CONFIG_INI
+import util_pastis as util
+import webbpsf_imaging as webbim
 
 # Set WebbPSF environment variable
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')

@@ -14,10 +14,8 @@ import poppy
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-#from config import CONFIG_INI
-#import util_pastis as util
+from config import CONFIG_INI
+import util_pastis as util
 
 
 #if __name__ == "__main__":

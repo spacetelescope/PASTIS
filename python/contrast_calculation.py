@@ -9,10 +9,10 @@ import numpy as np
 from astropy.io import fits
 import webbpsf
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-import python.image_pastis as impastis
-import python.webbpsf_imaging as webbim
+from config import CONFIG_INI
+import util_pastis as util
+import image_pastis as impastis
+import webbpsf_imaging as webbim
 
 
 if __name__ == '__main__':
