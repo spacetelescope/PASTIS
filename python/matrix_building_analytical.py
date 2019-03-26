@@ -18,7 +18,7 @@ if __name__ == '__main__':
     datadir = CONFIG_INI.get('local', 'local_data_path')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('STEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
+            print('STEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
 
             # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
@@ -70,7 +70,7 @@ if __name__ == '__main__':
             if i != j:
                 matrix_off_val = (matrix_two_N[i, j] - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
+                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)

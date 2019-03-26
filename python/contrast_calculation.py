@@ -34,6 +34,7 @@ if __name__ == '__main__':
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
+    aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 100   # piston values
+        Aber = np.random.random([nb_seg]) * 100   # piston values in input units
         print('PISTON ABERRATIONS:', Aber)
 
     # Mean subtraction for piston   - we already have this in image_pastis.py
@@ -57,7 +58,7 @@ if __name__ == '__main__':
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = Aber / 1e9   # index "0" works because we're using piston currently; convert to meters
+    Aber_WSS[:,0] = Aber / aber_u   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')

@@ -29,7 +29,8 @@ if __name__ == '__main__':
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')
+    aber_u = CONFIG_INI.getfloat('calibration', 'unit')             # unit of the aberration in m^-1
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
@@ -62,10 +63,12 @@ if __name__ == '__main__':
     all_dhs = []
     all_contrasts = []
 
+    print('nm_aber: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('\nSTEP:', str(i+1) + '-' + str(j+1), '/', str(nb_seg) + '-' + str(nb_seg))
+            print('\nSTEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
 
             # Get names of segments, they're being addressed by their names in the ote functions.
             seg_i = wss_segs[i].split('-')[0]
@@ -74,10 +77,10 @@ if __name__ == '__main__':
             # Put the aberration on the correct segments
             Aber_WSS = np.zeros([nb_seg, zern_max])         # The Zernikes here will be filled in the WSS order!!!
                                                             # Because it goes into _apply_hexikes_to_seg().
-            Aber_WSS[i, wss_zern_nb - 1] = nm_aber / 1e6    # Aberration on the segment we're currently working on;
+            Aber_WSS[i, wss_zern_nb - 1] = nm_aber / aber_u    # Aberration on the segment we're currently working on;
                                                             # convert to meters; -1 on the Zernike because Python starts
                                                             # numbering at 0.
-            Aber_WSS[j, wss_zern_nb - 1] = nm_aber / 1e6    # same for other segment
+            Aber_WSS[j, wss_zern_nb - 1] = nm_aber / aber_u    # same for other segment
 
             # Putting aberrations on segments i and j
             ote_coro.reset()    # Making sure there are no previous movements on the segments.
@@ -135,7 +138,7 @@ if __name__ == '__main__':
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i' + str(i+1) + '-j' + str(j+1) + ': ' + str(matrix_off_val))
+                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
