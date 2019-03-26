@@ -64,7 +64,7 @@ def zoom_point(im, x, y, bb):
     :param bb: half-box size
     :return:
     """
-    return(im[y-bb:y+bb, x-bb:x+bb])
+    return (im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)])
 
 
 def zoom_cen(im, bb):
@@ -76,7 +76,7 @@ def zoom_cen(im, bb):
     """
     x = int(im.shape[1]/2)
     y = int(im.shape[0]/2)
-    return im[y-bb:y+bb, x-bb:x+bb]
+    return im[int(y-bb):int(y+bb), int(x-bb):int(x+bb)]
 
 
 def FFT(ef):
