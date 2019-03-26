@@ -39,10 +39,10 @@ if __name__ == '__main__':
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Import PASTIS matrix
-    if matrix_mode == 'analytical':
+    if matrix_mode == 'numerical':
         filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
         matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_numerical', filename + '.fits'))
-    elif matrix_mode == 'numerical':
+    elif matrix_mode == 'analytical':
         filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
         matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_analytical', filename + '.fits'))
 
