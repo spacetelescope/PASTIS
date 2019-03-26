@@ -1,3 +1,4 @@
 *.pyc
 *.iml
 .ipynb_checkpoints/
+config_local.ini
