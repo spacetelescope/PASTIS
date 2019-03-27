@@ -41,7 +41,9 @@ Running the code:
 
 The output will be just a couple of lines, including the calculated contrast values by the E2E model, image PASTIS and matrix PASTIS, e.g. (for `matrix_mode = 'analytical'` and `rms_wanted = 1`:
 
-```--- CONTRASTS: ---
+```
+--- CONTRASTS: ---
 Mean contrast from WebbPSF: 1.53897501438e-05
 Mean contrast with image PASTIS: 2.9384920197e-05
-Contrast from matrix PASTIS: 2.9384920197e-05```
+Contrast from matrix PASTIS: 2.9384920197e-05
+```
