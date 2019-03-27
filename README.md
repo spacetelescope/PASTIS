@@ -8,12 +8,23 @@ Quickstart from template:
 ------
 - cd into the directory you want to have your repo in
 - `git clone git@github.com:spacetelescope/PASTIS.git`
-- `cd -repo-/pastis`
+- `cd <repo>/pastis`
 - open `config.ini` with a text editor and change the entry for "local_data_path" to the directory you want to save the data to and "webbpsf_data_path" to the path you have your WebbPSF data saved in. You can figure this out by running `webbpsf.utils.get_webbpsf_data_path()`
 - `python aperture_definition.py`
 - `python calibration.py`
-- run either `matrix_building_analytical.py` or `matrix_building_numerical.py`, depending on what matrix you want to use
-- open `contrast_calculation.py` and set whether you want to use the numerical or analytical matrix and enter an RMS value you want to use
+- run either `python matrix_building_analytical.py` or `python matrix_building_numerical.py`, depending on what matrix you want to use
+- open `contrast_calculation.py` and set whether you want to use the numerical or analytical matrix and enter an RMS value you want to use, then run
+
+------
+Requirements:
+------
+
+numpy
+astropy
+matplotlib
+poppy
+webbpsf
+
 
 ------
 Setup:
