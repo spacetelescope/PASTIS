@@ -62,10 +62,10 @@ Contrast from matrix PASTIS: 2.9384920197e-05
 Jupyter notebooks:
 -----------------
 
-The directory "Jupyter Notebooks" contains a suite of notebooks that test and explain each part of the code step by step. Their numbering refers mostly to the order they were generated in and for easier identification.
+The directory "Jupyter Notebooks" contains a suite of notebooks that test and explain each part of the code step by step. Their numbering refers to the order they were generated in and exist mostly for easier identification.
 
 -------
 Caveats:
 -------
 
-PASTIS was developped for high-contrast, low-aberrations regimes and was first validated on an ATLAST geometry in Leboulleux et al. (2018). It's application to JWST is supposed to 1) translate the original IDL code into Python and 2) validate the model on a different telescope setup. This is not fully done yet and we can not guarantee that everything is working correctly.
+PASTIS was developped for high-contrast, low-aberration regimes and was first validated on an ATLAST geometry in Leboulleux et al. (2018). Its application to JWST is supposed to 1) translate the original IDL code into Python and 2) validate the model on a different telescope setup. This is not fully done yet.
