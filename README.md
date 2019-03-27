@@ -47,3 +47,15 @@ Mean contrast from WebbPSF: 1.53897501438e-05
 Mean contrast with image PASTIS: 2.9384920197e-05
 Contrast from matrix PASTIS: 2.9384920197e-05
 ```
+
+-----------------
+Jupyter notebooks:
+-----------------
+
+The directory "Jupyter Notebooks" contains a suite of notebooks that test and explain each part of the code step by step. Their numbering refers mostly to the order they were generated in and for easier identification.
+
+-------
+Caveats:
+-------
+
+PASTIS was developped for high-contrast, low-aberrations regimes and was first validated on an ATLAST geometry in Leboulleux et al. (2018). It's application to JWST is supposed to 1) translate the original IDL code into Python and 2) validate the model on a different telescope setup. This is not fully done yet and we can not guarantee that everything is working correctly.
