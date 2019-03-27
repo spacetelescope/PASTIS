@@ -19,16 +19,11 @@ Quickstart from template:
 Requirements:
 ------
 
-numpy
-
-astropy
-
-matplotlib
-
-poppy
-
-webbpsf
-
+- numpy
+- astropy
+- matplotlib
+- poppy
+- webbpsf
 
 ------
 Setup:
