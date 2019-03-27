@@ -38,8 +38,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import poppy
 
-import python.util_pastis as util
-from python.config import CONFIG_INI
+import util_pastis as util
+from config import CONFIG_INI
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ import os
 import time
 import numpy as np
 from astropy.io import fits
-import webbpsf
 
 from config import CONFIG_INI
 import util_pastis as util
