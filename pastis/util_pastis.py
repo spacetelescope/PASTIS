@@ -55,7 +55,7 @@ def circle_mask(im, xc, yc, rcirc):
     return circ
 
 
-def zoom(im, x, y, bb):
+def zoom_point(im, x, y, bb):
     """
     Cut out a square box from image im centered on (x,y) with half-box size bb.
     :param im: image from which box will be taken
@@ -64,7 +64,19 @@ def zoom(im, x, y, bb):
     :param bb: half-box size
     :return:
     """
-    return(im[y-bb:y+bb, x-bb:x+bb])
+    return (im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)])
+
+
+def zoom_cen(im, bb):
+    """
+    Cut out a square box from the image center with half-box size bb.
+    :param im: image from which box will be taken
+    :param bb: half-box size
+    :return:
+    """
+    x = int(im.shape[1]/2)
+    y = int(im.shape[0]/2)
+    return im[int(y-bb):int(y+bb), int(x-bb):int(x+bb)]
 
 
 def FFT(ef):
@@ -79,48 +91,6 @@ def IFFT(ef):
     return IFFT_E
 
 
-def matrix_fourier(im, param, inverse=False, dim_tf=None):
-    """
-    Calculate the Matrix Fourier Transform MTF.
-
-    Translated directly form the ONERA IDL scsript mtf.pro by bpaul.
-    :param im: array with dimensions na x na of which we want to calculate the Fourier transform
-    :param param: image size in px over sampling (na/samp)
-    :param inverse: if True, inverse FT will beb calculated; default is False
-    :param dim_tf: optional, size of the output Fourier transform array. Without it, the FT will have same dimensions like input im
-    :return:
-    """
-    na = im.shape[0]
-    nb = dim_tf
-    if dim_tf == None:
-        dim_tf = na
-
-    # Coordinate grids in real space
-    xx = ((np.arange(int(na)) + 0.5) - na/2.) / na
-    xx = np.expand_dims(xx, axis=0)
-    yy = np.copy(xx)
-
-    # Coordinate grids in Fourier space
-    uu = ((np.arange(int(nb)) + 0.5) - nb/2.) * param / nb
-    uu = np.expand_dims(uu, axis=0)
-    vv = np.copy(uu)
-
-    # Adjust sign in FT to whether you want the inverse FT or not
-    if inverse:
-        sign = -1
-    else:
-        sign = 1
-
-    # Dissect the matrix multiplications so that it's easier to deal with them
-    expo1 = np.matmul(np.transpose(yy), vv)
-    expo2 = np.matmul(np.transpose(uu), xx)
-
-    squash = sign * 2.*1j*np.pi
-    transform = (param / (na*nb)) + np.matmul(np.exp(squash * expo2), np.matmul(im, np.exp(squash * expo1)))
-
-    return transform
-
-
 def create_dark_hole(pup_im, iwa, owa, samp):
     """
     Create a dark hole on pupil image pup_im.
@@ -130,11 +100,23 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     :param samp: sampling factor
     :return: dh_area, np.array
     """
-    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 coverts from booleans to integers
+    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 converts from booleans to integers
     circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
     dh_area = circ_outer - circ_inner
 
     return dh_area
+
+
+def dh_mean(im, dh):
+    """
+    Return the dark hole contrast.
+
+    Calculate the mean intensity in the dark hole area dh of the image im.
+    im and dh have to have the same array size and shape.
+    """
+    darkh = im * dh
+    con = np.mean(darkh[np.where(darkh != 0)])
+    return con
 
 
 def pastis_contrast(Aber, matrix_pastis):
@@ -146,6 +128,11 @@ def pastis_contrast(Aber, matrix_pastis):
     """
     result = np.matmul(np.matmul(Aber, matrix_pastis), Aber)
     return result
+
+
+def rms(ar):
+    rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
+    return rms
 
 
 def noll_to_wss(zern):
@@ -230,6 +217,7 @@ class ZernikeMode:
             self.convention = 'Noll'
 
     @property
+    # this property needs some fixing
     def name(self):
         zern_name = zernike_name(self.index, self.convention)
         return zern_name
