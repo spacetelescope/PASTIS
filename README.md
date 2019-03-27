@@ -20,9 +20,13 @@ Requirements:
 ------
 
 numpy
+
 astropy
+
 matplotlib
+
 poppy
+
 webbpsf
 
 
