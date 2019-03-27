@@ -17,15 +17,19 @@ import webbpsf_imaging as webbim
 
 if __name__ == '__main__':
 
+    print("THIS ONLY WORKS FOR PISTON FOR NOW")
+
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
 
     # Do you want to use the analytical or the numerical matrix
     matrix_mode = 'analytical'    # 'analytical' or 'numerical'
+    rms_wanted = 1   # wanted RMS over the entire pupil, in input units
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat('filter', 'lambda') * 1e-3    # convert to um
     filter = CONFIG_INI.get('filter', 'name')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
@@ -49,12 +53,25 @@ if __name__ == '__main__':
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 1   # piston values in input units
+        Aber = np.random.random([nb_seg])   # piston values in input units
         print('PISTON ABERRATIONS:', Aber)
 
-    # Mean subtraction for piston   - we already have this in image_pastis.py
-    #if zern_number == 1:
-    #    Aber -= np.mean(Aber)
+        # Remove global piston
+        Aber -= np.mean(Aber)
+
+    else:
+        raise("Other Zernikes than piston not implemented yet.")
+
+    # Normalize to the RMS value I want
+    rms_init = util.rms(Aber)
+    Aber *= rms_wanted / rms_init
+    print("RMS:", util.rms(Aber))
+
+    # Modulo wavelength to get rid of phase wrapping
+    print("wvln:", wvln)
+    print("Aber before:", Aber)
+    Aber = Aber % wvln
+    print("Aber after:", Aber)
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
