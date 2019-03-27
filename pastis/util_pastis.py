@@ -130,6 +130,11 @@ def pastis_contrast(Aber, matrix_pastis):
     return result
 
 
+def rms(ar):
+    rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
+    return rms
+
+
 def noll_to_wss(zern):
     """
     Transform a Noll Zernike index into a JWST WSS framework Zernike index.
