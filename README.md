@@ -39,7 +39,7 @@ Running the code:
 - keyword `matrix_mode` to pick between using the `numerical` or `analytical` matrix
 - keyword `rms_wanted` to set the total RMS value on your telescope for which you want to calculate the contrast
 
-The output will be just a couple of lines, including the calculated contrast values by the E2E model, image PASTIS and matrix PASTIS, e.g. (for `matrix_mode = 'analytical'` and `rms_wanted = 1`:
+The output will be just a couple of lines, including the calculated contrast values by the E2E model, image PASTIS and matrix PASTIS, e.g. (for `matrix_mode = 'analytical'` and `rms_wanted = 1`):
 
 ```
 --- CONTRASTS: ---
