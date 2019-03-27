@@ -67,10 +67,10 @@ IF diam_rec MOD 2 NE 0 THEN diam_rec = diam_rec + 1
 larg_rec = diam_rec
 
 ; Load APLC
-pup_up = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/ApodSol_APLC_quart_atlastX025cobs1gap1_N0354r_FPM450M060_LSann20D70clear_Img097C_40DA100_BW10Nlam04fpres2_linbarhompre1.fits')
+pup_up = readfits('/Users/ilaginja/Documents/Git/PASTIS/old_data/ApodSol_APLC_quart_atlastX025cobs1gap1_N0354r_FPM450M060_LSann20D70clear_Img097C_40DA100_BW10Nlam04fpres2_linbarhompre1.fits')
 
 ; Load Lyot stop
-pup_do = readfits('/Users/ilaginja/Documents/Git/PASTIS/data/LS_full_atlast.fits')
+pup_do = readfits('/Users/ilaginja/Documents/Git/PASTIS/old_data/LS_full_atlast.fits')
 
 ; Cutting both of them to smaller sizes
 pup_up = crop(pup_up, /m, nc=614)

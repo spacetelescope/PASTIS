@@ -9,16 +9,19 @@ import numpy as np
 from astropy.io import fits
 import webbpsf
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-import python.image_pastis as impastis
-import python.webbpsf_imaging as webbim
+from config import CONFIG_INI
+import util_pastis as util
+import image_pastis as impastis
+import webbpsf_imaging as webbim
 
 
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 1 min
+    start_time = time.time()   # runtime currently is around 12 min
+
+    # Do you want to use the analytical or the numerical matrix
+    matrix_mode = 'analytical'    # 'analytical' or 'numerical'
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -29,20 +32,24 @@ if __name__ == '__main__':
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
+    aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Import PASTIS matrix
-    filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    matrix_pastis = fits.getdata(os.path.join(dataDir, 'results', filename + '.fits'))
+    if matrix_mode == 'numerical':
+        filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+        matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_numerical', filename + '.fits'))
+    elif matrix_mode == 'analytical':
+        filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+        matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_analytical', filename + '.fits'))
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg]) * 1000   # piston values
+        Aber = np.random.random([nb_seg]) * 1   # piston values in input units
         print('PISTON ABERRATIONS:', Aber)
 
     # Mean subtraction for piston   - we already have this in image_pastis.py
@@ -51,7 +58,7 @@ if __name__ == '__main__':
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = Aber / 1e9   # index "0" works because we're using piston currently; convert to meters
+    Aber_WSS[:,0] = Aber / aber_u   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
@@ -60,7 +67,7 @@ if __name__ == '__main__':
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating WebbPSF contrast')
+    print('Generating WebbPSF coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)

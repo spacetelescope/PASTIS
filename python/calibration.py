@@ -7,9 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import webbpsf
 
-from python.config import CONFIG_INI
-import python.util_pastis as util
-import python.image_pastis as impastis
+from config import CONFIG_INI
+import util_pastis as util
+import image_pastis as impastis
 
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     filter = CONFIG_INI.get('filter', 'name')
     wvln = CONFIG_INI.getfloat('filter', 'lambda')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    im_size = CONFIG_INI.getint('numerical', 'im_size_px')
+    im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
@@ -38,7 +38,8 @@ if __name__ == '__main__':
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration_nm')    # [nm] amplitude of aberration
+    aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')    # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
@@ -70,30 +71,32 @@ if __name__ == '__main__':
     # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
     nc, ote = webbpsf.enable_adjustable_ote(nc)                     # create OTE for default PSF
     nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
-    ote.zero()          # set OTE for default PSF to zero
-    ote_coro.zero()     # set OTE for coronagraph to zero
+    ote.zero()                        # set OTE for default PSF to zero
+    ote_coro.zero()                   # set OTE for coronagraph to zero
+    nc.include_si_wfe = False         # set SI internal WFE to zero
+    nc_coro.include_si_wfe = False    # set SI internal WFE to zero
 
     # Generate the E2E PSFs with and without coronagraph
     print('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
-    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+    psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
     psf_end_time = time.time()
     print('Calculating this PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
     print('Calculating perfect PSF with coronagraph...\n')
-    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+    psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
     psf_default = psf_default_hdu[0].data
     psf_coro = psf_coro_hdu[0].data
 
-    # Save the PSFs for testing
-    util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
-    util.write_fits(psf_coro, os.path.join(outDir, 'psf_coro.fits'), header=None, metadata=None)
-
     # Get maximum of PSF for the normalization and normalize PSFs we have so far
     normp = np.max(psf_default)
     psf_default = psf_default / normp
     psf_coro = psf_coro / normp
+
+    # Save the PSFs for testing
+    util.write_fits(psf_default, os.path.join(outDir, 'psf_default.fits'), header=None, metadata=None)
+    util.write_fits(psf_coro, os.path.join(outDir, 'psf_coro.fits'), header=None, metadata=None)
 
     # Create the dark hole
     dh_area = util.create_dark_hole(psf_coro, inner_wa, outer_wa, sampling)
@@ -103,7 +106,7 @@ if __name__ == '__main__':
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
-    contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert int to array of shape (1,), otherwise np.savetxt() doesn't work
+    contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert into array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
     # Create the arrays to hold the contrast values from the iterations
@@ -132,13 +135,14 @@ if __name__ == '__main__':
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber / 1e9        # Aberration on the segment we're currently working on;
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber / aber_u        # Aberration on the segment we're currently working on;
                                                           # convert to meters; -1 on the Zernike because Python starts
                                                           # numbering at 0.
         Aber_Noll[i, zern_number-1] = nm_aber             # Noll version - in nm!
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
+        print('nm_aber: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
         ote_coro.reset()   # Making sure there are no previous movements on the segments.
         ote_coro.zero()    # For now, ignore internal WFE.
         ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
@@ -149,7 +153,7 @@ if __name__ == '__main__':
 
         #-# Generate the coronagraphic PSF
         print('Calculating coronagraphic PSF.')
-        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size), oversample=1, nlambda=1)
+        psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
         psf_end = psf_endsim[0].data
 
         #-# Normalize coro PSF
@@ -185,32 +189,53 @@ if __name__ == '__main__':
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
     calibration = np.zeros_like(contrast_e2e)
-    calibration = (contrast_e2e - contrast_base) / contrast_pastis
+    calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
     #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account
+
+    #calibration /= nm_aber    # TODO: this normalization needs to be incorporated
 
     #-# Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
 
     # Save contrast vectors for WebbPSF and image-PASTIS so that we can look at the values if needed
-    name_webbpsf = 'calibration_contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    name_impastis = 'calibration_contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    name_webbpsf = 'contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    name_impastis = 'contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(contrast_e2e, os.path.join(outDir, name_webbpsf+'.fits'), header=None, metadata=None)
     util.write_fits(contrast_pastis, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
 
     # Generate some plots
+    """
     plt.clf()
     plt.plot(contrast_e2e, label='WebbPSF')
     plt.plot(contrast_pastis, label='imagePASTIS')
-    plt.title('Aberration per segment: ' + str(nm_aber) + ' nm')
+    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
     plt.xlabel('Segment number')
     plt.ylabel('Contrast')
     plt.legend()
     plt.savefig(os.path.join(outDir, filename+'.pdf'))
 
+    plt.clf()
+    plt.plot(contrast_e2e, label='WebbPSF')
+    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    plt.xlabel('Segment number')
+    plt.ylabel('Contrast')
+    plt.legend()
+    plt.savefig(os.path.join(outDir, 'only_webbpsf'+'.pdf'))
+
+    plt.clf()
+    plt.plot(contrast_pastis, label='imagePASTIS')
+    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    plt.xlabel('Segment number')
+    plt.ylabel('Contrast')
+    plt.legend()
+    plt.savefig(os.path.join(outDir, 'only_pastis'+'.pdf'))
+    """
+
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for calibration.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Data saved to {}'.format(outDir))
 
     # Extra comments from Lucie:
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
