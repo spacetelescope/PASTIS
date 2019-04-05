@@ -14,16 +14,19 @@ import image_pastis as impastis
 import webbpsf_imaging as webbim
 
 
-if __name__ == '__main__':
+def pastis_vs_e2e(matrix_mode="analytical", rms=1., im_pastis=False):
+    """
+    Calculate the contrast for an RMS WFE rms with image PASTIS, matrix PASTIS
+    :param matrix_mode: use 'analytical or 'numerical' matrix
+    :param rms: RMS wavefront error in pupil to calculate contrast for
+    :param im_pastis: default False, whether to also calculate contrast from image PASTIS
+    :return:
+    """
 
     print("THIS ONLY WORKS FOR PISTON FOR NOW")
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
-
-    # Do you want to use the analytical or the numerical matrix
-    matrix_mode = 'analytical'    # 'analytical' or 'numerical'
-    rms_wanted = 1   # wanted RMS over the entire pupil, in input units
 
     # Parameters
     dataDir = CONFIG_INI.get('local', 'local_data_path')
@@ -52,29 +55,26 @@ if __name__ == '__main__':
 
     # Create random aberration coefficients
     if zern_number == 1:   # piston
-        Aber = np.random.random([nb_seg])   # piston values in input units
-        print('PISTON ABERRATIONS:', Aber)
+        aber = np.random.random([nb_seg])   # piston values in input units
+        print('PISTON ABERRATIONS:', aber)
 
         # Remove global piston
-        Aber -= np.mean(Aber)
+        aber -= np.mean(aber)
 
     else:
         raise("Other Zernikes than piston not implemented yet.")
 
     # Normalize to the RMS value I want
-    rms_init = util.rms(Aber)
-    Aber *= rms_wanted / rms_init
-    print("RMS:", util.rms(Aber))
+    rms_init = util.rms(aber)
+    aber *= rms / rms_init
+    print("Calculated RMS:", util.rms(aber))
 
     # Modulo wavelength to get rid of phase wrapping
-    print("wvln:", wvln)
-    print("Aber before:", Aber)
-    Aber = Aber % wvln
-    print("Aber after:", Aber)
+    aber = aber % wvln
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = Aber / aber_u   # index "0" works because we're using piston currently; convert to meters
+    Aber_WSS[:,0] = aber / aber_u   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
@@ -100,22 +100,26 @@ if __name__ == '__main__':
     contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
-    print('Generating contrast from image-PASTIS')
-    start_impastis = time.time()
-    # Create calibrated image from analytical model
-    psf_am, full_psf = impastis.analytical_model(zern_number, Aber, cali=True)
-    # Get the mean contrast from image PASTIS
-    contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
-    end_impastis = time.time()
+    contrast_am = None
+    if im_pastis:
+        print('Generating contrast from image-PASTIS')
+        start_impastis = time.time()
+        # Create calibrated image from analytical model
+        psf_am, full_psf = impastis.analytical_model(zern_number, aber, cali=True)
+        # Get the mean contrast from image PASTIS
+        contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
+        end_impastis = time.time()
 
     ### MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(Aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
-    ratio = contrast_am / contrast_matrix
+    ratio = None
+    if im_pastis:
+        ratio = contrast_am / contrast_matrix
 
     # Outputs
     print('\n--- CONTRASTS: ---')
@@ -126,8 +130,17 @@ if __name__ == '__main__':
 
     print('\n--- RUNTIMES: ---')
     print('WebbPSF: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
-    print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
+    if im_pastis:
+        print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
     print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
 
     end_time = time.time()
-    print('Runtime for contrast_calculation.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    runtime = end_time - start_time
+    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+
+    return contrast_webbpsf, contrast_am, contrast_matrix
+
+
+if __name__ == '__main__':
+
+    pastis_vs_e2e(matrix_mode="analytical", rms=1, im_pastis=True)
