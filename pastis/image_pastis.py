@@ -29,7 +29,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     """
 
     #-# Parameters
-    dataDir = CONFIG_INI.get('local', 'local_data_path')
+    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     tel_size_m = CONFIG_INI.getfloat('telescope', 'diameter')
     real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat

@@ -12,10 +12,10 @@ import image_pastis as impastis
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 12 minutes
+    start_time = time.time()   # runtime is currently around 11 minutes
 
     # Parameters
-    datadir = CONFIG_INI.get('local', 'local_data_path')
+    datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')

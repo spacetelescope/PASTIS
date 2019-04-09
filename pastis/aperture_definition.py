@@ -48,7 +48,8 @@ if __name__ == "__main__":
     start_time = time.time()   # runtime currently is around 2 seconds
 
     # Parameters
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'segmentation')
+    localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
+    outDir = os.path.join(localDir, 'segmentation')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
     wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
@@ -56,6 +57,10 @@ if __name__ == "__main__":
     total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
     im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
+
+    # If main subfolder "active" doesn't exist yet, create it.
+    if not os.path.isdir(localDir):
+        os.mkdir(localDir)
 
     # If subfolder "segmentation" doesn't exist yet, create it.
     if not os.path.isdir(outDir):
@@ -257,7 +262,7 @@ if __name__ == "__main__":
     util.write_fits(NR_pairs_list, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
-    print('All outputs saved')
+    print('All outputs saved to {}'.format(outDir))
 
     # Tell us how long it took to finish.
     end_time = time.time()

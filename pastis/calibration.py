@@ -23,7 +23,7 @@ if __name__ == '__main__':
     os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Parameters
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'calibration')
+    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'calibration')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')

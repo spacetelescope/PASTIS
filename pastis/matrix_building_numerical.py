@@ -17,10 +17,10 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()
+    start_time = time.time()   # runtime is currently around 21 minutes
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_numerical')
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
