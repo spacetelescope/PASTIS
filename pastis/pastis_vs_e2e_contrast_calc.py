@@ -18,13 +18,18 @@ if __name__ == '__main__':
     # Keep track of time
     start_time = time.time()
 
+    ##########################
+    WORKDIRECTORY = "active"    # you can chose here what data directory to work in
+    matrix = "numerical"       # "analytical" or "numerical"
+    ##########################
+
     # Set up path for results
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
+    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
     # Create range of RMS values to test
-    rms_range = np.logspace(-3, 3, 10)
+    rms_range = np.logspace(-1, 5, 10)
     print("RMS range:", rms_range)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
@@ -35,10 +40,10 @@ if __name__ == '__main__':
     for i, rms in enumerate(rms_range):
 
         print("\n#####################################")
-        print("CALCULATING CONTRAST FOR {:.2f}".format(rms))
+        print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
         print("Run {}/{}".format(i, len(rms_range)))
 
-        c_e2e, c_am, c_matrix = pastis_vs_e2e(rms=rms)
+        c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms, im_pastis=False)
 
         e2e_contrasts.append(c_e2e)
         am_contrasts.append(c_am)
@@ -60,7 +65,7 @@ if __name__ == '__main__':
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()
-    plt.savefig("PASTIS_HOCKEY_STICK.pdf")
+    plt.savefig(os.path.join(outDir, "PASTIS_HOCKEY_STICK_"+matrix+".pdf"))
 
     end_time = time.time()
     runtime = end_time - start_time

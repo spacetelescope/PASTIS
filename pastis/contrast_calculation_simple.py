@@ -14,11 +14,11 @@ import image_pastis as impastis
 import webbpsf_imaging as webbim
 
 
-def pastis_vs_e2e(matrix_mode="analytical", rms=1., im_pastis=False):
+def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     """
-    Calculate the contrast for an RMS WFE rms with image PASTIS, matrix PASTIS
+    Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
     :param matrix_mode: use 'analytical or 'numerical' matrix
-    :param rms: RMS wavefront error in pupil to calculate contrast for
+    :param rms: RMS wavefront error in pupil to calculate contrast for; in input units
     :param im_pastis: default False, whether to also calculate contrast from image PASTIS
     :return:
     """
@@ -29,9 +29,9 @@ def pastis_vs_e2e(matrix_mode="analytical", rms=1., im_pastis=False):
     start_time = time.time()   # runtime currently is around 12 min
 
     # Parameters
-    dataDir = CONFIG_INI.get('local', 'local_data_path')
+    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), dir)
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda') * 1e-3    # convert to um
+    wvln = CONFIG_INI.getfloat('filter', 'lambda') * 1e-3    # convert to um  #TODO: PROBABLY COMPLETEY WRONG CONVERSION!!!!!! NEEDS TO CONVERT TO INPUT UNITS!!!!
     filter = CONFIG_INI.get('filter', 'name')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
@@ -143,4 +143,5 @@ def pastis_vs_e2e(matrix_mode="analytical", rms=1., im_pastis=False):
 
 if __name__ == '__main__':
 
-    pastis_vs_e2e(matrix_mode="analytical", rms=1, im_pastis=True)
+    WORKDIRECTORY = "active"    # you can chose here what data directory to work in
+    pastis_vs_e2e(WORKDIRECTORY, matrix_mode="analytical", rms=1, im_pastis=True)
