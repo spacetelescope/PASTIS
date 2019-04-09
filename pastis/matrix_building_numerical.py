@@ -37,6 +37,22 @@ if __name__ == '__main__':
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
+    # If subfolder "matrix_numerical" doesn't exist yet, create it.
+    if not os.path.isdir(resDir):
+        os.mkdir(resDir)
+
+    # If subfolder "OTE_images" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
+        os.mkdir(os.path.join(resDir, 'OTE_images'))
+
+    # If subfolder "psfs" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'psfs')):
+        os.mkdir(os.path.join(resDir, 'psfs'))
+
+    # If subfolder "darkholes" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'darkholes')):
+        os.mkdir(os.path.join(resDir, 'darkholes'))
+
     # Create the dark hole mask.
     pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)

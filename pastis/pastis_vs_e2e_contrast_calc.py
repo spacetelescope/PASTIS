@@ -18,8 +18,13 @@ if __name__ == '__main__':
     # Keep track of time
     start_time = time.time()
 
+    # Set up path for results
+    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'results')
+    if not os.path.isdir(outDir):
+        os.mkdir(outDir)
+
     # Create range of RMS values to test
-    rms_range = np.logspace(-3, 3, 20)
+    rms_range = np.logspace(-3, 3, 10)
     print("RMS range:", rms_range)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation

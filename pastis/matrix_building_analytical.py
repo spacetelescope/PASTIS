@@ -22,6 +22,10 @@ if __name__ == '__main__':
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
+    # If subfolder "matrix_analytical" doesn't exist yet, create it.
+    if not os.path.isdir(resDir):
+        os.mkdir(resDir)
+
     # Load baseline contrast
     blcontr = np.loadtxt(os.path.join(datadir, 'calibration', 'base-contrast_piston_Noll1.txt'))
 
