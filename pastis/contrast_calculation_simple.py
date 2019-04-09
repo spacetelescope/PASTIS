@@ -56,7 +56,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     # Create random aberration coefficients
     if zern_number == 1:   # piston
         aber = np.random.random([nb_seg])   # piston values in input units
-        print('PISTON ABERRATIONS:', aber)
+        #print('PISTON ABERRATIONS:', aber)
 
         # Remove global piston
         aber -= np.mean(aber)
@@ -70,7 +70,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     print("Calculated RMS:", util.rms(aber))
 
     # Modulo wavelength to get rid of phase wrapping
-    aber = aber % wvln
+    #aber = aber % wvln
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
@@ -90,7 +90,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     psf_webbpsf = psf_webbpsf / normp
     # Create dark hole
     dh_area = util.create_dark_hole(psf_webbpsf, inner_wa, outer_wa, sampling)
-    # Get the mean conrast from the WebbPSF coronagraph
+    # Get the mean contrast from the WebbPSF coronagraph
     webb_dh_psf = psf_webbpsf * dh_area
     contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()

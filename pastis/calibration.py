@@ -39,7 +39,7 @@ if __name__ == '__main__':
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')    # [nm] amplitude of aberration
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')       # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
@@ -135,10 +135,10 @@ if __name__ == '__main__':
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber / aber_u        # Aberration on the segment we're currently working on;
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber / aber_u     # Aberration on the segment we're currently working on;
                                                           # convert to meters; -1 on the Zernike because Python starts
                                                           # numbering at 0.
-        Aber_Noll[i, zern_number-1] = nm_aber             # Noll version - in nm!
+        Aber_Noll[i, zern_number-1] = nm_aber             # Noll version - in input units (defined in configfile)!
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
