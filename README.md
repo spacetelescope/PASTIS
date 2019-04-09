@@ -62,8 +62,7 @@ Contrast from matrix PASTIS: 2.9384920197e-05
 Folder structure:
 ----------------
 
-In the config file, the entry `[local] --> local_data_path` specifies where the houtput data will be saved.  
-Listed in order of usage.
+In the config file, the entry `[local] --> local_data_path` specifies where the houtput data will be saved. The code will create a subfolder `active` that contains everything from your current code run. It is set up this way so that if you want to save some data, you just rename that directory into something else.
 
 
 **segmentation**  
