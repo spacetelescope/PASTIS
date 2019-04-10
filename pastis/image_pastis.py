@@ -172,3 +172,66 @@ def analytical_model(zernike_pol, coef, cali=False):
     # dh_psf is the image of the dark hole only, the pixels outside of it are zero
     # intensity is the entire final image
     return dh_psf, intensity
+
+
+if __name__ == '__main__':
+
+    "Testing the analytical model\n"
+
+    ### Define the aberration coeffitients "coef"
+    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
+
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm  # [nm] amplitude of aberration
+    zern_number = CONFIG_INI.getint('calibration', 'zernike')             # Which (Noll) Zernike we are calibrating for
+    wss_zern_nb = util.noll_to_wss(zern_number)                           # Convert from Noll to WSS framework
+
+    ### What segmend are we aberrating? ###
+    i = 0  # segment 1 --> i=0, seg 2 --> i=1, etc.
+    cali = False     # calibrated or not?
+    ### ------------------------------- ###
+
+    # Create arrays to hold Zernike aberration coefficients
+    Aber_WSS = np.zeros([nb_seg, zern_max])  # The Zernikes here will be filled in the WSS order!!!
+    # Because it goes into _apply_hexikes_to_seg().
+    Aber_Noll = np.copy(Aber_WSS)  # This is the Noll version for later.
+
+    # Feed the aberration nm_aber into the array position
+    # that corresponds to the correct Zernike, but only on segment i
+    Aber_WSS[i, wss_zern_nb - 1] = nm_aber.to(u.m).value  # Aberration on the segment we're currenlty working on;
+                                                     # convert to meters; -1 on the Zernike because Python starts
+                                                     # numbering at 0.
+    Aber_Noll[i, zern_number - 1] = nm_aber.value          # Noll version - in input units directly!
+
+    # Make sure the aberration coefficients have correct units
+    Aber_WSS *= u.m     # not used here
+    Aber_Noll *= u.nm
+
+    # Vector of aberration coefficients takes all segments, but only for the Zernike we currently work with
+    coef = Aber_Noll[:, zern_number - 1]
+
+    # Define the (Noll) zernike number
+    zernike_pol = zern_number
+
+    print('coef: {}'.format(coef))
+    print('Aberration: {}'.format(nm_aber))
+    print('On segment: {}'.format(i+1))
+    print('Zernike (Noll): {}'.format(util.zernike_name(zern_number, framework='Noll')))
+    print('Zernike (WSS): {}'.format(util.zernike_name(wss_zern_nb, framework='WSS')))
+    print('Zernike number (Noll): {}'.format(zernike_pol))
+
+    ### Run the analytical model without calibration
+    dh_psf, int = analytical_model(zernike_pol, coef, cali=cali)
+
+    plt.figure()
+    if cali:
+        plt.suptitle("Calibrated")
+    else:
+        plt.suptitle("NOT calibrated")
+    plt.subplot(1, 2, 1)
+    plt.imshow(dh_psf, norm=LogNorm())
+    plt.title("Dark hole")
+    plt.subplot(1, 2, 2)
+    plt.imshow(int, norm=LogNorm())
+    plt.title("Full image")
+    plt.show()
