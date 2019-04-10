@@ -3,6 +3,7 @@
 import os
 import time
 import numpy as np
+import astropy.units as u
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -18,7 +19,7 @@ if __name__ == '__main__':
     datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
@@ -42,8 +43,9 @@ if __name__ == '__main__':
 
             # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
-            tempA[i] = nm_aber
-            tempA[j] = nm_aber
+            tempA[i] = nm_aber.value
+            tempA[j] = nm_aber.value
+            tempA *= u.nm    # making sure this array has the right units
 
             # Create PASTIS image and save full image as well as DH image
             temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)

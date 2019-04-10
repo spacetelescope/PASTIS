@@ -6,10 +6,10 @@ import os
 import time
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 import matplotlib.pyplot as plt
 
 from config import CONFIG_INI
-import util_pastis as util
 from contrast_calculation_simple import pastis_vs_e2e
 
 
@@ -39,6 +39,8 @@ if __name__ == '__main__':
 
     for i, rms in enumerate(rms_range):
 
+        rms *= u.nm    # Making sure this has the correct units
+
         print("\n#####################################")
         print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
         print("Run {}/{}".format(i, len(rms_range)))
@@ -61,7 +63,7 @@ if __name__ == '__main__':
     plt.plot(rms_range, matrix_contrasts, label="PASTIS")
     plt.semilogx()
     plt.semilogy()
-    plt.xlabel("RMS WFE")
+    plt.xlabel("RMS WFE in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()

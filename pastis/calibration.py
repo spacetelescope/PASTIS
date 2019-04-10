@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.units as u
 import webbpsf
 
 from config import CONFIG_INI
@@ -27,7 +28,6 @@ if __name__ == '__main__':
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
@@ -38,8 +38,7 @@ if __name__ == '__main__':
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
-    aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')       # [nm] amplitude of aberration
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm       # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
@@ -135,14 +134,20 @@ if __name__ == '__main__':
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber / aber_u     # Aberration on the segment we're currently working on;
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber.to(u.m).value     # Aberration on the segment we're currently working on;
                                                           # convert to meters; -1 on the Zernike because Python starts
                                                           # numbering at 0.
-        Aber_Noll[i, zern_number-1] = nm_aber             # Noll version - in input units (defined in configfile)!
+        Aber_Noll[i, zern_number-1] = nm_aber.value             # Noll version - in nm
+
+        # Make sure the aberration coefficients have correct units
+        Aber_Noll *= u.nm
+        #  Aber_WSS does NOT get multiplied by u.m, because the poppy function it goes to is actually a private function
+        # that is not decorated with the astropy decorator for checking units and does not use astropy.units. Which is
+        # why we made sure it gets filled with values in units of meters already a couple of lines above this.
 
         #-# Crate OPD with aberrated segment(s)
         print('Applying aberration to OTE.')
-        print('nm_aber: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+        print('nm_aber: {}'.format(nm_aber))
         ote_coro.reset()   # Making sure there are no previous movements on the segments.
         ote_coro.zero()    # For now, ignore internal WFE.
         ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
@@ -212,7 +217,7 @@ if __name__ == '__main__':
     plt.clf()
     plt.plot(contrast_e2e, label='WebbPSF')
     plt.plot(contrast_pastis, label='imagePASTIS')
-    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    plt.title('Aberration per segment: {}'.format(nm_aber))
     plt.xlabel('Segment number')
     plt.ylabel('Contrast')
     plt.legend()
@@ -220,7 +225,7 @@ if __name__ == '__main__':
 
     plt.clf()
     plt.plot(contrast_e2e, label='WebbPSF')
-    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    plt.title('Aberration per segment: {}'.format(nm_aber))
     plt.xlabel('Segment number')
     plt.ylabel('Contrast')
     plt.legend()
@@ -228,7 +233,7 @@ if __name__ == '__main__':
 
     plt.clf()
     plt.plot(contrast_pastis, label='imagePASTIS')
-    plt.title('Aberration per segment: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    plt.title('Aberration per segment: {}'.format(nm_aber))
     plt.xlabel('Segment number')
     plt.ylabel('Contrast')
     plt.legend()
@@ -242,7 +247,7 @@ if __name__ == '__main__':
 
     # Extra comments from Lucie:
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation
-    ### and PASTIS.
+    ### and PASTIS image contrast.
 
     ### If there were an apodizer, leave it in when calculating psf_default ("no coronagraph").
-    # Leave Lyot stop in for psf_default?? -> try it, check max of value, because that's our normalization factor
+    # Leave Lyot stop in for psf_default?? -> try it, check max of value, because that's our normalization factor.

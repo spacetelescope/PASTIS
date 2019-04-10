@@ -7,6 +7,7 @@ import os
 import time
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -14,11 +15,13 @@ import image_pastis as impastis
 import webbpsf_imaging as webbim
 
 
-def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
+@u.quantity_input(rms=u.nm)
+def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False):
     """
     Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
+    :param dir: data directory to use for matrix and calibration coefficients from
     :param matrix_mode: use 'analytical or 'numerical' matrix
-    :param rms: RMS wavefront error in pupil to calculate contrast for; in input units
+    :param rms: RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
     :param im_pastis: default False, whether to also calculate contrast from image PASTIS
     :return:
     """
@@ -31,7 +34,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     # Parameters
     dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), dir)
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda') * 1e-3    # convert to um  #TODO: PROBABLY COMPLETEY WRONG CONVERSION!!!!!! NEEDS TO CONVERT TO INPUT UNITS!!!!
+    wvln = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
     filter = CONFIG_INI.get('filter', 'name')
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
@@ -40,7 +43,6 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
-    aber_u = CONFIG_INI.getfloat('calibration', 'unit')  # unit of the aberration in m^-1
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
@@ -66,15 +68,17 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
-    aber *= rms / rms_init
-    print("Calculated RMS:", util.rms(aber))
+    aber *= rms.value / rms_init
+    calc_rms = util.rms(aber) * u.nm
+    aber *= u.nm    # making sure the aberration has the correct units
+    print("Calculated RMS:", calc_rms)
 
     # Modulo wavelength to get rid of phase wrapping
-    #aber = aber % wvln
+    aber = aber % wvln
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = aber / aber_u   # index "0" works because we're using piston currently; convert to meters
+    Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
@@ -144,4 +148,6 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1., im_pastis=False):
 if __name__ == '__main__':
 
     WORKDIRECTORY = "active"    # you can chose here what data directory to work in
-    pastis_vs_e2e(WORKDIRECTORY, matrix_mode="analytical", rms=1, im_pastis=True)
+    matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
+    total_rms = 1 * u.nm
+    pastis_vs_e2e(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
