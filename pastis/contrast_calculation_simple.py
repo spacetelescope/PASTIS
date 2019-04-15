@@ -73,8 +73,15 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False):
     aber *= u.nm    # making sure the aberration has the correct units
     print("Calculated RMS:", calc_rms)
 
-    # Modulo wavelength to get rid of phase wrapping
-    aber = aber % wvln
+    # Modulo wavelength to get rid of phase wrapping.
+    # The modulo operator on negative nuber is weird in Python,
+    # this is a quick fix to account for that. It's ugly and
+    # can definitely be done better.
+    for i, k in enumerate(aber):
+        if k < 0:
+            aber[i] = -(np.abs(aber[i]) % wvln)
+        else:
+            aber[i] = aber[i] % wvln
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
