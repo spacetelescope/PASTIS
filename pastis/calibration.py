@@ -194,8 +194,8 @@ if __name__ == '__main__':
     print('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
     calibration = np.zeros_like(contrast_e2e)
-    #calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
-    calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account
+    calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
+    #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account
     # Not taking C_0 into account is necessary to avoid negative values of the E2E contrast in cases where
     # we're calibrating at a level that is too low and numerically, the calibration contrast of one aberrated
     # segment might end up being lower than the baseline contrast, which could lead to negative values in the sqrt.
