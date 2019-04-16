@@ -30,8 +30,8 @@ if __name__ == '__main__':
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
-    if not os.path.isdir(os.path.join(outDir, 'dh_images')):
-        os.mkdir(os.path.join(outDir, 'dh_images'))
+    if not os.path.isdir(os.path.join(outDir, 'dh_images_'+matrix)):
+        os.mkdir(os.path.join(outDir, 'dh_images_'+matrix))
 
     # Create range of RMS values to test
     rms_range = np.logspace(-1, 4, 50)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # Save results to txt file
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
-    df.to_csv(os.path.join(outDir, "contrasts.txt"), sep=' ', na_rep='NaN')
+    df.to_csv(os.path.join(outDir, "contrasts_"+matrix+".txt"), sep=' ', na_rep='NaN')
 
     # Plot results
     dataDir = CONFIG_INI.get('local', 'local_data_path')

@@ -159,9 +159,9 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
         if plotting:
 
             # As fits files
-            util.write_fits(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), os.path.join(dataDir, 'results', 'dh_images',
-                            '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_e2e.fits'))
-            util.write_fits(psf_am, os.path.join(dataDir, 'results', 'dh_images',
+            util.write_fits(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), os.path.join(dataDir, 'results',
+                            'dh_images_'+matrix_mode, '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_e2e.fits'))
+            util.write_fits(psf_am, os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
                                                  '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_am.fits'))
 
             # As PDF plot
@@ -176,7 +176,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
             plt.title("PASTIS image")
             plt.imshow(psf_am, norm=LogNorm())
             plt.colorbar()
-            plt.savefig(os.path.join(dataDir, 'results', 'dh_images', '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
+            plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
+                                     '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
             #TODO: check image rotation, I think there is a 90 degree difference in them
 
     return contrast_webbpsf, contrast_am, contrast_matrix
