@@ -78,6 +78,9 @@ if __name__ == '__main__':
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
+    # Normalize matrix for the input aberration
+    matrix_pastis /= np.square(nm_aber.value)
+
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
