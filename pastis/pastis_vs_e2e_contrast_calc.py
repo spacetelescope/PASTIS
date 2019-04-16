@@ -45,7 +45,7 @@ if __name__ == '__main__':
         print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
         print("Run {}/{}".format(i+1, len(rms_range)))
 
-        c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms, im_pastis=False)
+        c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms, im_pastis=True)
 
         e2e_contrasts.append(c_e2e)
         am_contrasts.append(c_am)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
-    #plt.plot(rms_range, am_contrasts, label="Image PASTIS")
+    plt.plot(rms_range, am_contrasts, label="Image PASTIS")
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
