@@ -1,5 +1,5 @@
 """
-Translation of atlast_calibration.pro, which makes the calibration files for PASTIS.
+Making the calibration files for PASTIS.
 """
 import os
 import time

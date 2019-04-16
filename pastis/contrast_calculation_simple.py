@@ -1,4 +1,4 @@
-"""This program compares contrast calculation from different methods:
+"""This program compares the contrast calculation from different methods:
 WebbPSF coronagraph
 Image-based PASTIS
 Matrix-based PASTIS"""
@@ -81,7 +81,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     # The modulo operator on negative nuber is weird in Python,
     # this is a quick fix to account for that. It's ugly and
     # can definitely be done better.
-    #TODO: this actually needs to be form -lambda/2 to lambda/2, not from -lambda to lambda
+    #TODO: this actually needs to be from -lambda/2 to lambda/2, not from -lambda to lambda
     for i, k in enumerate(aber):
         if k < 0:
             aber[i] = -(np.abs(aber[i]) % wvln)
@@ -110,6 +110,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     webb_dh_psf = psf_webbpsf * dh_area
     contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()
+
+    #TODO: save plots of phase on segmented pupil
 
     # Load in baseline contrast
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
