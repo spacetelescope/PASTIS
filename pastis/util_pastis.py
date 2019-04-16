@@ -5,6 +5,7 @@ Helper functions for PASTIS.
 import os
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 
 
 def write_fits(data, filepath, header=None, metadata=None):
@@ -119,14 +120,15 @@ def dh_mean(im, dh):
     return con
 
 
-def pastis_contrast(Aber, matrix_pastis):
+@u.quantity_input(aber=u.nm)
+def pastis_contrast(aber, matrix_pastis):
     """
     Calculate the contrast with PASTIS matrix model.
-    :param Aber: aberration vector, its length is number of segments, aberration coeffitiones in nm
+    :param aber: aberration vector, its length is number of segments, aberration coefficients in NANOMETERS
     :param matrix_pastis: PASTIS matrix
     :return:
     """
-    result = np.matmul(np.matmul(Aber, matrix_pastis), Aber)
+    result = np.matmul(np.matmul(aber, matrix_pastis), aber)
     return result
 
 

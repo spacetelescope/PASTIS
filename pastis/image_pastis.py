@@ -8,6 +8,7 @@ We're following the Noll convention starting with index 0
 import os
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 import poppy.zernike as zern
 import poppy.matrixDFT as mft
 import poppy
@@ -18,7 +19,7 @@ from config import CONFIG_INI
 import util_pastis as util
 
 
-#if __name__ == "__main__":
+@u.quantity_input(coef=u.nm)
 def analytical_model(zernike_pol, coef, cali=False):
     """
 
@@ -29,19 +30,19 @@ def analytical_model(zernike_pol, coef, cali=False):
     """
 
     #-# Parameters
-    dataDir = CONFIG_INI.get('local', 'local_data_path')
+    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    tel_size_m = CONFIG_INI.getfloat('telescope', 'diameter')
-    real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat')   # size in meters of an individual segment flatl to flat
+    tel_size_m = CONFIG_INI.getfloat('telescope', 'diameter') * u.m
+    real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat') #* u.m   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
-    wvln = CONFIG_INI.getint('filter', 'lambda')
+    wvln = CONFIG_INI.getint('filter', 'lambda') * u.nm
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
     outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
+    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px') * u.dimensionless_unscaled        # pupil diameter of telescope in pixels
     im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
-    px_sq_to_rad = size_px_tel * np.pi / tel_size_m
+    px_sq_to_rad = (size_px_tel * np.pi / tel_size_m) * u.rad
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Create Zernike mode object for easier handling
@@ -76,7 +77,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Import information form segmentation script
     Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
-    vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))
+    vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))                    # in pixels
     NR_pairs_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
 
     # Figure out how many NRPs we're dealing with
@@ -92,7 +93,8 @@ def analytical_model(zernike_pol, coef, cali=False):
     coef = coef * ck
 
     #-# Generic coefficients
-    generic_coef = np.zeros(NR_pairs_nb)   # coefficients in front of the non redundant pairs, the A_q in eq. 13 in Leboulleux et al. 2018
+    # the coefficients in front of the non redundant pairs, the A_q in eq. 13 in Leboulleux et al. 2018
+    generic_coef = np.zeros(NR_pairs_nb) * u.nm * u.nm    # setting it up with the correct units this will have
 
     for q in range(NR_pairs_nb):
         for i in range(nb_seg):
@@ -115,10 +117,10 @@ def analytical_model(zernike_pol, coef, cali=False):
         # We need to calculate the dot product between all b_q and u, so in each iteration (for q), we simply add the
         # x and y component.
         cos_u_mat[:,:,q] = np.cos(px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 0] * tab_i) +
-                                  px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j))
+                                  px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j)) * u.dimensionless_unscaled
 
     sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
-    sum2 = np.zeros((int(im_size_pastis), int(im_size_pastis)))
+    sum2 = np.zeros((int(im_size_pastis), int(im_size_pastis))) * u.nm * u.nm    # setting it up with the correct units this will have
 
     for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
@@ -141,7 +143,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
-    intensity = np.abs(ft_zern**2 * (sum1 + 2. * sum2))
+    intensity = np.abs(ft_zern**2 * (sum1.value + 2. * sum2.value))
 
     # PASTIS is only valid inside the dark hole, so we cut out only that part
     tot_dh_im_size = sampling * (outer_wa + 3)
@@ -170,3 +172,66 @@ def analytical_model(zernike_pol, coef, cali=False):
     # dh_psf is the image of the dark hole only, the pixels outside of it are zero
     # intensity is the entire final image
     return dh_psf, intensity
+
+
+if __name__ == '__main__':
+
+    "Testing the analytical model\n"
+
+    ### Define the aberration coeffitients "coef"
+    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
+
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm  # [nm] amplitude of aberration
+    zern_number = CONFIG_INI.getint('calibration', 'zernike')             # Which (Noll) Zernike we are calibrating for
+    wss_zern_nb = util.noll_to_wss(zern_number)                           # Convert from Noll to WSS framework
+
+    ### What segmend are we aberrating? ###
+    i = 0  # segment 1 --> i=0, seg 2 --> i=1, etc.
+    cali = False     # calibrated or not?
+    ### ------------------------------- ###
+
+    # Create arrays to hold Zernike aberration coefficients
+    Aber_WSS = np.zeros([nb_seg, zern_max])  # The Zernikes here will be filled in the WSS order!!!
+    # Because it goes into _apply_hexikes_to_seg().
+    Aber_Noll = np.copy(Aber_WSS)  # This is the Noll version for later.
+
+    # Feed the aberration nm_aber into the array position
+    # that corresponds to the correct Zernike, but only on segment i
+    Aber_WSS[i, wss_zern_nb - 1] = nm_aber.to(u.m).value  # Aberration on the segment we're currenlty working on;
+                                                     # convert to meters; -1 on the Zernike because Python starts
+                                                     # numbering at 0.
+    Aber_Noll[i, zern_number - 1] = nm_aber.value          # Noll version - in input units directly!
+
+    # Make sure the aberration coefficients have correct units
+    Aber_WSS *= u.m     # not used here
+    Aber_Noll *= u.nm
+
+    # Vector of aberration coefficients takes all segments, but only for the Zernike we currently work with
+    coef = Aber_Noll[:, zern_number - 1]
+
+    # Define the (Noll) zernike number
+    zernike_pol = zern_number
+
+    print('coef: {}'.format(coef))
+    print('Aberration: {}'.format(nm_aber))
+    print('On segment: {}'.format(i+1))
+    print('Zernike (Noll): {}'.format(util.zernike_name(zern_number, framework='Noll')))
+    print('Zernike (WSS): {}'.format(util.zernike_name(wss_zern_nb, framework='WSS')))
+    print('Zernike number (Noll): {}'.format(zernike_pol))
+
+    ### Run the analytical model without calibration
+    dh_psf, int = analytical_model(zernike_pol, coef, cali=cali)
+
+    plt.figure()
+    if cali:
+        plt.suptitle("Calibrated")
+    else:
+        plt.suptitle("NOT calibrated")
+    plt.subplot(1, 2, 1)
+    plt.imshow(dh_psf, norm=LogNorm())
+    plt.title("Dark hole")
+    plt.subplot(1, 2, 2)
+    plt.imshow(int, norm=LogNorm())
+    plt.title("Full image")
+    plt.show()

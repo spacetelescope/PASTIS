@@ -3,6 +3,7 @@
 import os
 import time
 import numpy as np
+import astropy.units as u
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -12,18 +13,19 @@ import image_pastis as impastis
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 12 minutes
+    start_time = time.time()   # runtime is currently around 11 minutes
 
     # Parameters
-    datadir = CONFIG_INI.get('local', 'local_data_path')
+    datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
-    # Load baseline contrast
-    blcontr = np.loadtxt(os.path.join(datadir, 'calibration', 'base-contrast_piston_Noll1.txt'))
+    # If subfolder "matrix_analytical" doesn't exist yet, create it.
+    if not os.path.isdir(resDir):
+        os.mkdir(resDir)
 
     #-# Generating the PASTIS matrix
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix for contrast values from loop.
@@ -38,8 +40,9 @@ if __name__ == '__main__':
 
             # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
-            tempA[i] = nm_aber
-            tempA[j] = nm_aber
+            tempA[i] = nm_aber.value
+            tempA[j] = nm_aber.value
+            tempA *= u.nm    # making sure this array has the right units
 
             # Create PASTIS image and save full image as well as DH image
             temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)
@@ -72,6 +75,9 @@ if __name__ == '__main__':
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
+    # Normalize matrix for the input aberration
+    matrix_pastis /= np.square(nm_aber.value)
+
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
@@ -80,7 +86,7 @@ if __name__ == '__main__':
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_ims, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
