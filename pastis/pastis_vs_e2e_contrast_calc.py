@@ -20,7 +20,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     ##########################
-    WORKDIRECTORY = "2019-4-16_002_100nm"    # you can chose here what data directory to work in
+    WORKDIRECTORY = "active"    # you can chose here what data directory to work in
                                              # anything else than "active" works only with im_pastis=False
     matrix = "analytical"       # "analytical" or "numerical"
     ##########################
@@ -30,9 +30,12 @@ if __name__ == '__main__':
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
+    if not os.path.isdir(os.path.join(outDir, 'dh_images')):
+        os.mkdir(os.path.join(outDir, 'dh_images'))
+
     # Create range of RMS values to test
-    rms_range = np.logspace(-1, 4, 3)
-    print("RMS range:", rms_range)
+    rms_range = np.logspace(-1, 4, 50)
+    print("RMS range: {}".format(rms_range, fmt="%e"))
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
@@ -47,7 +50,8 @@ if __name__ == '__main__':
         print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
         print("Run {}/{}".format(i+1, len(rms_range)))
 
-        c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms, im_pastis=False)
+        c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms,
+                                              im_pastis=True, plotting=True)
 
         e2e_contrasts.append(c_e2e)
         am_contrasts.append(c_am)
@@ -61,11 +65,10 @@ if __name__ == '__main__':
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
     df.to_csv(os.path.join(outDir, "contrasts.txt"), sep=' ', na_rep='NaN')
 
-    #TODO: save PSF and pupil images to file
-
     # Plot results
     dataDir = CONFIG_INI.get('local', 'local_data_path')
 
+    plt.clf()
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
     plt.plot(rms_range, am_contrasts, label="Image PASTIS")
