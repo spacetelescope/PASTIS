@@ -8,6 +8,8 @@ import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -16,13 +18,15 @@ import webbpsf_imaging as webbim
 
 
 @u.quantity_input(rms=u.nm)
-def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False):
+def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, plotting=False):
     """
     Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
     :param dir: data directory to use for matrix and calibration coefficients from
     :param matrix_mode: use 'analytical or 'numerical' matrix
     :param rms: RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
     :param im_pastis: default False, whether to also calculate contrast from image PASTIS
+    :param plotting: default False, whether to make a figure of E2E and PASTIS DH PSFs; works only if im_pastis=True;
+                     for debugging mostly
     :return:
     """
 
@@ -148,6 +152,21 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False):
     end_time = time.time()
     runtime = end_time - start_time
     print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+
+    # Plot the PSFs, mostly used for debugging
+    if im_pastis:
+        if plotting:
+            plt.figure()
+            plt.subplot(1, 2, 1)
+            plt.title("E2E")
+            plt.imshow(webb_dh_psf, norm=LogNorm())
+            plt.colorbar()
+            plt.subplot(1, 2, 2)
+            plt.title("PASTIS image")
+            plt.imshow(psf_am, norm=LogNorm())
+            plt.colorbar()
+            plt.show()
+            #TODO: check image rotation, I think there is a 90 degree difference in them
 
     return contrast_webbpsf, contrast_am, contrast_matrix
 
