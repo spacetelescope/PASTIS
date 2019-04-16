@@ -117,7 +117,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
-    contrast_am = None
+    contrast_am = np.nan
     if im_pastis:
         print('Generating contrast from image-PASTIS')
         start_impastis = time.time()
