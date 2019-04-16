@@ -27,9 +27,6 @@ if __name__ == '__main__':
     if not os.path.isdir(resDir):
         os.mkdir(resDir)
 
-    # Load baseline contrast
-    blcontr = np.loadtxt(os.path.join(datadir, 'calibration', 'base-contrast_piston_Noll1.txt'))
-
     #-# Generating the PASTIS matrix
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix for contrast values from loop.
     all_ims = []

@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     ##########################
     WORKDIRECTORY = "active"    # you can chose here what data directory to work in
-    matrix = "numerical"       # "analytical" or "numerical"
+    matrix = "analytical"       # "analytical" or "numerical"
     ##########################
 
     # Set up path for results
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         os.mkdir(outDir)
 
     # Create range of RMS values to test
-    rms_range = np.logspace(-1, 5, 10)
+    rms_range = np.logspace(-1, 4, 10)
     print("RMS range:", rms_range)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
         print("\n#####################################")
         print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-        print("Run {}/{}".format(i, len(rms_range)))
+        print("Run {}/{}".format(i+1, len(rms_range)))
 
         c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms, im_pastis=False)
 
@@ -54,13 +54,16 @@ if __name__ == '__main__':
     e2e_contrasts = np.array(e2e_contrasts)
     am_contrasts = np.array(am_contrasts)
     matrix_contrasts = np.array(matrix_contrasts)
+    #TODO: save contrasts and rms_range to file
+    #TODO: save PSF and pupil images to file
 
     # Plot results
     dataDir = CONFIG_INI.get('local', 'local_data_path')
 
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
-    plt.plot(rms_range, matrix_contrasts, label="PASTIS")
+    #plt.plot(rms_range, am_contrasts, label="Image PASTIS")
+    plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
     plt.xlabel("RMS WFE in " + str(u.nm))

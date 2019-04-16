@@ -52,6 +52,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
     # Import PASTIS matrix
+    matrix_pastis = None
     if matrix_mode == 'numerical':
         filename = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
         matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_numerical', filename + '.fits'))
@@ -81,6 +82,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     # The modulo operator on negative nuber is weird in Python,
     # this is a quick fix to account for that. It's ugly and
     # can definitely be done better.
+    #TODO: this actually needs to be form -lambda/2 to lambda/2, not from -lambda to lambda
     for i, k in enumerate(aber):
         if k < 0:
             aber[i] = -(np.abs(aber[i]) % wvln)
@@ -175,5 +177,5 @@ if __name__ == '__main__':
 
     WORKDIRECTORY = "active"    # you can chose here what data directory to work in
     matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
-    total_rms = 1 * u.nm
+    total_rms = 100 * u.nm
     pastis_vs_e2e(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
