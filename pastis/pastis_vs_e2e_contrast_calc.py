@@ -56,7 +56,7 @@ if __name__ == '__main__':
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
             print("RMS {}/{}".format(i + 1, len(rms_range)))
             print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i+1)*(j+1), len(rms_range)*realiz))
+            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
             c_e2e, c_am, c_matrix = pastis_vs_e2e(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms,
                                                   im_pastis=True, plotting=True)
