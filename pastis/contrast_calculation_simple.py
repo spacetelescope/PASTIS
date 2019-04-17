@@ -60,15 +60,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
         matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_analytical', filename + '.fits'))
 
     # Create random aberration coefficients
-    if zern_number == 1:   # piston
-        aber = np.random.random([nb_seg])   # piston values in input units
-        #print('PISTON ABERRATIONS:', aber)
-
-        # Remove global piston
-        aber -= np.mean(aber)
-
-    else:
-        raise("Other Zernikes than piston not implemented yet.")
+    aber = np.random.random([nb_seg])   # piston values in input units
+    #print('PISTON ABERRATIONS:', aber)
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
@@ -77,16 +70,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     aber *= u.nm    # making sure the aberration has the correct units
     print("Calculated RMS:", calc_rms)
 
-    # Modulo wavelength to get rid of phase wrapping.
-    # The modulo operator on negative nuber is weird in Python,
-    # this is a quick fix to account for that. It's ugly and
-    # can definitely be done better.
-    #TODO: this actually needs to be from -lambda/2 to lambda/2, not from -lambda to lambda
-    for i, k in enumerate(aber):
-        if k < 0:
-            aber[i] = -(np.abs(aber[i]) % wvln)
-        else:
-            aber[i] = aber[i] % wvln
+    # Remove global piston
+    aber -= np.mean(aber)
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
