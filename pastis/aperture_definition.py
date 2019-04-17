@@ -1,12 +1,11 @@
 """
-Translation of Lucie's IDL code function_baselinify_ll.pro
-
-Computes the number of unique pairs in your pupil, currently configured for JWST.
+Generates a segmented pupil and computes the number of unique pairs in your pupil.
+Currently configured for JWST.
 No inputs.
 
 nb_seg is the number of segments WITHOUT the central obscuration.
 nb_seg+1 is the number of segments WITH the central obscuration, but it shouldn't be needed anywhere.
-Segments are numbered from 0 to nb_seg at its creation with Poppy, but the central segment, labelled with 0, gets
+Segments are numbered from 0 to nb_seg-1 at its creation with Poppy, but the central segment, labelled with 0, gets
 discarded once we are getting the coordinates of the segment centers.
 NRPs are numbered from 0 to NR_pairs_nb-1 (NR_pairs_nb = total number of NRPs).
 
@@ -36,6 +35,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.units as u
 import poppy
 
 import util_pastis as util
@@ -48,14 +48,19 @@ if __name__ == "__main__":
     start_time = time.time()   # runtime currently is around 2 seconds
 
     # Parameters
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'segmentation')
+    localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
+    outDir = os.path.join(localDir, 'segmentation')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
-    wvl = CONFIG_INI.getfloat('filter', 'lambda')/1e9   # convert from nm to m
-    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter')
-    total_diam = CONFIG_INI.getfloat('telescope', 'diameter')
+    wvl = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
+    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter') * u.m
+    total_diam = CONFIG_INI.getfloat('telescope', 'diameter') * u.m
     im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
+
+    # If main subfolder "active" doesn't exist yet, create it.
+    if not os.path.isdir(localDir):
+        os.mkdir(localDir)
 
     # If subfolder "segmentation" doesn't exist yet, create it.
     if not os.path.isdir(outDir):
@@ -76,7 +81,7 @@ if __name__ == "__main__":
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
     # Since WebbPSF creates images by controlling the exit pupil,
-    # let's also create teh exit pupil instead of the entrance pupil.
+    # let's also create the exit pupil instead of the entrance pupil.
     # I do this by flipping the y-coordinates of the segments.
     plt.clf()
     jwst_pup.display(colorbar=False)   # Show pupil
@@ -85,7 +90,7 @@ if __name__ == "__main__":
     for i in range(nb_seg+1):
         ycen, xcen = jwst_pup._hex_center(i)
         ycen *= -1
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
+        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the number labels closer to the segment centers
     # Save a PDF version of the exit pupil
     plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
 
@@ -115,6 +120,7 @@ if __name__ == "__main__":
     for i in range(nb_seg):
         for j in range(nb_seg):
             vec_list[i,j,:] = seg_position[i,:] - seg_position[j,:]
+    vec_list *= u.m
     # Save, but gotta save x and y coordinate separately because of the function I use for saving
     np.savetxt(os.path.join(outDir, 'vec_list_x.txt'), vec_list[:,:,0], fmt='%2.2f')   # x distance; units: meters
     np.savetxt(os.path.join(outDir, 'vec_list_y.txt'), vec_list[:,:,1], fmt='%2.2f')   # y distance; units: meters
@@ -253,11 +259,11 @@ if __name__ == "__main__":
     vec_list_px = vec_list * m_to_px
 
     #-# Save the arrays: vec_list, NR_pairs_list, Projection_Matrix
-    util.write_fits(vec_list_px, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
+    util.write_fits(vec_list_px.value, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
     util.write_fits(NR_pairs_list, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
-    print('All outputs saved')
+    print('All outputs saved to {}'.format(outDir))
 
     # Tell us how long it took to finish.
     end_time = time.time()

@@ -4,6 +4,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.units as u
 import webbpsf
 
 from config import CONFIG_INI
@@ -17,10 +18,10 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()
+    start_time = time.time()   # runtime is currently around 21 minutes
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'matrix_numerical')
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
     nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
@@ -29,13 +30,28 @@ if __name__ == '__main__':
     fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get('filter', 'name')
-    aber_u = CONFIG_INI.getfloat('calibration', 'unit')             # unit of the aberration in m^-1
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration')
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
+
+    # If subfolder "matrix_numerical" doesn't exist yet, create it.
+    if not os.path.isdir(resDir):
+        os.mkdir(resDir)
+
+    # If subfolder "OTE_images" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
+        os.mkdir(os.path.join(resDir, 'OTE_images'))
+
+    # If subfolder "psfs" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'psfs')):
+        os.mkdir(os.path.join(resDir, 'psfs'))
+
+    # If subfolder "darkholes" doesn't exist yet, create it.
+    if not os.path.isdir(os.path.join(resDir, 'darkholes')):
+        os.mkdir(os.path.join(resDir, 'darkholes'))
 
     # Create the dark hole mask.
     pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
@@ -63,7 +79,7 @@ if __name__ == '__main__':
     all_dhs = []
     all_contrasts = []
 
-    print('nm_aber: {} in 1/{:.0E} meters'.format(nm_aber, aber_u))
+    print('nm_aber: {}'.format(nm_aber))
 
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -77,10 +93,10 @@ if __name__ == '__main__':
             # Put the aberration on the correct segments
             Aber_WSS = np.zeros([nb_seg, zern_max])         # The Zernikes here will be filled in the WSS order!!!
                                                             # Because it goes into _apply_hexikes_to_seg().
-            Aber_WSS[i, wss_zern_nb - 1] = nm_aber / aber_u    # Aberration on the segment we're currently working on;
+            Aber_WSS[i, wss_zern_nb - 1] = nm_aber.to(u.m).value    # Aberration on the segment we're currently working on;
                                                             # convert to meters; -1 on the Zernike because Python starts
                                                             # numbering at 0.
-            Aber_WSS[j, wss_zern_nb - 1] = nm_aber / aber_u    # same for other segment
+            Aber_WSS[j, wss_zern_nb - 1] = nm_aber.to(u.m).value    # same for other segment
 
             # Putting aberrations on segments i and j
             ote_coro.reset()    # Making sure there are no previous movements on the segments.
@@ -140,6 +156,9 @@ if __name__ == '__main__':
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
+    # Normalize matrix for the input aberration
+    matrix_pastis /= np.square(nm_aber.value)
+
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
@@ -148,7 +167,7 @@ if __name__ == '__main__':
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%2.2f')
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()

@@ -58,6 +58,57 @@ Mean contrast with image PASTIS: 2.9384920197e-05
 Contrast from matrix PASTIS: 2.9384920197e-05
 ```
 
+----------------
+Folder structure:
+----------------
+
+In the config file, the entry `[local] --> local_data_path` specifies where the houtput data will be saved. The code will create a subfolder `active` that contains everything from your current code run. It is set up this way so that if you want to save some data, you just rename that directory into something else.
+
+
+**segmentation**  
+  + pupil.fits  
+  + NR_pairs_list.txt  
+  + Projection_Matrix.fits  
+  + A couple of helper files  
+    
+**calibration**  
+  + base-contrast_piston_Noll1.txt: E2E contrast with coronagraph, no aberrations  
+  + contrast_IMAGE-PASTIS_piston_Noll1.fits: analytical contrast with coronagraph, per one aberrated segment  
+  + contrast_WEBBPSF_piston_Noll1.fits: E2E contrast with coronagraph, per one aberrated segment  
+  + calibration_piston_Noll1.fits: calibration coefficients per segment  
+  + dh_area.fits  
+  + psf_coro.fits: E2E PSF with coronagraph, no aberrations  
+  + psf_default.fits: E2E PSF no coronagraph, no aberrations  
+  + images  
+    - Full analytical images per one aberrated segment  
+    - Full E2E images per one aberrated segment  
+    - E2E OPDs per one aberrated segment  
+
+**matrix_numerical**  
+  + contrasts.txt: E2E DH average contrast per aberrated segment pair  
+  + PASTISmatrix_num_piston_Noll1.fits: numerical PASTIS matrix  
+  + darkholes:  
+    - dh_cube.fits: all E2E DH images in one cube  
+    - E2E DH images per aberrated segment pair  
+  + OTE_images:  
+    - OTE images per aberrated segment pair  
+  + psfs:  
+    - psf_cube.fits: all E2E full PSFs in one cube  
+    - E2E full PSFs per aberrated segment pair  
+
+**matrix_analytical**
+  + contrasts.txt: analytical DH average contrast per aberrated segment pair
+  + PASTISmatrix_num_piston_Noll1.fits: analytical PASTIS matrix
+  + darkholes:
+    - dh_cube.fits: all analytical DH images in one cube
+    - analytical DH images per aberrated segment pair
+  + psfs:
+    - psf_cube.fits: all analytical full PSFs in one cube
+    - analytical full PSFs per aberrated segment pair
+
+**results**
+    Whatever results we’re saving
+
 -----------------
 Jupyter notebooks:
 -----------------
