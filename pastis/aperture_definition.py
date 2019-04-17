@@ -1,12 +1,11 @@
 """
-Translation of Lucie's IDL code function_baselinify_ll.pro
-
-Computes the number of unique pairs in your pupil, currently configured for JWST.
+Generates a segmented pupil and computes the number of unique pairs in your pupil.
+Currently configured for JWST.
 No inputs.
 
 nb_seg is the number of segments WITHOUT the central obscuration.
 nb_seg+1 is the number of segments WITH the central obscuration, but it shouldn't be needed anywhere.
-Segments are numbered from 0 to nb_seg at its creation with Poppy, but the central segment, labelled with 0, gets
+Segments are numbered from 0 to nb_seg-1 at its creation with Poppy, but the central segment, labelled with 0, gets
 discarded once we are getting the coordinates of the segment centers.
 NRPs are numbered from 0 to NR_pairs_nb-1 (NR_pairs_nb = total number of NRPs).
 
@@ -82,7 +81,7 @@ if __name__ == "__main__":
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
     # Since WebbPSF creates images by controlling the exit pupil,
-    # let's also create teh exit pupil instead of the entrance pupil.
+    # let's also create the exit pupil instead of the entrance pupil.
     # I do this by flipping the y-coordinates of the segments.
     plt.clf()
     jwst_pup.display(colorbar=False)   # Show pupil
@@ -91,7 +90,7 @@ if __name__ == "__main__":
     for i in range(nb_seg+1):
         ycen, xcen = jwst_pup._hex_center(i)
         ycen *= -1
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
+        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the number labels closer to the segment centers
     # Save a PDF version of the exit pupil
     plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
 

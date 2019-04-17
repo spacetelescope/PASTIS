@@ -1,5 +1,5 @@
 """
-Translation of atlast_calibration.pro, which makes the calibration files for PASTIS.
+Making the calibration files for PASTIS.
 """
 import os
 import time
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   #TODO: Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
     contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert into array of shape (1,), otherwise np.savetxt() doesn't work
     np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
 
@@ -130,18 +130,18 @@ if __name__ == '__main__':
         # Create arrays to hold Zernike aberration coefficients
         Aber_WSS = np.zeros([nb_seg, zern_max])           # The Zernikes here will be filled in the WSS order!!!
                                                           # Because it goes into _apply_hexikes_to_seg().
-        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for imput into PASTIS.
+        Aber_Noll = np.copy(Aber_WSS)                     # This is the Noll version for input into PASTIS.
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber.to(u.m).value     # Aberration on the segment we're currently working on;
-                                                          # convert to meters; -1 on the Zernike because Python starts
-                                                          # numbering at 0.
-        Aber_Noll[i, zern_number-1] = nm_aber.value             # Noll version - in nm
+        Aber_WSS[i, wss_zern_nb-1] = nm_aber.to(u.m).value  # Aberration on the segment we're currently working on;
+                                                            # convert to meters; -1 on the Zernike because Python starts
+                                                            # numbering at 0.
+        Aber_Noll[i, zern_number-1] = nm_aber.value         # Noll version - in nm
 
         # Make sure the aberration coefficients have correct units
         Aber_Noll *= u.nm
-        #  Aber_WSS does NOT get multiplied by u.m, because the poppy function it goes to is actually a private function
+        # Aber_WSS does NOT get multiplied by u.m, because the poppy function it goes to is actually a private function
         # that is not decorated with the astropy decorator for checking units and does not use astropy.units. Which is
         # why we made sure it gets filled with values in units of meters already a couple of lines above this.
 
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         psf_end = psf_endsim[0].data
 
         #-# Normalize coro PSF
-        psf_end = psf_end / normp   # NORM
+        psf_end = psf_end / normp
 
         #-# Get end-to-end image in DH, calculate the contrast (mean) and put it in array
         im_end = psf_end * dh_area
@@ -197,7 +197,8 @@ if __name__ == '__main__':
 
     calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
 
-    #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account   #TODO: make an if switch for this
+    #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account. should never to this, but it's
+                                                    # ok for testing if calibration aberration is too low
 
     # Not taking C_0 into account is necessary to avoid negative values of the E2E contrast in cases where
     # we're calibrating at a level that is too low and numerically, the calibration contrast of one aberrated

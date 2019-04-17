@@ -1,4 +1,4 @@
-"""This program compares contrast calculation from different methods:
+"""This program compares the contrast calculation from different methods:
 WebbPSF coronagraph
 Image-based PASTIS
 Matrix-based PASTIS"""
@@ -25,8 +25,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     :param matrix_mode: use 'analytical or 'numerical' matrix
     :param rms: RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
     :param im_pastis: default False, whether to also calculate contrast from image PASTIS
-    :param plotting: default False, whether to make a figure of E2E and PASTIS DH PSFs; works only if im_pastis=True;
-                     for debugging mostly
+    :param plotting: default False, whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
     :return:
     """
 
@@ -61,15 +60,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
         matrix_pastis = fits.getdata(os.path.join(dataDir, 'matrix_analytical', filename + '.fits'))
 
     # Create random aberration coefficients
-    if zern_number == 1:   # piston
-        aber = np.random.random([nb_seg])   # piston values in input units
-        #print('PISTON ABERRATIONS:', aber)
-
-        # Remove global piston
-        aber -= np.mean(aber)
-
-    else:
-        raise("Other Zernikes than piston not implemented yet.")
+    aber = np.random.random([nb_seg])   # piston values in input units
+    #print('PISTON ABERRATIONS:', aber)
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
@@ -78,16 +70,8 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     aber *= u.nm    # making sure the aberration has the correct units
     print("Calculated RMS:", calc_rms)
 
-    # Modulo wavelength to get rid of phase wrapping.
-    # The modulo operator on negative nuber is weird in Python,
-    # this is a quick fix to account for that. It's ugly and
-    # can definitely be done better.
-    #TODO: this actually needs to be form -lambda/2 to lambda/2, not from -lambda to lambda
-    for i, k in enumerate(aber):
-        if k < 0:
-            aber[i] = -(np.abs(aber[i]) % wvln)
-        else:
-            aber[i] = aber[i] % wvln
+    # Remove global piston
+    aber -= np.mean(aber)
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
@@ -112,12 +96,14 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()
 
+    #TODO: save plots of phase on segmented pupil
+
     # Load in baseline contrast
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
-    contrast_am = None
+    contrast_am = np.nan
     if im_pastis:
         print('Generating contrast from image-PASTIS')
         start_impastis = time.time()
@@ -155,19 +141,30 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     runtime = end_time - start_time
     print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
 
-    # Plot the PSFs, mostly used for debugging
+    # Save the PSFs
     if im_pastis:
         if plotting:
+
+            # As fits files
+            util.write_fits(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), os.path.join(dataDir, 'results',
+                            'dh_images_'+matrix_mode, '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_e2e.fits'))
+            util.write_fits(psf_am, os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
+                                                 '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_am.fits'))
+
+            # As PDF plot
+            plt.clf()
             plt.figure()
+            plt.suptitle('{:.2e}'.format(rms.value) + str(rms.unit) + " RMS")
             plt.subplot(1, 2, 1)
             plt.title("E2E")
-            plt.imshow(webb_dh_psf, norm=LogNorm())
+            plt.imshow(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), norm=LogNorm())
             plt.colorbar()
             plt.subplot(1, 2, 2)
             plt.title("PASTIS image")
             plt.imshow(psf_am, norm=LogNorm())
             plt.colorbar()
-            plt.show()
+            plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
+                                     '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
             #TODO: check image rotation, I think there is a 90 degree difference in them
 
     return contrast_webbpsf, contrast_am, contrast_matrix
