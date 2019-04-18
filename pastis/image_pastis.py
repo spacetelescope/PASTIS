@@ -40,6 +40,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
     outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px') * u.dimensionless_unscaled        # pupil diameter of telescope in pixels
+    pupil_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
@@ -59,7 +60,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     # Put pupil in randomly picked, slightly larger image array
     pup_im = np.copy(pupil)   # remove if lines below this are active
-    #pup_im = np.zeros([im_size_pastis, im_size_pastis])
+    #pup_im = np.zeros([pupil_size_px, pupil_size_px])
     #lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
     #pup_im[lim:-lim, lim:-lim] = pupil
     # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment when the pupil is 512

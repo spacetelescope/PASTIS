@@ -40,11 +40,9 @@ import poppy
 
 import util_pastis as util
 from config import CONFIG_INI
-import webbpsf_imaging as webbim
-import atlast_imaging as atim
 
 
-def make_aperture_nrp(telescope):
+def make_aperture_nrp(which_tel):
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 2 seconds
@@ -52,10 +50,9 @@ def make_aperture_nrp(telescope):
     # Parameters
     localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     outDir = os.path.join(localDir, 'segmentation')
-    which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_diam = CONFIG_INI.getfloat(which_tel, 'flat_diameter') * u.m
-    im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
+    im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     # If main subfolder "active" doesn't exist yet, create it.
@@ -67,14 +64,18 @@ def make_aperture_nrp(telescope):
         os.mkdir(outDir)
 
     #-# Get the coordinates of the central pixel of each segment and save aperture to disk
-    seg_position = None
+    seg_position = np.zeros((nb_seg, 2))
 
-    if telescope == 'jwst':
+    if telescope == 'JWST':
+        import webbpsf_imaging as webbim
         seg_position = webbim.get_jwst_coords(outDir)
 
-    elif telescope == 'atlast':
-        at_pup, seg_coords = atim.get_atlast_aperture()
+    elif telescope == 'ATLAST':
+        import atlast_imaging as atim
+        seg_coords = atim.get_atlast_aperture(outDir, normalized=True)
 
+        seg_position[:,0] = seg_coords.x
+        seg_position[:,1] = seg_coords.y
 
     # Save the segment center positions just in case we want to check them without running the code
     np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
@@ -237,5 +238,6 @@ def make_aperture_nrp(telescope):
 
 if __name__ == '__main__':
 
-    # Choise of 'jwst' or 'atlast'
-    make_aperture_nrp(telescope='jwst')
+    # Choise of 'jwst' or 'atlast' in configfile
+    telescope = CONFIG_INI.get('telescope', 'name').upper()
+    make_aperture_nrp(telescope)

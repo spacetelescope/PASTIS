@@ -14,8 +14,11 @@ import util_pastis as util
 
 
 # Configfile imports
+which_tel = CONFIG_INI.get('telescope', 'name')
+pupil_size = CONFIG_INI.getint('numerical', 'tel_size_px')
 
-def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transmissions=1):
+
+def get_atlast_aperture(outDir, normalized=False, with_segment_gaps=True, segment_transmissions=1):
     """Make the ATLAST pupil mask.
 
     This function is a copy of make_hicat_aperture(), except that it also returns the segment positions.
@@ -38,11 +41,11 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     CartesianGrid
         The segment positions.
     """
-    pupil_diameter = 15. # m
+    pupil_grid = hcipy.make_pupil_grid(dims=pupil_size)
+    pupil_diameter = CONFIG_INI.getfloat(which_tel, 'flat_diameter')
     segment_circum_diameter = 2 / np.sqrt(3) * pupil_diameter / 7
     num_rings = 3
-    segment_gap = 90e-6
-    spider_width = 350e-6
+    segment_gap = CONFIG_INI.getfloat(which_tel, 'gaps')
 
     if not with_segment_gaps:
         segment_gap = 0
@@ -50,13 +53,13 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     if normalized:
         segment_circum_diameter /= pupil_diameter
         segment_gap /= pupil_diameter
-        spider_width /= pupil_diameter
         pupil_diameter = 1.0
 
     segment_positions = hcipy.make_hexagonal_grid(segment_circum_diameter / 2 * np.sqrt(3), num_rings)
     segment_positions = segment_positions.subset(lambda grid: ~(hcipy.circular_aperture(segment_circum_diameter)(grid) > 0))
 
     hexagon = hcipy.hexagonal_aperture(segment_circum_diameter - segment_gap)
+
     def segment(grid):
         return hexagon(grid.rotated(np.pi/2))
 
@@ -66,4 +69,14 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
         res = segmented_aperture(grid)
 
         return hcipy.Field(res, grid)
-    return func, segment_positions
+
+    # Save pupil to disk, as pdf and fits
+    atlast = hcipy.evaluate_supersampled(func, pupil_grid, 2)
+
+    #TODO: add segment numbering to PDF pupil image
+    hcipy.imshow_field(atlast)
+    plt.savefig(os.path.join(outDir, 'ATLAST_pupil.pdf'))
+    #TODO: save pupil as fits
+    #util.write_fits(atlast, os.path.join(outDir, 'pupil.fits'))
+
+    return segment_positions
