@@ -28,7 +28,7 @@ wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
 im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
 fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')  # focal plane mask
 lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')  # Lyot stop
-filter = CONFIG_INI.get(which_tel, 'name')
+filter = CONFIG_INI.get(which_tel, 'filter_name')
 
 
 def get_jwst_coords(outDir):

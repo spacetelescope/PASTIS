@@ -39,7 +39,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     wvln = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
-    filter = CONFIG_INI.get(which_tel, 'name')
+    filter = CONFIG_INI.get(which_tel, 'filter_name')
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     inner_wa = CONFIG_INI.getint(which_tel, 'IWA')

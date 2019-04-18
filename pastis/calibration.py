@@ -28,7 +28,7 @@ if __name__ == '__main__':
     which_tel = CONFIG_INI.get('telescope', 'name')
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get(which_tel, 'name')
+    filter = CONFIG_INI.get(which_tel, 'filter_name')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
