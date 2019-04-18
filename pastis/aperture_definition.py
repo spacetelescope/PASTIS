@@ -41,9 +41,10 @@ import poppy
 import util_pastis as util
 from config import CONFIG_INI
 import webbpsf_imaging as webbim
+import atlast_imaging as atim
 
 
-if __name__ == "__main__":
+def make_aperture_nrp(telescope):
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 2 seconds
@@ -51,8 +52,9 @@ if __name__ == "__main__":
     # Parameters
     localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     outDir = os.path.join(localDir, 'segmentation')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
-    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter') * u.m
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')   # Number of apertures, without central obscuration
+    flat_diam = CONFIG_INI.getfloat(which_tel, 'flat_diameter') * u.m
     im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
@@ -65,7 +67,14 @@ if __name__ == "__main__":
         os.mkdir(outDir)
 
     #-# Get the coordinates of the central pixel of each segment and save aperture to disk
-    seg_position = webbim.get_jwst_coords(outDir)
+    seg_position = None
+
+    if telescope == 'jwst':
+        seg_position = webbim.get_jwst_coords(outDir)
+
+    elif telescope == 'atlast':
+        at_pup, seg_coords = atim.get_atlast_aperture()
+
 
     # Save the segment center positions just in case we want to check them without running the code
     np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
@@ -224,3 +233,9 @@ if __name__ == "__main__":
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for aperture_definition.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')
+
+
+if __name__ == '__main__':
+
+    # Choise of 'jwst' or 'atlast'
+    make_aperture_nrp(telescope='jwst')

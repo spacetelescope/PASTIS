@@ -1,5 +1,5 @@
 """
-This is a module containing convenience functions to create JWST coronagraphic images.
+This is a module containing convenience functions to create the JWST aperture and coronagraphic images with WebbPSF.
 """
 import os
 import numpy as np
@@ -18,16 +18,17 @@ import util_pastis as util
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
 
-nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
-wvl = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
+which_tel = CONFIG_INI.get('telescope', 'name')
+nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
+flat_to_flat = CONFIG_INI.getfloat(which_tel, 'flat_to_flat')
+wvl = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
 im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')  # this is technically the target image size, but we'll be using it here as the array size for the pupil
-flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter') * u.m
+flat_diam = CONFIG_INI.getfloat(which_tel, 'flat_diameter') * u.m
 wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
 im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
-fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')  # focal plane mask
-lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')  # Lyot stop
-filter = CONFIG_INI.get('filter', 'name')
+fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')  # focal plane mask
+lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')  # Lyot stop
+filter = CONFIG_INI.get(which_tel, 'name')
 
 
 def get_jwst_coords(outDir):

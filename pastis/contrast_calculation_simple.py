@@ -36,13 +36,14 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
 
     # Parameters
     dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), dir)
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
-    filter = CONFIG_INI.get('filter', 'name')
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
+    filter = CONFIG_INI.get(which_tel, 'name')
+    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
+    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size

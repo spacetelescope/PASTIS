@@ -17,8 +17,9 @@ if __name__ == '__main__':
 
     # Parameters
     datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
+    which_tel = CONFIG_INI.get('telescope', 'name')
     resDir = os.path.join(datadir, 'matrix_analytical')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling

@@ -31,13 +31,14 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Parameters
     dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    tel_size_m = CONFIG_INI.getfloat('telescope', 'diameter') * u.m
-    real_size_seg = CONFIG_INI.getfloat('telescope', 'flat_to_flat') #* u.m   # size in meters of an individual segment flatl to flat
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
+    tel_size_m = CONFIG_INI.getfloat(which_tel, 'diameter') * u.m
+    real_size_seg = CONFIG_INI.getfloat(which_tel, 'flat_to_flat') #* u.m   # size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
-    wvln = CONFIG_INI.getint('filter', 'lambda') * u.nm
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    wvln = CONFIG_INI.getint(which_tel, 'lambda') * u.nm
+    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px') * u.dimensionless_unscaled        # pupil diameter of telescope in pixels
     im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
