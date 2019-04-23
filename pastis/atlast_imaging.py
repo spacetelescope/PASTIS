@@ -42,7 +42,7 @@ def get_atlast_aperture(outDir, normalized=False, with_segment_gaps=True, segmen
         The segment positions.
     """
     pupil_grid = hcipy.make_pupil_grid(dims=pupil_size)
-    pupil_diameter = CONFIG_INI.getfloat(which_tel, 'flat_diameter')
+    pupil_diameter = CONFIG_INI.getfloat(which_tel, 'diameter')
     segment_circum_diameter = 2 / np.sqrt(3) * pupil_diameter / 7
     num_rings = 3
     segment_gap = CONFIG_INI.getfloat(which_tel, 'gaps')
@@ -76,7 +76,6 @@ def get_atlast_aperture(outDir, normalized=False, with_segment_gaps=True, segmen
     #TODO: add segment numbering to PDF pupil image
     hcipy.imshow_field(atlast)
     plt.savefig(os.path.join(outDir, 'ATLAST_pupil.pdf'))
-    #TODO: save pupil as fits
-    #util.write_fits(atlast, os.path.join(outDir, 'pupil.fits'))
+    util.write_fits(atlast.shaped, os.path.join(outDir, 'pupil.fits'))
 
     return segment_positions

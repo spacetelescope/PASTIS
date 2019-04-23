@@ -42,16 +42,17 @@ import util_pastis as util
 from config import CONFIG_INI
 
 
-def make_aperture_nrp(which_tel):
+def make_aperture_nrp():
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 2 seconds
 
     # Parameters
+    telescope = CONFIG_INI.get('telescope', 'name').upper()
     localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     outDir = os.path.join(localDir, 'segmentation')
-    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')   # Number of apertures, without central obscuration
-    flat_diam = CONFIG_INI.getfloat(which_tel, 'flat_diameter') * u.m
+    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')   # Number of apertures, without central obscuration
+    flat_diam = CONFIG_INI.getfloat(telescope, 'diameter') * u.m
     im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
@@ -238,6 +239,5 @@ def make_aperture_nrp(which_tel):
 
 if __name__ == '__main__':
 
-    # Choise of 'jwst' or 'atlast' in configfile
-    telescope = CONFIG_INI.get('telescope', 'name').upper()
-    make_aperture_nrp(telescope)
+    # Choice of 'jwst' or 'atlast' in configfile
+    make_aperture_nrp()
