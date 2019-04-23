@@ -145,7 +145,7 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     #-# Final image
     # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
-    intensity = np.abs(ft_zern**2 * (sum1.value + 2. * sum2.value))
+    intensity = np.abs(ft_zern)**2 * (sum1.value + 2. * sum2.value)
 
     # PASTIS is only valid inside the dark hole, so we cut out only that part
     tot_dh_im_size = sampling * (outer_wa + 3)
