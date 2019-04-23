@@ -71,11 +71,14 @@ def get_atlast_aperture(outDir, normalized=False, with_segment_gaps=True, segmen
         return hcipy.Field(res, grid)
 
     # Save pupil to disk, as pdf and fits
-    atlast = hcipy.evaluate_supersampled(func, pupil_grid, 2)
+    atlast = hcipy.evaluate_supersampled(func, pupil_grid, 8)
 
-    #TODO: add segment numbering to PDF pupil image
     hcipy.imshow_field(atlast)
+    for i in range(36):
+        plt.annotate(str(i + 1), size='x-large', xy=(segment_positions.x[i]-0.03, segment_positions.y[i]-0.02))
+        # -0.03/-0.02 is for shifting the numbers closer to the segment centers
     plt.savefig(os.path.join(outDir, 'ATLAST_pupil.pdf'))
+
     util.write_fits(atlast.shaped, os.path.join(outDir, 'pupil.fits'))
 
     return segment_positions
