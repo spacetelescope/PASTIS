@@ -45,7 +45,7 @@ from config import CONFIG_INI
 def make_aperture_nrp():
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 2 seconds
+    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 5 minutes for ATLAST
 
     # Parameters
     telescope = CONFIG_INI.get('telescope', 'name').upper()
@@ -73,7 +73,8 @@ def make_aperture_nrp():
 
     elif telescope == 'ATLAST':
         import atlast_imaging as atim
-        seg_coords = atim.get_atlast_aperture(outDir, normalized=True)
+        _aper, seg_coords = atim.get_atlast_aperture(normalized=True, write_to_disk=True, outDir=outDir)
+        #TODO: make this work with normalized=False and the real size; remember to adjust the pupil grid size too
 
         seg_position[:,0] = seg_coords.x
         seg_position[:,1] = seg_coords.y
