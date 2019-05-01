@@ -166,7 +166,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
             plt.colorbar()
             plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
                                      '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
-            #TODO: check image rotation, I think there is a 90 degree difference in them
+            #TODO: check image rotation, I think there is a 90 degree difference in them for the JWST simulations
 
     return contrast_webbpsf, contrast_am, contrast_matrix
 
