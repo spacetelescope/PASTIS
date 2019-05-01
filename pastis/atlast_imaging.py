@@ -165,7 +165,7 @@ class SegmentedMirror(hcipy.OpticalElement):
         Parameters
         -------------
         segid : integer
-            Index of the actuator you wish to control, starting at 1 (center is 0)
+            Index of the actuator you wish to control, starting at 1 (center would  be 0, but doesn't exist)
         piston, tip, tilt : floats, meters and radians
             Piston (in meters) and tip and tilt (in radians)
         """
@@ -189,8 +189,8 @@ class SegmentedMirror(hcipy.OpticalElement):
         self._seg_y = np.zeros_like(y)
         self._seg_indices = dict()
 
-        pupil_grid = hcipy.make_pupil_grid(dims=npix, diameter=1)
-        aper_num, seg_positions = get_atlast_aperture(normalized=True,
+        pupil_grid = hcipy.make_pupil_grid(dims=npix, diameter=PUP_DIAMETER)
+        aper_num, seg_positions = get_atlast_aperture(normalized=False,
                                                       segment_transmissions=np.arange(1, self.segnum + 1))
         aper_num = hcipy.evaluate_supersampled(aper_num, pupil_grid, 2)
 
@@ -206,9 +206,9 @@ class SegmentedMirror(hcipy.OpticalElement):
             self._seg_y[wseg] = y[wseg] - ceny
 
             # Set gaps to zero
-            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1)    #TODO: adjust the 0.1 to be valid for any size array
+            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1*PUP_DIAMETER)    #*PUP_DIAMETER generalizes it for any size pupil array
             self._seg_x[bad_gaps_x] = 0
-            bad_gaps_y = np.where(np.abs(self._seg_y) > 0.1)
+            bad_gaps_y = np.where(np.abs(self._seg_y) > 0.1*PUP_DIAMETER)
             self._seg_y[bad_gaps_y] = 0
 
     def apply_coef(self):
