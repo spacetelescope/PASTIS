@@ -72,13 +72,14 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
 
     # Save pupil to disk, as pdf and fits
     if write_to_disk:
-        pupil_grid = hcipy.make_pupil_grid(dims=pupil_size)
-        atlast = hcipy.evaluate_supersampled(func, pupil_grid, 8)
+        pupil_grid = hcipy.make_pupil_grid(dims=pupil_size, diameter=pupil_diameter)
+        atlast = hcipy.evaluate_supersampled(func, pupil_grid, 2)   #TODO: change this back to oversamp 8
 
         hcipy.imshow_field(atlast)
         for i in range(36):
-            plt.annotate(str(i + 1), size='x-large', xy=(segment_positions.x[i]-0.03, segment_positions.y[i]-0.02))
-            # -0.03/-0.02 is for shifting the numbers closer to the segment centers
+            plt.annotate(str(i + 1), size='x-large', xy=(segment_positions.x[i]-pupil_diameter*0.03, segment_positions.y[i]-pupil_diameter*0.02))
+            # -0.03/-0.02 is for shifting the numbers closer to the segment centers. Scaling that by pupil_diameter
+            # keeps them in place.
         plt.savefig(os.path.join(outDir, 'ATLAST_pupil.pdf'))
 
         util.write_fits(atlast.shaped, os.path.join(outDir, 'pupil.fits'))

@@ -73,8 +73,7 @@ def make_aperture_nrp():
 
     elif telescope == 'ATLAST':
         import atlast_imaging as atim
-        _aper, seg_coords = atim.get_atlast_aperture(normalized=True, write_to_disk=True, outDir=outDir)
-        #TODO: make this work with normalized=False and the real size; remember to adjust the pupil grid size too
+        _aper, seg_coords = atim.get_atlast_aperture(normalized=False, write_to_disk=True, outDir=outDir)
 
         seg_position[:,0] = seg_coords.x
         seg_position[:,1] = seg_coords.y
