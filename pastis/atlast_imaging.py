@@ -20,7 +20,7 @@ PUP_DIAMETER = CONFIG_INI.getfloat(which_tel, 'diameter')
 
 
 def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transmissions=1, write_to_disk=False, outDir=None):
-    """Make the ATLAST pupil mask.
+    """Make the ATLAST/HiCAT pupil mask.
 
     This function is a copy of make_hicat_aperture(), except that it also returns the segment positions.
 
@@ -73,7 +73,7 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     # Save pupil to disk, as pdf and fits
     if write_to_disk:
         pupil_grid = hcipy.make_pupil_grid(dims=pupil_size, diameter=pupil_diameter)
-        atlast = hcipy.evaluate_supersampled(func, pupil_grid, 2)   #TODO: change this back to oversamp 8
+        atlast = hcipy.evaluate_supersampled(func, pupil_grid, 8)
 
         hcipy.imshow_field(atlast)
         for i in range(36):
@@ -90,8 +90,6 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
 class SegmentedMirror(hcipy.OpticalElement):
     """A segmented mirror from a segmented aperture.
 
-    This class only works with normalized apertures for now.
-
     Parameters:
     ----------
     aperture : Field
@@ -107,7 +105,7 @@ class SegmentedMirror(hcipy.OpticalElement):
         self._coef = np.zeros((self.segnum, 3))
         self.seg_pos = seg_pos
         self.input_grid = aperture.grid
-        self._last_npix = np.nan    # see _setup_arrays for this
+        self._last_npix = np.nan    # see _setup_grids for this
 
     def forward(self, wavefront):
         """Propagate a wavefront through the segmented mirror.
@@ -145,14 +143,14 @@ class SegmentedMirror(hcipy.OpticalElement):
 
     @property
     def surface(self):
-        """ The surface of the segmented mirror in meters, full surface as Field.
+        """ The surface of the segmented mirror in meters, the full surface as a Field.
         """
         surf = self.apply_coef()
         return surf
 
     @property
     def coef(self):
-        """ The surface shape of the deformable mirror, in meters and radians, PTT segment coefficients.
+        """ The surface shape of the deformable mirror, in meters and radians; PTT segment coefficients.
         """
         return self._coef
 
@@ -162,19 +160,22 @@ class SegmentedMirror(hcipy.OpticalElement):
 
     def set_segment(self, segid, piston, tip, tilt):
         """ Set an individual segment of the DM.
+
+        Piston in meter of surface, tip and tilt in radians of surface.
+        
         Parameters
         -------------
         segid : integer
-            Index of the actuator you wish to control, starting at 1 (center would  be 0, but doesn't exist)
+            Index of the segment you wish to control, starting at 1 (center would  be 0, but doesn't exist)
         piston, tip, tilt : floats, meters and radians
             Piston (in meters) and tip and tilt (in radians)
         """
         self._coef[segid - 1] = [piston, tip, tilt]
 
-    def _setup_arrays(self):
-        """ Set up the arrays to compute an OPD into.
+    def _setup_grids(self):
+        """ Set up the grids to compute the segmented mirror surface into.
         This is relatively slow, but we only need to do this once for
-        each size of input array.
+        each size of input grids.
         """
         npix = self.aperture.shaped.shape[0]
         if npix == self._last_npix:
@@ -206,23 +207,23 @@ class SegmentedMirror(hcipy.OpticalElement):
             self._seg_y[wseg] = y[wseg] - ceny
 
             # Set gaps to zero
-            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1*PUP_DIAMETER)    #*PUP_DIAMETER generalizes it for any size pupil array
+            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1*PUP_DIAMETER)    #*PUP_DIAMETER generalizes it for any size pupil field
             self._seg_x[bad_gaps_x] = 0
             bad_gaps_y = np.where(np.abs(self._seg_y) > 0.1*PUP_DIAMETER)
             self._seg_y[bad_gaps_y] = 0
 
     def apply_coef(self):
-        """ Apply the DM shape from its own segment coefficients
+        """ Apply the DM shape from its own segment coefficients to make segmented mirror surface.
         """
-        self._setup_arrays()
+        self._setup_grids()
 
-        self.opd = np.zeros_like(self._seg_x)
+        keep_surf = np.zeros_like(self._seg_x)
         for i in self.segmentlist:
             wseg = self._seg_indices[i]
-            self.opd[wseg] = (self._coef[i - 1, 0] +
+            keep_surf[wseg] = (self._coef[i - 1, 0] +
                               self._coef[i - 1, 1] * self._seg_x[wseg] +
                               self._coef[i - 1, 2] * self._seg_y[wseg])
-        return hcipy.Field(self.opd, self.input_grid)
+        return hcipy.Field(keep_surf, self.input_grid)
 
     def phase_for(self, wavelength):
         """Get the phase that is added to a wavefront with a specified wavelength.
