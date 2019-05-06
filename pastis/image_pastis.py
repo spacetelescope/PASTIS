@@ -35,12 +35,12 @@ def analytical_model(zernike_pol, coef, cali=False):
     telescope = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
     tel_size_m = CONFIG_INI.getfloat(telescope, 'diameter') * u.m
-    real_size_seg = CONFIG_INI.getfloat(telescope, 'flat_to_flat') #* u.m   # size in meters of an individual segment flatl to flat
+    real_size_seg = CONFIG_INI.getfloat(telescope, 'flat_to_flat')     # in m, size in meters of an individual segment flatl to flat
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
     wvln = CONFIG_INI.getint(telescope, 'lambda') * u.nm
     inner_wa = CONFIG_INI.getint(telescope, 'IWA')
     outer_wa = CONFIG_INI.getint(telescope, 'OWA')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px') * u.dimensionless_unscaled        # pupil diameter of telescope in pixels
+    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
     im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
@@ -79,13 +79,13 @@ def analytical_model(zernike_pol, coef, cali=False):
 
     elif telescope == 'ATLAST':
         # Create mini-segment
-        pupil_grid = hcipy.make_pupil_grid(dims=tel_size_px, diameter=1)
-        focal_grid = hcipy.make_focal_grid(pupil_grid, sampling, im_size_pastis/sampling)       # fov = lambda/D radius of total image
+        pupil_grid = hcipy.make_pupil_grid(dims=tel_size_px, diameter=real_size_seg)
+        focal_grid = hcipy.make_focal_grid(pupil_grid, sampling, sz, wavelength=wvln.to(u.m).value)       # fov = lambda/D radius of total image
         prop = hcipy.FraunhoferPropagator(pupil_grid, focal_grid)
 
-        mini_seg_real = hcipy.hexagonal_aperture(circum_diameter=1, angle=np.pi/2)
-        mini_seg = hcipy.evaluate_supersampled(mini_seg_real, pupil_grid, 4)  # the supersampling number doesn't really matter in context with the other numbers
-        mini_seg = mini_seg.shaped    # make it a 2D array
+        mini_seg_real = hcipy.hexagonal_aperture(circum_diameter=real_size_seg, angle=np.pi/2)
+        mini_seg_hc = hcipy.evaluate_supersampled(mini_seg_real, pupil_grid, 4)  # the supersampling number doesn't really matter in context with the other numbers
+        mini_seg = mini_seg_hc.shaped    # make it a 2D array
 
         # Redefine size_seg if using HCIPy
         size_seg = mini_seg.shape[0]
@@ -150,7 +150,10 @@ def analytical_model(zernike_pol, coef, cali=False):
                                   px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j)) * u.dimensionless_unscaled
 
     sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
-    sum2 = np.zeros((int(im_size_pastis), int(im_size_pastis))) * u.nm * u.nm    # setting it up with the correct units this will have
+    if telescope == 'JWST':
+        sum2 = np.zeros((int(im_size_pastis), int(im_size_pastis))) * u.nm * u.nm    # setting it up with the correct units this will have
+    elif telescope == 'ATLAST':
+        sum2 = np.zeros((int(2 * sz * sampling), int(2 * sz * sampling))) * u.nm * u.nm
 
     for q in range(NR_pairs_nb):
         sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
@@ -173,8 +176,8 @@ def analytical_model(zernike_pol, coef, cali=False):
         ft_zern = mf.perform(Zer, im_size_pastis/sampling, im_size_pastis)
 
     elif telescope == 'ATLAST':
-        isolated_zerns = hcipy.make_zernike_basis(num_modes=zern_max, D=1, grid=pupil_grid, radial_cutoff=False)
-        Zer = hcipy.Wavefront(mini_seg * isolated_zerns[zernike_pol - 1])
+        isolated_zerns = hcipy.make_zernike_basis(num_modes=zern_max, D=real_size_seg, grid=pupil_grid, radial_cutoff=False)
+        Zer = hcipy.Wavefront(mini_seg_hc * isolated_zerns[zernike_pol - 1], wavelength=wvln.to(u.m).value)
 
         # Fourier transform the Zernike
         ft_zern = prop(Zer)
