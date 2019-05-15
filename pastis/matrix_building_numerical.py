@@ -112,7 +112,7 @@ if __name__ == '__main__':
             # ote_coro.display_opd()
             # plt.show()
 
-            # Save ODP images for testing
+            # Save OPD images for testing
             opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
             plt.clf()
             ote_coro.display_opd()

@@ -77,9 +77,6 @@ if __name__ == '__main__':
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
     df.to_csv(os.path.join(outDir, "contrasts_"+matrix+".txt"), sep=' ', na_rep='NaN')
 
-    # Plot results
-    dataDir = CONFIG_INI.get('local', 'local_data_path')
-
     plt.clf()
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")

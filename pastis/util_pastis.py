@@ -129,7 +129,7 @@ def pastis_contrast(aber, matrix_pastis):
     :return:
     """
     result = np.matmul(np.matmul(aber, matrix_pastis), aber)
-    return result
+    return result.value
 
 
 def rms(ar):

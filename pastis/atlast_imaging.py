@@ -2,11 +2,8 @@
 This is a module containing functions to generate the ATLAST pupil and simple coronagraphs from HCIPy.
 """
 import os
-import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import astropy.units as u
 import hcipy
 
 from config import CONFIG_INI
@@ -162,7 +159,7 @@ class SegmentedMirror(hcipy.OpticalElement):
         """ Set an individual segment of the DM.
 
         Piston in meter of surface, tip and tilt in radians of surface.
-        
+
         Parameters
         -------------
         segid : integer

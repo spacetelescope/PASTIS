@@ -79,13 +79,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
+    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating WebbPSF coro contrast')
+    print('Generating E2E coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
@@ -127,13 +127,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
 
     # Outputs
     print('\n--- CONTRASTS: ---')
-    print('Mean contrast from WebbPSF:', contrast_webbpsf)
+    print('Mean contrast from E2E:', contrast_webbpsf)
     print('Mean contrast with image PASTIS:', contrast_am)
     print('Contrast from matrix PASTIS:', contrast_matrix)
     print('Ratio image PASTIS / matrix PASTIS:', ratio)
 
     print('\n--- RUNTIMES: ---')
-    print('WebbPSF: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
+    print('E2E: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
     if im_pastis:
         print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
     print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
