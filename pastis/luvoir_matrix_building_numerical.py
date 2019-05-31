@@ -15,7 +15,7 @@ from luvoir_imaging import SegmentedTelescopeAPLC
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime is currently around 21 minutes
+    start_time = time.time()   # runtime is currently around 150 minutes
 
     ### Parameters
 
@@ -212,8 +212,10 @@ if __name__ == '__main__':
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
-    # Normalize matrix for the input aberration
-    matrix_pastis /= np.square(nm_aber)
+    # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
+    # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
+    # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
+    #matrix_pastis /= np.square(nm_aber)
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)

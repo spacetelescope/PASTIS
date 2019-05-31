@@ -1,17 +1,13 @@
 """
-Creating a hockey stick curve of contrast vs. RMS WFE from HiCAT sim numerical PASTIS.
+Creating a hockey stick curve of contrast vs. RMS WFE from LUVOIR A sim numerical PASTIS.
 """
 
-import os
 import time
 import numpy as np
-import pandas as pd
-from astropy.io import fits
 import astropy.units as u
 import matplotlib.pyplot as plt
 
-from config import CONFIG_INI
-from contrast_calc_hicat import contrast_hicat_num
+from contrast_calc_hicat import contrast_luvoir_num
 
 
 if __name__ == '__main__':
@@ -20,8 +16,8 @@ if __name__ == '__main__':
     start_time = time.time()
 
     ##########################
-    rms_range = np.logspace(-1, 3, 5)      # Create range of RMS values to test
-    realiz = 2                             # how many random realizations per RMS values to do
+    rms_range = np.logspace(-4, 4, 50)      # Create range of RMS values to test
+    realiz = 5                             # how many random realizations per RMS values to do
     ##########################
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
@@ -45,7 +41,7 @@ if __name__ == '__main__':
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = contrast_hicat_num(dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT',
+            c_e2e, c_matrix = contrast_luvoir_num(dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
                                                  rms=rms,)
 
             e2e_rand.append(c_e2e)
