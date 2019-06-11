@@ -1,9 +1,11 @@
 """
 This is a module containing functions and classes for imaging propagation with HCIPy, for now LUVOIR A.
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from astropy.io import fits
 import hcipy as hc
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
@@ -26,6 +28,8 @@ class SegmentedTelescopeAPLC:
         Lyot stop
     fpm : fpm
         Focal plane mask
+    focal_grid :
+        Focal plane grid to put final image on
     params : dict
         wavelength, diameter, image size in lambda/D, FPM radius
     """
@@ -53,7 +57,7 @@ class SegmentedTelescopeAPLC:
         Parameters:
         ----------
         ref : bool
-            Keyword for additinally returning the refrence PSF without the FPM.
+            Keyword for additionally returning the refrence PSF without the FPM.
         Returns:
         --------
         wf_im_coro.intensity : Field
@@ -125,7 +129,7 @@ class SegmentedTelescopeAPLC:
 
         if return_intermediate:
 
-            intermediates = {'seg_mirror': wf_sm,
+            intermediates = {'seg_mirror': wf_sm.phase,
                              'apod': wf_apod.intensity,
                              'before_fpm': wf_before_fpm.intensity / wf_before_fpm.intensity.max(),
                              'after_fpm': int_after_fpm / wf_before_fpm.intensity.max(),
@@ -157,3 +161,81 @@ class SegmentedTelescopeAPLC:
 
     def backward(self, wavefront):
         raise NotImplementedError()
+
+
+class LuvoirAPLC(SegmentedTelescopeAPLC):
+    """ Simple E2E simulator for Luvoir.
+
+    Parameters:
+    ----------
+    input dir : string
+        Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
+    apod_design : string
+        Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
+    """
+    def __init__(self, input_dir, apod_design, samp):
+        self.nseg = 120
+        self.wvln = 638e-9  # m
+        self.diam = 15.  # m
+        self.sampling = samp
+        self.lam_over_d = self.wvln / self.diam
+        self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
+                                    'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
+                          'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
+                                     'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
+                          'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
+                                    'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
+        self.imlamD = 1.2*self.apod_dict[apod_design]['owa']
+
+        # Pupil plane optics
+        aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
+        aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
+        apod_path = os.path.join(input_dir, 'luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
+                                 self.apod_dict[apod_design]['fname'])
+        ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
+
+        pup_read = hc.read_fits(os.path.join(input_dir, aper_path))
+        aper_ind_read = hc.read_fits(os.path.join(input_dir, aper_ind_path))
+        apod_read = hc.read_fits(os.path.join(input_dir, apod_path))
+        ls_read = hc.read_fits(os.path.join(input_dir, ls_fname))
+
+        pupil_grid = hc.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
+
+        self.aperture = hc.Field(pup_read.ravel(), pupil_grid)
+        self.aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
+        self.apod = hc.Field(apod_read.ravel(), pupil_grid)
+        self.ls = hc.Field(ls_read.ravel(), pupil_grid)
+
+        # Load segment positions from fits header
+        hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
+
+        poslist = []
+        for i in range(self.nseg):
+            segname = 'SEG' + str(i + 1)
+            xin = hdr[segname + '_X']
+            yin = hdr[segname + '_Y']
+            poslist.append((xin, yin))
+
+        poslist = np.transpose(np.array(poslist))
+        self.seg_pos = hc.CartesianGrid(poslist)
+
+        # Focal plane mask
+        samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
+        focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
+                                            num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=self.wvln)
+        self.fpm = 1 - hc.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
+
+        # Final focal plane grid (detector)
+        self.focal_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
+
+        luvoir_params = {'wavelength': self.wvln, 'diameter': self.diam, 'imlamD': self.imlamD,
+                         'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
+
+        # Initialize the general segmented telescope with APLC class, includes the SM
+        super().__init__(aper=self.aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
+                         lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
+
+        # Propagators
+        self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
+        self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
+        self.coro_no_ls = hc.LyotCoronagraph(pupil_grid, self.fpm)
