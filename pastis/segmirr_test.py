@@ -1,3 +1,7 @@
+"""
+Testing the integrated energy of images produced by HCIPy vs Poppy segmented DMs.
+"""
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
