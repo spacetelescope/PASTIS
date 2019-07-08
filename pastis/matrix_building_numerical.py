@@ -22,14 +22,15 @@ if __name__ == '__main__':
 
     # Parameters
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get('filter', 'name')
+    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
+    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    filter = CONFIG_INI.get(which_tel, 'filter_name')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
@@ -111,7 +112,7 @@ if __name__ == '__main__':
             # ote_coro.display_opd()
             # plt.show()
 
-            # Save ODP images for testing
+            # Save OPD images for testing
             opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
             plt.clf()
             ote_coro.display_opd()

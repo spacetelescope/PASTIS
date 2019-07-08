@@ -42,20 +42,18 @@ import util_pastis as util
 from config import CONFIG_INI
 
 
-if __name__ == "__main__":
+def make_aperture_nrp():
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 2 seconds
+    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 5 minutes for ATLAST
 
     # Parameters
+    telescope = CONFIG_INI.get('telescope', 'name').upper()
     localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     outDir = os.path.join(localDir, 'segmentation')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')   # Number of apertures, without central obscuration
-    flat_to_flat = CONFIG_INI.getfloat('telescope', 'flat_to_flat')
-    wvl = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
-    flat_diam = CONFIG_INI.getfloat('telescope', 'flat_diameter') * u.m
-    total_diam = CONFIG_INI.getfloat('telescope', 'diameter') * u.m
-    im_size_pupil = CONFIG_INI.getint('numerical', 'im_size_px_pastis')   # this is technically the target image size, but we'll be using it here as the array size for the pupil
+    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')   # Number of apertures, without central obscuration
+    flat_diam = CONFIG_INI.getfloat(telescope, 'diameter') * u.m
+    im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     # If main subfolder "active" doesn't exist yet, create it.
@@ -66,50 +64,19 @@ if __name__ == "__main__":
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
-    #-# Generate the pupil with segments and spiders or read in from fits file
+    #-# Get the coordinates of the central pixel of each segment and save aperture to disk
+    seg_position = np.zeros((nb_seg, 2))
 
-    # Use poppy to create JWST aperture without spiders
-    print('Creating and saving aperture')
-    jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=flat_to_flat)   # Create JWST pupil without spiders
-    jwst_pup.display(colorbar=False)   # Show pupil
-    plt.title('JWST telescope pupil')
-    # Number the segments
-    for i in range(nb_seg+1):
-        ycen, xcen = jwst_pup._hex_center(i)
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
-    # Save a PDF version of the pupil
-    plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
+    if telescope == 'JWST':
+        import webbpsf_imaging as webbim
+        seg_position = webbim.get_jwst_coords(outDir)
 
-    # Since WebbPSF creates images by controlling the exit pupil,
-    # let's also create the exit pupil instead of the entrance pupil.
-    # I do this by flipping the y-coordinates of the segments.
-    plt.clf()
-    jwst_pup.display(colorbar=False)   # Show pupil
-    plt.title('JWST telescope exit pupil')
-    # Number the segments
-    for i in range(nb_seg+1):
-        ycen, xcen = jwst_pup._hex_center(i)
-        ycen *= -1
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the number labels closer to the segment centers
-    # Save a PDF version of the exit pupil
-    plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
+    elif telescope == 'ATLAST':
+        import atlast_imaging as atim
+        _aper, seg_coords = atim.get_atlast_aperture(normalized=False, write_to_disk=True, outDir=outDir)
 
-    # Get pupil as fits image
-    pupil_dir = jwst_pup.sample(wavelength=wvl, npix=im_size_pupil, grid_size=flat_diam, return_scale=True)
-    # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
-    # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
-    util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
-
-    #-# Get the coordinates of the central pixel of each segment
-    seg_position = np.zeros((nb_seg, 2))   # holds x and y position of each central pixel
-    for i in range(nb_seg+1):   # our pupil is still counting the central segment as seg 0, so we need to include it
-                                # in the loop, however, we will just discard the values for the center
-        if i == 0:     # Segment 0 is the central segment, which we want to skip and not put into seg_position
-            continue   # Continues with the next iteration of the loop
-        else:
-            seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
-            seg_position[i - 1, 1] *= -1       # inverting the y-axis because we want to work with the EXIT PUPIL!!!
-            # Units are meters!!!
+        seg_position[:,0] = seg_coords.x
+        seg_position[:,1] = seg_coords.y
 
     # Save the segment center positions just in case we want to check them without running the code
     np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
@@ -268,3 +235,9 @@ if __name__ == "__main__":
     # Tell us how long it took to finish.
     end_time = time.time()
     print('Runtime for aperture_definition.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')
+
+
+if __name__ == '__main__':
+
+    # Choice of 'jwst' or 'atlast' in configfile
+    make_aperture_nrp()

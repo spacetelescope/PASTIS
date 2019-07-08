@@ -18,25 +18,27 @@ if __name__ == '__main__':
     # Keep track of time
     start_time = time.time()   # runtime currently is around 10 minutes
 
-    # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
-    # webbpsf.utils.get_webbpsf_data_path()
-    # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
-    os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
-
     # Parameters
     outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'calibration')
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')                 # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get('filter', 'name')
+    telescope = CONFIG_INI.get('telescope', 'name')
+    fpm = CONFIG_INI.get(telescope, 'focal_plane_mask')                 # focal plane mask
+    lyot_stop = CONFIG_INI.get(telescope, 'pupil_plane_stop')   # Lyot stop
+    filter = CONFIG_INI.get(telescope, 'filter_name')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     size_seg = CONFIG_INI.getint('numerical', 'size_seg')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    inner_wa = CONFIG_INI.getint(telescope, 'IWA')
+    outer_wa = CONFIG_INI.getint(telescope, 'OWA')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+
+    if telescope == 'JWST':
+        # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
+        # webbpsf.utils.get_webbpsf_data_path()
+        # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
+        os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm       # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for

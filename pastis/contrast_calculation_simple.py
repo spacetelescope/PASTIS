@@ -36,13 +36,14 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
 
     # Parameters
     dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), dir)
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
-    filter = CONFIG_INI.get('filter', 'name')
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
+    filter = CONFIG_INI.get(which_tel, 'filter_name')
+    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
+    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
@@ -78,13 +79,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
+    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating WebbPSF coro contrast')
+    print('Generating E2E coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
@@ -126,13 +127,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
 
     # Outputs
     print('\n--- CONTRASTS: ---')
-    print('Mean contrast from WebbPSF:', contrast_webbpsf)
+    print('Mean contrast from E2E:', contrast_webbpsf)
     print('Mean contrast with image PASTIS:', contrast_am)
     print('Contrast from matrix PASTIS:', contrast_matrix)
     print('Ratio image PASTIS / matrix PASTIS:', ratio)
 
     print('\n--- RUNTIMES: ---')
-    print('WebbPSF: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
+    print('E2E: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
     if im_pastis:
         print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
     print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
@@ -165,7 +166,7 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
             plt.colorbar()
             plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
                                      '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
-            #TODO: check image rotation, I think there is a 90 degree difference in them
+            #TODO: check image rotation, I think there is a 90 degree difference in them for the JWST simulations
 
     return contrast_webbpsf, contrast_am, contrast_matrix
 
