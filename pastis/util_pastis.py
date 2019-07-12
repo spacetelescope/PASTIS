@@ -129,12 +129,24 @@ def pastis_contrast(aber, matrix_pastis):
     :return:
     """
     result = np.matmul(np.matmul(aber, matrix_pastis), aber)
-    return result#.value   # Had to comment this out for luvoir_hockeystick.py
+    return result#.value   # Had to comment this out for hockeystick_luvoir()
 
 
 def rms(ar):
     rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
     return rms
+
+
+def aber_to_opd(aber_rad, wvln):
+    """
+    Convert phase aberration in rad to OPD in meters.
+    :param aber_rad: float, phase aberration in radians
+    :param wvln: float, wavelength
+    :return:
+    aber_m: float, OPD in meters
+    """
+    aber_m = aber_rad * wvln / (2 * np.pi)
+    return aber_m
 
 
 def noll_to_wss(zern):

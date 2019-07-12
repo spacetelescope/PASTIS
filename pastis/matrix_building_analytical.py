@@ -1,4 +1,9 @@
-"""This program constructs the matrix M for PASTIS and saves it."""
+"""
+This program constructs the matrix M for PASTIS and saves it.
+
+Currently supported:
+JWST
+"""
 
 import os
 import time
