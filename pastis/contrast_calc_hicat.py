@@ -2,21 +2,16 @@
 This script computes the contrast for a random IrisAO mislignment on the HiCAT simulator.
 """
 
-import sys
 import os
 import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import poppy
 #import hicat.simulators
 import hcipy as hc
-from luvoir_imaging import SegmentedTelescopeAPLC
 
-from config import CONFIG_INI
 import util_pastis as util
+from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
 def contrast_hicat_num(dir, matrix_mode='hicat', rms=1*u.nm):
 

@@ -14,7 +14,7 @@ from matplotlib.colors import LogNorm
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
-import webbpsf_imaging as webbim
+from e2e_simulators import webbpsf_imaging as webbim
 
 
 @u.quantity_input(rms=u.nm)

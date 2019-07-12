@@ -19,8 +19,8 @@ import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
-import webbpsf_imaging as webbim
-from luvoir_imaging import SegmentedTelescopeAPLC
+from e2e_simulators import webbpsf_imaging as webbim
+from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
 # Set WebbPSF environment variable
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
