@@ -69,6 +69,7 @@ class SegmentedTelescopeAPLC:
             Keyword for the display of all intermediate planes.
         return_intermediate : bool
             Keyword for additionally returning the intermediate planes.
+
         Returns:
         --------
         wf_im_coro.intensity : Field
@@ -223,30 +224,17 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                                  self.apod_dict[apod_design]['fname'])
         ls_fname = CONFIG_PASTIS.get('LUVOIR', 'lyot_stop_path_in_optics')
 
-        pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
-        aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
-        apod_read = hcipy.read_fits(os.path.join(input_dir, apod_path))
-        ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
+        apod_read = hc.read_fits(os.path.join(input_dir, apod_path))
+        ls_read = hc.read_fits(os.path.join(input_dir, ls_fname))
 
         pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
 
-        self.aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
-        self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
-        self.apod = hcipy.Field(apod_read.ravel(), pupil_grid)
-        self.ls = hcipy.Field(ls_read.ravel(), pupil_grid)
+        self.aperture, self.seg_pos = hc.make_luvoir_a_aperture(return_segments=True)
+        self.aperture = hc.evaluate_supersampled(self.aperture, pupil_grid, 2)
+        self.seg_pos = hc.evaluate_supersampled(self.seg_pos, pupil_grid, 2)
 
-        # Load segment positions from fits header
-        hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
-
-        poslist = []
-        for i in range(self.nseg):
-            segname = 'SEG' + str(i + 1)
-            xin = hdr[segname + '_X']
-            yin = hdr[segname + '_Y']
-            poslist.append((xin, yin))
-
-        poslist = np.transpose(np.array(poslist))
-        self.seg_pos = hcipy.CartesianGrid(poslist)
+        self.apod = hc.Field(apod_read.ravel(), pupil_grid)
+        self.ls = hc.Field(ls_read.ravel(), pupil_grid)
 
         # Focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
@@ -261,19 +249,5 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
 
         # Initialize the general segmented telescope with APLC class, includes the SM
-        super().__init__(aper=self.aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
-                         lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
-
-        # Make dark hole mask
-        dh_outer = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
-            self.focal_det)
-        dh_inner = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
-            self.focal_det)
-        self.dh_mask = (dh_outer - dh_inner).astype('bool')
-
-        # Propagators
-        self.coro = hcipy.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
-        self.prop = hcipy.FraunhoferPropagator(pupil_grid, self.focal_det)
-        self.coro_no_ls = hcipy.LyotCoronagraph(pupil_grid, self.fpm)
-        #TODO: these three propagators should actually happen in the super init
-        # -> how are self.aper_ind and pupil_grid connected?
+        super().__init__(aper=self.aperture, seg_pos=self.seg_pos, apod=self.apod, lyotst=self.ls, fpm=self.fpm,
+                         focal_grid=self.focal_det, params=luvoir_params)
