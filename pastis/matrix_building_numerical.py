@@ -30,6 +30,7 @@ def num_matrix_jwst():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
+    print('Building numerical matrix for JWST\n')
 
     # Parameters
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
@@ -198,6 +199,7 @@ def num_matrix_luvoir():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 150 minutes
+    print('Building numerical matrix for LUVOIR\n')
 
     ### Parameters
 
