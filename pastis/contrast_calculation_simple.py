@@ -188,10 +188,13 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     :return: 2x float, E2E and matrix contrast
     """
 
-    nb_seg = 36
-
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
+
+    # Parameters
+    nb_seg = CONFIG_INI.getint('HiCAT', 'nb_subapertures')
+    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
 
     # Import numerical PASTIS matrix for HiCAT sim
     filename = 'PASTISmatrix_num_HiCAT_piston_Noll1'
@@ -287,10 +290,17 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     :return: 2x float, E2E and matrix contrast
     """
 
-    nb_seg = 120
-
     # Keep track of time
     start_time = time.time()   # runtime currently is around ? min
+
+    # Parameters
+    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')
+    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9
+
+    # Image system parameters
+    im_lamD = 30  # image size in lambda/D
+    sampling = 4
 
     # Import numerical PASTIS matrix for HiCAT sim
     filename = 'PASTISmatrix_num_piston_Noll1'
