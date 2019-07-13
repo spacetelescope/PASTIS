@@ -14,19 +14,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import astropy.units as u
-import webbpsf
 import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
-from e2e_simulators import webbpsf_imaging as webbim
-from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
 # Set WebbPSF environment variable
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
 
 def num_matrix_jwst():
+
+    import webbpsf
+    from e2e_simulators import webbpsf_imaging as webbim
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
@@ -197,6 +197,8 @@ def num_matrix_jwst():
 
 def num_matrix_luvoir():
 
+    from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
+
     # Keep track of time
     start_time = time.time()   # runtime is currently around 150 minutes
     print('Building numerical matrix for LUVOIR\n')
@@ -205,15 +207,14 @@ def num_matrix_luvoir():
 
     # System parameters
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
-    datadir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
-    nb_seg = 120
-    wvln = 638e-9  # m
-    diam = 15.  # m
-    nm_aber = 1e-9   # m
+    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
+    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
 
     # Image system parameters
     im_lamD = 30  # image size in lambda/D
@@ -369,7 +370,7 @@ def num_matrix_luvoir():
             opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
                 i + 1) + '-' + str(j + 1)
             plt.clf()
-            hc.imshow_field(inter['seg_mirror'].phase, mask=aperture, cmap='RdBu')
+            hc.imshow_field(inter['seg_mirror'], mask=aperture, cmap='RdBu')
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating mean contrast in dark hole')
@@ -419,4 +420,5 @@ def num_matrix_luvoir():
 if __name__ == '__main__':
 
         # Pick the function of the telescope you want to run
+        #num_matrix_jwst()
         num_matrix_luvoir()

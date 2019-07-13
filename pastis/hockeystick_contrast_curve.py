@@ -216,6 +216,6 @@ def hockeystick_luvoir(range_points=3, no_realizations=3):
 if __name__ == '__main__':
 
     # Pick one to run
-    hockeystick_jwst()
+    #hockeystick_jwst()
     #hockeystick_hicat()
-    #hockeystick_luvoir()
+    hockeystick_luvoir()

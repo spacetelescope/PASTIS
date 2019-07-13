@@ -129,7 +129,7 @@ def pastis_contrast(aber, matrix_pastis):
     :return:
     """
     result = np.matmul(np.matmul(aber, matrix_pastis), aber)
-    return result#.value   # Had to comment this out for hockeystick_luvoir()
+    return result.value
 
 
 def rms(ar):

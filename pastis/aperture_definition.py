@@ -43,7 +43,7 @@ from config import CONFIG_INI
 def make_aperture_nrp():
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 5 minutes for ATLAST
+    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 9 minutes for ATLAST
 
     # Parameters
     telescope = CONFIG_INI.get('telescope', 'name').upper()
@@ -54,6 +54,8 @@ def make_aperture_nrp():
     im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
+    print('Running aperture generation for {}\n'.format(telescope))
+
     # If main subfolder "active" doesn't exist yet, create it.
     if not os.path.isdir(localDir):
         os.mkdir(localDir)
@@ -63,6 +65,7 @@ def make_aperture_nrp():
         os.mkdir(outDir)
 
     #-# Get the coordinates of the central pixel of each segment and save aperture to disk
+    print('Getting segment centers')
     seg_position = np.zeros((nb_seg, 2))
 
     if telescope == 'JWST':

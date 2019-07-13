@@ -15,13 +15,11 @@ from astropy.io import fits
 import astropy.units as u
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import hicat.simulators
 import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
-from e2e_simulators import webbpsf_imaging as webbim
 from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
 
@@ -36,6 +34,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     :param plotting: default False, whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
     :return:
     """
+    from e2e_simulators import webbpsf_imaging as webbim
 
     print("THIS ONLY WORKS FOR PISTON FOR NOW")
 
@@ -186,6 +185,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     :param rms: astropy quantity, rms wfe to be put randomly on the SM
     :return: 2x float, E2E and matrix contrast
     """
+    import hicat.simulators
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
@@ -459,14 +459,15 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
 if __name__ == '__main__':
 
     # Test JWST
-    WORKDIRECTORY = "active"    # you can chose here what data directory to work in
-    matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
-    total_rms = 100 * u.nm
-    contrast_jwst_ana_num(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
+    # WORKDIRECTORY = "active"    # you can chose here what data directory to work in
+    # matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
+    # total_rms = 100 * u.nm
+    # contrast_jwst_ana_num(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
 
     # Test HiCAT
     #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT', rms=10*u.nm)
+    #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical', rms=10*u.nm)
 
     # Test LUVOIR
-    #c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
-    #                                     rms=1 * u.nm)
+    c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
+                                         rms=1 * u.nm)
