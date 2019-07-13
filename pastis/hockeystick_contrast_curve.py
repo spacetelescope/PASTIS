@@ -21,7 +21,7 @@ from config import CONFIG_INI
 import contrast_calculation_simple as consim
 
 
-def hockeystick_jwst():
+def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
 
     # Keep track of time
     start_time = time.time()
@@ -29,9 +29,8 @@ def hockeystick_jwst():
     ##########################
     WORKDIRECTORY = "active"                # you can chose here what data directory to work in
                                             # anything else than "active" works only with im_pastis=False
-    matrix = "analytical"                   # "analytical" or "numerical"
-    rms_range = np.logspace(-1, 3, 50)      # Create range of RMS values to test
-    realiz = 10                             # how many random realizations per RMS values to do
+    rms_range = np.logspace(-1, 3, range_points)      # Create range of RMS values to test
+    realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
 
     # Set up path for results
@@ -39,8 +38,8 @@ def hockeystick_jwst():
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
-    if not os.path.isdir(os.path.join(outDir, 'dh_images_'+matrix)):
-        os.mkdir(os.path.join(outDir, 'dh_images_'+matrix))
+    if not os.path.isdir(os.path.join(outDir, 'dh_images_'+matrix_mode)):
+        os.mkdir(os.path.join(outDir, 'dh_images_'+matrix_mode))
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
@@ -65,8 +64,8 @@ def hockeystick_jwst():
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_am, c_matrix = consim.contrast_jwst_ana_num(dir=WORKDIRECTORY, matrix_mode=matrix, rms=rms,
-                                                          im_pastis=True, plotting=True)
+            c_e2e, c_am, c_matrix = consim.contrast_jwst_ana_num(matdir=WORKDIRECTORY, matrix_mode=matrix_mode, rms=rms,
+                                                                 im_pastis=True, plotting=True)
 
             e2e_rand.append(c_e2e)
             am_rand.append(c_am)
@@ -82,7 +81,7 @@ def hockeystick_jwst():
 
     # Save results to txt file
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
-    df.to_csv(os.path.join(outDir, "contrasts_"+matrix+".txt"), sep=' ', na_rep='NaN')
+    df.to_csv(os.path.join(outDir, "contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
 
     plt.clf()
     plt.title("Contrast calculation")
@@ -95,21 +94,21 @@ def hockeystick_jwst():
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()
-    plt.savefig(os.path.join(outDir, "PASTIS_HOCKEY_STICK_"+matrix+".pdf"))
+    plt.savefig(os.path.join(outDir, "PASTIS_HOCKEY_STICK_"+matrix_mode+".pdf"))
 
     end_time = time.time()
     runtime = end_time - start_time
     print('Runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
 
 
-def hockeystick_hicat():
+def hockeystick_hicat(range_points=3, no_realizations=3):
 
     # Keep track of time
     start_time = time.time()
 
     ##########################
-    rms_range = np.logspace(-1, 3, 5)      # Create range of RMS values to test
-    realiz = 2                             # how many random realizations per RMS values to do
+    rms_range = np.logspace(-1, 3, range_points)      # Create range of RMS values to test
+    realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
@@ -133,7 +132,7 @@ def hockeystick_hicat():
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = consim.contrast_hicat_num(dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT',
+            c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT',
                                                  rms=rms,)
 
             e2e_rand.append(c_e2e)
@@ -158,14 +157,14 @@ def hockeystick_hicat():
     print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
 
 
-def hockeystick_luvoir():
+def hockeystick_luvoir(range_points=3, no_realizations=3):
 
     # Keep track of time
     start_time = time.time()
 
     ##########################
-    rms_range = np.logspace(-4, 4, 50)      # Create range of RMS values to test
-    realiz = 5                             # how many random realizations per RMS values to do
+    rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
+    realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
@@ -189,7 +188,7 @@ def hockeystick_luvoir():
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = consim.contrast_luvoir_num(dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
+            c_e2e, c_matrix = consim.contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
                                                  rms=rms,)
 
             e2e_rand.append(c_e2e)
@@ -217,6 +216,6 @@ def hockeystick_luvoir():
 if __name__ == '__main__':
 
     # Pick one to run
-    #hockeystick_jwst()
+    hockeystick_jwst()
     #hockeystick_hicat()
-    hockeystick_luvoir()
+    #hockeystick_luvoir()

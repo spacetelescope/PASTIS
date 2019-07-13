@@ -46,7 +46,6 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), matdir)
     which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
     filter = CONFIG_INI.get(which_tel, 'filter_name')
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
@@ -247,7 +246,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     psf_hicat = psf_hicat[0].data / normp
 
     # Create DH
-    dh_mask = util.create_dark_hole(psf_hicat, iwa=5, owa=12, samp=13 / 4)
+    dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=13 / 4)
     # Get the mean contrast
     hicat_dh_psf = psf_hicat * dh_mask
     contrast_hicat = np.mean(hicat_dh_psf[np.where(hicat_dh_psf != 0)])
@@ -322,15 +321,6 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
 
     # Remove global piston
     aber -= np.mean(aber)
-
-    # General telescope parameters
-    nb_seg = 120
-    wvln = 638e-9  # m
-    diam = 15.  # m
-
-    # Image system parameters
-    im_lamD = 30  # image size in lambda/D
-    sampling = 4
 
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
@@ -478,5 +468,5 @@ if __name__ == '__main__':
     #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT', rms=10*u.nm)
 
     # Test LUVOIR
-    c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
-                                         rms=1 * u.nm)
+    #c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
+    #                                     rms=1 * u.nm)
