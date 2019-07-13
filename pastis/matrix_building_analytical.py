@@ -15,10 +15,11 @@ import util_pastis as util
 import image_pastis as impastis
 
 
-if __name__ == '__main__':
+def ana_matrix_jwst():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 11 minutes
+    print('Building analytical matrix for JWST\n')
 
     # Parameters
     datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
@@ -98,3 +99,8 @@ if __name__ == '__main__':
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
+
+
+if __name__ == '__main__':
+
+    ana_matrix_jwst()
