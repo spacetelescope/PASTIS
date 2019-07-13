@@ -34,9 +34,7 @@ Outputs:
 import os
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import astropy.units as u
-import poppy
 
 import util_pastis as util
 from config import CONFIG_INI
@@ -45,7 +43,7 @@ from config import CONFIG_INI
 def make_aperture_nrp():
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 5 minutes for ATLAST
+    start_time = time.time()   # runtime currently is around 2 seconds for JWST, 9 minutes for ATLAST
 
     # Parameters
     telescope = CONFIG_INI.get('telescope', 'name').upper()
@@ -56,6 +54,8 @@ def make_aperture_nrp():
     im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
+    print('Running aperture generation for {}\n'.format(telescope))
+
     # If main subfolder "active" doesn't exist yet, create it.
     if not os.path.isdir(localDir):
         os.mkdir(localDir)
@@ -65,14 +65,15 @@ def make_aperture_nrp():
         os.mkdir(outDir)
 
     #-# Get the coordinates of the central pixel of each segment and save aperture to disk
+    print('Getting segment centers')
     seg_position = np.zeros((nb_seg, 2))
 
     if telescope == 'JWST':
-        import webbpsf_imaging as webbim
+        from e2e_simulators import webbpsf_imaging as webbim
         seg_position = webbim.get_jwst_coords(outDir)
 
     elif telescope == 'ATLAST':
-        import atlast_imaging as atim
+        from e2e_simulators import atlast_imaging as atim
         _aper, seg_coords = atim.get_atlast_aperture(normalized=False, write_to_disk=True, outDir=outDir)
 
         seg_position[:,0] = seg_coords.x
@@ -184,6 +185,7 @@ def make_aperture_nrp():
         for j in range(nb_seg):
             if i ==j:
                 vec_list2[i,j,:] = [0,0]
+
     # Save for testing
     np.savetxt(os.path.join(outDir, 'vec_list2_x.txt'), vec_list2[:, :, 0], fmt='%2.2f')
     np.savetxt(os.path.join(outDir, 'vec_list2_y.txt'), vec_list2[:, :, 1], fmt='%2.2f')

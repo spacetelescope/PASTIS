@@ -16,7 +16,7 @@ import image_pastis as impastis
 if __name__ == '__main__':
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around 10 minutes
+    start_time = time.time()   # runtime currently is around 3 minutes
 
     # Parameters
     outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'calibration')
