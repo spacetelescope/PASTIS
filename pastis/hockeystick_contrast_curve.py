@@ -163,8 +163,7 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT',
-                                                 rms=rms,)
+            c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir=matrixdir, rms=rms,)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
@@ -172,6 +171,12 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         e2e_contrasts.append(np.mean(e2e_rand))
         matrix_contrasts.append(np.mean(matrix_rand))
 
+    # Save contrasts and rms range
+    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+
+    # Plot
     plt.clf()
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
@@ -235,8 +240,7 @@ def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = consim.contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
-                                                 rms=rms,)
+            c_e2e, c_matrix = consim.contrast_luvoir_num(matrix_dir=matrixdir, rms=rms,)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
@@ -244,6 +248,12 @@ def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=
         e2e_contrasts.append(np.mean(e2e_rand))
         matrix_contrasts.append(np.mean(matrix_rand))
 
+    # Save contrasts and rms range
+    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+
+    # Plot
     plt.clf()
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
@@ -253,7 +263,7 @@ def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=
     plt.xlabel("Surface RMS in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
-    plt.show()
+    plt.savefig(os.path.join(resultdir, 'hockeystick_contrasts.pdf'))
 
     end_time = time.time()
     runtime = end_time - start_time
@@ -264,5 +274,9 @@ if __name__ == '__main__':
 
     # Pick one to run
     #hockeystick_jwst()
-    #hockeystick_hicat()
-    hockeystick_luvoir()
+    #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
+
+    # LUVOIR
+    result_dir = '/Users/ilaginja/Documents/data_from_repos/pastis_data/2019-5-31_002_1nm/results'
+    matrix_dir = '/Users/ilaginja/Documents/data_from_repos/pastis_data/2019-5-31_002_1nm/matrix_numerical'
+    hockeystick_luvoir(matrixdir=matrix_dir, resultdir=result_dir)
