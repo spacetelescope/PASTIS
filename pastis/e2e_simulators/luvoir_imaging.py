@@ -164,7 +164,7 @@ class SegmentedTelescopeAPLC:
 
 
 class LuvoirAPLC(SegmentedTelescopeAPLC):
-    """ Simple E2E simulator for Luvoir.
+    """ Simple E2E simulator for LUVOIR A (with APLC).
 
     Parameters:
     ----------

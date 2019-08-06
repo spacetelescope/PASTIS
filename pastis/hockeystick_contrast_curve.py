@@ -22,6 +22,20 @@ import contrast_calculation_simple as consim
 
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
+    """
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+
+    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
+    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
+    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
+    of results in a figure that shows contrast vs. rms phase error.
+
+    :param range_points: int, How many points of rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+                                is used.
+    :param matrix_mode: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
+    :return:
+    """
 
     # Keep track of time
     start_time = time.time()
@@ -83,6 +97,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
     df.to_csv(os.path.join(outDir, "contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
 
+    # Plot
     plt.clf()
     plt.title("Contrast calculation")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
@@ -101,7 +116,23 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     print('Runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
 
 
-def hockeystick_hicat(range_points=3, no_realizations=3):
+def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3):
+    """
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+
+    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
+    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
+    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
+    of results in a figure that shows contrast vs. rms phase error.
+
+    :param matrixdir: string, Path to matrix that should be used.
+    :param resultsdir: string, Path to directory where results will be saved.
+    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
+    :param range_points: int, How many points of rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+                                is used.
+    :return:
+    """
 
     # Keep track of time
     start_time = time.time()
@@ -150,14 +181,30 @@ def hockeystick_hicat(range_points=3, no_realizations=3):
     plt.xlabel("Surface RMS in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
-    plt.show()
+    plt.savefig(os.path.join(resultdir, 'hockeystick_contrasts.pdf'))
 
     end_time = time.time()
     runtime = end_time - start_time
     print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
 
 
-def hockeystick_luvoir(range_points=3, no_realizations=3):
+def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=3):
+    """
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+
+    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
+    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
+    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
+    of results in a figure that shows contrast vs. rms phase error.
+
+    :param matrixdir: string, Path to matrix that should be used.
+    :param resultsdir: string, Path to directory where results will be saved.
+    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
+    :param range_points: int, How many points of rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+                                is used.
+    :return:
+    """
 
     # Keep track of time
     start_time = time.time()

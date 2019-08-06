@@ -24,6 +24,11 @@ os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
 
 def num_matrix_jwst():
+    """
+    Generate a numerical PASTIS matrix for a JWST coronagraph.
+
+    All inputs are read from the (local) configfile and saved to the specified output directory.
+    """
 
     import webbpsf
     from e2e_simulators import webbpsf_imaging as webbim
@@ -196,6 +201,11 @@ def num_matrix_jwst():
 
 
 def num_matrix_luvoir():
+    """
+    Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
+
+    All inputs are read from the (local) configfile and saved to the specified output directory.
+    """
 
     from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
