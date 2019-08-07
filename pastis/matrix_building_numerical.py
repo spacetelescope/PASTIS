@@ -367,7 +367,7 @@ def num_matrix_luvoir():
                 luvoir.set_segment(j+1, nm_aber/2, 0, 0)
 
             print('Calculating coro image...')
-            image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate=True)
+            image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
             # Normalize PSF by reference image
             psf = image / norm
 
@@ -390,7 +390,7 @@ def num_matrix_luvoir():
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix
-            matrix_direct[i,j] = contrast
+            matrix_direct[i,j] = contrast # - baseline_contrast, although it's probably low enough here
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
