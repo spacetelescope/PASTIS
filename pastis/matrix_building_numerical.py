@@ -389,8 +389,8 @@ def num_matrix_luvoir():
             print('contrast:', contrast)
             all_contrasts.append(contrast)
 
-            # Fill according entry in the matrix
-            matrix_direct[i,j] = contrast # - baseline_contrast, although it's probably low enough here
+            # Fill according entry in the matrix and subtract baseline contrast
+            matrix_direct[i,j] = contrast - 4.21628802732166e-11    #TODO: replace hard coded deep contrast
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)

@@ -223,7 +223,7 @@ def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {}".format(rms_range, fmt="%e"))
+    print("RMS range: {} nm".format(rms_range, fmt="%e"))
     print("Random realizations: {}".format(realiz))
 
     for i, rms in enumerate(rms_range):
