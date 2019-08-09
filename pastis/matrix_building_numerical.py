@@ -344,9 +344,13 @@ def num_matrix_luvoir():
     dh_inner = hc.circular_aperture(2 * iwa * lam_over_d)(focal_grid_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    ### Reference image for contrast normalization
-    _im, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
+    ### Reference images for contrast normalization and coronagraph floor
+    unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
     norm = np.max(ref)
+
+    dh_intensity = unaberrated_coro_psf / norm * dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+    print(contrast_floor)
 
     ### Generating the PASTIS matrix and a list for all contrasts
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
@@ -390,7 +394,7 @@ def num_matrix_luvoir():
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast
-            matrix_direct[i,j] = contrast - 4.21628802732166e-11    #TODO: replace hard coded deep contrast
+            matrix_direct[i,j] = contrast - contrast_floor
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
