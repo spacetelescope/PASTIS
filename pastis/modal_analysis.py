@@ -107,7 +107,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
             hc.imshow_field(all_modes[thismode], cmap='RdBu')
             plt.axis('off')
             plt.title('Mode ' + str(thismode + 1))
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
+        plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
 
     ### Plot them individually and save as fits and pdf
     mode_cube = []  # to save as a fits cube
