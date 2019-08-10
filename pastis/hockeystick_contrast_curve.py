@@ -277,6 +277,7 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    result_dir = '/Users/ilaginja/Documents/data_from_repos/pastis_data/2019-5-31_002_1nm/results'
-    matrix_dir = '/Users/ilaginja/Documents/data_from_repos/pastis_data/2019-5-31_002_1nm/matrix_numerical'
+    run_choice = '2019-5-31_002_1nm'
+    result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', run_choice, 'results')
+    matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', run_choice, 'matrix_numerical')
     hockeystick_luvoir(matrixdir=matrix_dir, resultdir=result_dir)
