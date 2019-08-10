@@ -193,7 +193,7 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
     print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
 
 
-def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=3):
+def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3, no_realizations=3):
     """
     Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
 
@@ -240,7 +240,7 @@ def hockeystick_luvoir(matrixdir, resultdir='', range_points=3, no_realizations=
             print("Random realization: {}/{}".format(j+1, realiz))
             print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
 
-            c_e2e, c_matrix = consim.contrast_luvoir_num(matrix_dir=matrixdir, rms=rms,)
+            c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    run_choice = '2019-5-31_002_1nm'
-    result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', run_choice, 'results')
-    matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', run_choice, 'matrix_numerical')
-    hockeystick_luvoir(matrixdir=matrix_dir, resultdir=result_dir)
+    run_choice = '2019-8-09_001_1nm'
+    result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
+    matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
+    hockeystick_luvoir(apodizer_choice='medium', matrixdir=matrix_dir, resultdir=result_dir, range_points=20, no_realizations=5)

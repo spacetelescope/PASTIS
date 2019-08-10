@@ -280,7 +280,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
+def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     """
     Compute the contrast for a random SM mislignment on the LUVOIR simulator.
     :param matrix_dir: str, directory of saved matrix
@@ -325,7 +325,7 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    design = 'small'
+    design = apodizer_choice
     datadir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
     apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
                            'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
