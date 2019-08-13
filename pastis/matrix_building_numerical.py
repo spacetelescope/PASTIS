@@ -18,6 +18,7 @@ import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
+from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 # Set WebbPSF environment variable
 os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
@@ -200,14 +201,15 @@ def num_matrix_jwst():
     # runtime = 20 min
 
 
-def num_matrix_luvoir():
+def num_matrix_luvoir(design):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
+    The LUVOIR STDT delivery in May 2018 included three different apodizers
+    we can work with, so I will implement an easy way of making a choice between them.
+    small, medium and large
     """
-
-    from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 150 minutes
@@ -230,25 +232,6 @@ def num_matrix_luvoir():
     im_lamD = 30  # image size in lambda/D
     sampling = 4
 
-    # Coronagraph parameters
-    # The LUVOIR STDT delivery in May 2018 included three different apodizers
-    # we can work with, so I will implement an easy way of making a choice between them.
-    design = 'small'
-    datadir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
-    apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
-                           'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
-                 'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
-                            'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
-                 'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
-                           'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
-
-    pup_px = apod_dict[design]['pxsize']
-    fpm_rad = apod_dict[design]['fpm_rad']  # lambda/D
-    fpm_px = apod_dict[design]['fpm_px']
-    samp_foc = fpm_px / (fpm_rad * 2)  # sampling of focal plane mask
-    iwa = apod_dict[design]['iwa']  # lambda/D
-    owa = apod_dict[design]['owa']  # lambda/D
-
     # Print some of the defined parameters
     print('LUVOIR apodizer design: {}'.format(design))
     print()
@@ -256,13 +239,8 @@ def num_matrix_luvoir():
     print('Telescope diameter: {} m'.format(diam))
     print('Number of segments: {}'.format(nb_seg))
     print()
-    print('IWA: {} lambda/D'.format(iwa))
-    print('OWA: {} lambda/D'.format(owa))
-    print('Pupil size: {} pixels'.format(pup_px))
     print('Image size: {} lambda/D'.format(im_lamD))
     print('Sampling: {} px per lambda/D'.format(sampling))
-    print('FPM radius: {} lambda/D'.format(fpm_rad))
-    print('Pixels in FPM: {} pixels'.format(fpm_px))
 
     ### Setting up the paths
 
@@ -278,70 +256,13 @@ def num_matrix_luvoir():
     if not os.path.isdir(os.path.join(resDir, 'psfs')):
         os.mkdir(os.path.join(resDir, 'psfs'))
 
-    ### Preparing the optical elements
-
-    # Pupil plane optics
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    apod_path = os.path.join(datadir, 'luvoir_stdt_baseline_bw10', design + '_fpm', 'solutions',
-                             apod_dict[design]['fname'])
-    ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
-
-    pup_read = hc.read_fits(os.path.join(datadir, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(datadir, aper_ind_path))
-    apod_read = hc.read_fits(os.path.join(datadir, apod_path))
-    ls_read = hc.read_fits(os.path.join(datadir, ls_fname))
-
-    # Cast the into Fields on a pupil plane grid
-    pupil_grid = hc.make_pupil_grid(dims=pup_px, diameter=diam)
-
-    aperture = hc.Field(pup_read.ravel(), pupil_grid)
-    aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
-    apod = hc.Field(apod_read.ravel(), pupil_grid)
-    ls = hc.Field(ls_read.ravel(), pupil_grid)
-
-    ### Segment positions
-
-    # Load segment positions form fits header
-    hdr = fits.getheader(os.path.join(datadir, aper_ind_path))
-
-    poslist = []
-    for i in range(nb_seg):
-        segname = 'SEG' + str(i + 1)
-        xin = hdr[segname + '_X']
-        yin = hdr[segname + '_Y']
-        poslist.append((xin, yin))
-
-    poslist = np.transpose(np.array(poslist))
-
-    # Cast into HCIPy CartesianCoordinates (because that's what the SM needs)
-    seg_pos = hc.CartesianGrid(poslist)
-
-    ### Focal plane mask
-
-    # Make focal grid for FPM
-    focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
-
-    # Also create detector plane focal grid
-    focal_grid_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=sampling, num_airy=im_lamD, wavelength=wvln)
-
-    # Let's figure out how much 1 lambda/D is in radians (needed for focal plane)
-    lam_over_d = wvln / diam  # rad
-
-    # Create FPM on a focal grid, with radius in lambda/D
-    fpm = 1 - hc.circular_aperture(2 * fpm_rad * lam_over_d)(focal_grid_fpm)
-
-    ### Telescope simulator
-
-    # Create parameter dictionary
-    luvoir_params = {'wavelength': wvln, 'diameter': diam, 'imlamD': im_lamD, 'fpm_rad': fpm_rad}
-
-    # Instantiate LUVOIR telescope with APLC
-    luvoir = SegmentedTelescopeAPLC(aperture, aper_ind, seg_pos, apod, ls, fpm, focal_grid_det, luvoir_params)
+    ### Instantiate Luvoir telescope with chosen apodizer design
+    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### Dark hole mask
-    dh_outer = hc.circular_aperture(2 * owa * lam_over_d)(focal_grid_det)
-    dh_inner = hc.circular_aperture(2 * iwa * lam_over_d)(focal_grid_det)
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
     ### Reference images for contrast normalization and coronagraph floor
@@ -384,7 +305,7 @@ def num_matrix_luvoir():
             opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
                 i + 1) + '-' + str(j + 1)
             plt.clf()
-            hc.imshow_field(inter['seg_mirror'], mask=aperture, cmap='RdBu')
+            hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating mean contrast in dark hole')
@@ -435,4 +356,4 @@ if __name__ == '__main__':
 
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
-        num_matrix_luvoir()
+        num_matrix_luvoir(design='large')
