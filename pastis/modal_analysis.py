@@ -196,12 +196,11 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, saving=True, datadir=None):
+def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
-
-        opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode + 1], axis=1)
+        opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
 
         luvoir.flatten()
         for seg, val in enumerate(opd):
@@ -213,35 +212,21 @@ def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, saving=True, datadi
         norm = ref.max()
 
         # Calculate the contrast from that PSF
-        dh_intensity = psf / norm * dh_mask
-        contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+        contrast = util.dh_mean(psf/norm, dh_mask)
         cont_cum_e2e.append(contrast)
-
-    # Save to file
-    if saving:
-        if not os.path.isdir(os.path.join(datadir, 'results')):
-            os.mkdir(os.path.join(datadir, 'results'))
-
-        np.savetxt(os.path.join(datadir, 'results', 'cumulative_contrast_e2e.txt'), cont_cum_e2e)
 
     return cont_cum_e2e
 
 
-def cumulative_contrast_mastix(pmodes, sigmas, matrix, c_floor, saving=True, datadir=None):
+def cumulative_contrast_mastix(pmodes, sigmas, matrix, c_floor):
     # Calculate cumulative contrast
     cont_cum_pastis = []
     for maxmode in range(pmodes.shape[0]):
-        aber = np.nansum(pmodes[:, :maxmode + 1] * sigmas[:maxmode + 1], axis=1)
+        aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         aber *= u.nm
 
         contrast_matrix = util.pastis_contrast(aber, matrix) + c_floor
         cont_cum_pastis.append(contrast_matrix)
-
-    if saving:
-        if not os.path.isdir(os.path.join(datadir, 'results')):
-            os.mkdir(os.path.join(datadir, 'results'))
-
-        np.savetxt(os.path.join(datadir, 'results', 'cumulative_contrast_pastis.txt'), cont_cum_pastis)
 
     return cont_cum_pastis
 
@@ -360,6 +345,7 @@ if __name__ == '__main__':
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
+    print('Coronagraph floor: {}'.format(coro_floor))
 
     # Read the matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
@@ -380,7 +366,7 @@ if __name__ == '__main__':
     if calculate_sigmas:
         print('Calculating static sigmas')
         sigmas = calculate_sigma(c_stat, nseg-1, svals, coro_floor)   # -1 because I want to ignore global piston
-        np.savetxt(os.path.join(workdir, 'results', 'sigmas.txt'), sigmas)
+        np.savetxt(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.txt'), sigmas)
 
         # Plot stastic mode constraints
         plt.figure()
@@ -389,19 +375,20 @@ if __name__ == '__main__':
         plt.title('Constraints per mode', size=15)
         plt.xlabel('Mode', size=15)
         plt.ylabel('Max mode contribution $\sigma_p$ (nm)', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'sigmas.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.pdf'))
 
     else:
-        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas.txt'))
+        print('Reading sigmas from {}'.format(workdir))
+        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.txt'))
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         print('Calculating cumulative contrast plot')
-        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, saving=True, datadir=workdir)
-        cumulative_pastis = cumulative_contrast_mastix(pmodes, sigmas, matrix, coro_floor, saving=True, datadir=workdir)
+        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask)
+        cumulative_pastis = cumulative_contrast_mastix(pmodes, sigmas, matrix, coro_floor)
 
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e.txt'), cumulative_e2e)
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis.txt'), cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_'+str(c_stat)+'.txt'), cumulative_e2e)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_'+str(c_stat)+'.txt'), cumulative_pastis)
 
         # Plot the cumulative contrast from E2E simulator and matrix
         plt.figure(figsize=(16, 10))
@@ -411,7 +398,7 @@ if __name__ == '__main__':
         plt.xlabel('Mode number', size=15)
         plt.ylabel('Constrast', size=15)
         plt.legend()
-        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_'+str(c_stat)+'.pdf'))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
@@ -420,16 +407,16 @@ if __name__ == '__main__':
         for segnum in range(nseg):
             mus[segnum] = calculate_segment_constraints(pmodes, sigmas, segnum)
 
-        np.savetxt(os.path.join(workdir, 'results', 'mus.txt'), mus)
+        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
         plt.figure()
         hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='RdBu')  # in meters
-        plt.title('Static segment constraints $\mu_p$', size=20)
+        plt.title('Static segment constraints $\mu_p$ for C = '+str(c_stat), size=20)
         plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'.pdf'))
 
     else:
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus.txt'))
@@ -448,21 +435,22 @@ if __name__ == '__main__':
 
         end_monte_carlo = time.time()
 
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts.txt'), all_contr_rand)
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
         n, bins, patches = plt.hist(all_contr_rand, int(n_repeat/10))
-        plt.title('E2E raw contrast', size=20)
+        plt.title('E2E raw contrast, '+str(n_repeat)+' iterations', size=20)
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
 
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
 
     print('\nRuntimes:')
-    print('Monte Carlo with {} iterations: {} sec = {} min'.format(n_repeat, end_monte_carlo-start_monte_carlo,
-                                                                   (end_monte_carlo-start_monte_carlo)/60))
+    print('Monte Carlo with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo-start_monte_carlo,
+                                                                   (end_monte_carlo-start_monte_carlo)/60,
+                                                                   (end_monte_carlo - start_monte_carlo)/3600))
 
     print('\nGood job')

@@ -255,7 +255,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     # Plot
     plt.clf()
-    plt.title("Contrast calculation")
+    plt.title("Contrast calculation with " + str(realiz) + " realizations each")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
@@ -277,7 +277,8 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    run_choice = '2019-8-09_001_1nm'
+    run_choice = '2019-8-11_001_1nm'
+    apod_design = 'large'
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice='medium', matrixdir=matrix_dir, resultdir=result_dir, range_points=20, no_realizations=5)
+    hockeystick_luvoir(apodizer_choice=apod_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=10)
