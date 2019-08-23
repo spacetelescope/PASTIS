@@ -20,7 +20,7 @@ import hcipy as hc
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
-from e2e_simulators.luvoir_imaging import SegmentedTelescopeAPLC
+from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 
 @u.quantity_input(rms=u.nm)
@@ -280,7 +280,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
+def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     """
     Compute the contrast for a random SM mislignment on the LUVOIR simulator.
     :param matrix_dir: str, directory of saved matrix
@@ -294,19 +294,11 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
 
     # Parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')
-    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9
-
-    # Image system parameters
-    im_lamD = 30  # image size in lambda/D
     sampling = 4
 
     # Import numerical PASTIS matrix for HiCAT sim
     filename = 'PASTISmatrix_num_piston_Noll1'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
-
-    # Fix false normalization
-    #matrix_pastis *= np.square(1e-9)
 
     # Create random aberration coefficients
     aber = np.random.random([nb_seg])   # piston values in input units
@@ -325,80 +317,11 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    design = 'small'
-    datadir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
-    apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
-                           'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
-                 'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
-                            'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
-                 'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
-                           'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
-
-    pup_px = apod_dict[design]['pxsize']
-    fpm_rad = apod_dict[design]['fpm_rad']  # lambda/D
-    fpm_px = apod_dict[design]['fpm_px']
-    samp_foc = fpm_px / (fpm_rad * 2)  # sampling of focal plane mask
-    iwa = apod_dict[design]['iwa']  # lambda/D
-    owa = apod_dict[design]['owa']  # lambda/D
-
-    # Pupil plane optics
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    apod_path = os.path.join(datadir, 'luvoir_stdt_baseline_bw10', design + '_fpm', 'solutions',
-                             apod_dict[design]['fname'])
-    ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
-
-    pup_read = hc.read_fits(os.path.join(datadir, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(datadir, aper_ind_path))
-    apod_read = hc.read_fits(os.path.join(datadir, apod_path))
-    ls_read = hc.read_fits(os.path.join(datadir, ls_fname))
-
-    # Cast the into Fields on a pupil plane grid
-    pupil_grid = hc.make_pupil_grid(dims=pup_px, diameter=diam)
-
-    aperture = hc.Field(pup_read.ravel(), pupil_grid)
-    aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
-    apod = hc.Field(apod_read.ravel(), pupil_grid)
-    ls = hc.Field(ls_read.ravel(), pupil_grid)
-
-    ### Segment positions
-
-    # Load segment positions form fits header
-    hdr = fits.getheader(os.path.join(datadir, aper_ind_path))
-
-    poslist = []
-    for i in range(nb_seg):
-        segname = 'SEG' + str(i + 1)
-        xin = hdr[segname + '_X']
-        yin = hdr[segname + '_Y']
-        poslist.append((xin, yin))
-
-    poslist = np.transpose(np.array(poslist))
-
-    # Cast into HCIPy CartesianCoordinates (because that's what the SM needs)
-    seg_pos = hc.CartesianGrid(poslist)
-
-    ### Focal plane mask
-
-    # Make focal grid for FPM
-    focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
-
-    # Also create detector plane focal grid
-    focal_grid_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=sampling, num_airy=im_lamD, wavelength=wvln)
-
-    # Let's figure out how much 1 lambda/D is in radians (needed for focal plane)
-    lam_over_d = wvln / diam  # rad
-
-    # Create FPM on a focal grid, with radius in lambda/D
-    fpm = 1 - hc.circular_aperture(2 * fpm_rad * lam_over_d)(focal_grid_fpm)
-
-    ### Telescope simulator
-
-    # Create parameter dictionary
-    luvoir_params = {'wavelength': wvln, 'diameter': diam, 'imlamD': im_lamD, 'fpm_rad': fpm_rad}
+    design = apodizer_choice
+    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
 
     # Instantiate LUVOIR telescope with APLC
-    luvoir = SegmentedTelescopeAPLC(aperture, aper_ind, seg_pos, apod, ls, fpm, focal_grid_det, luvoir_params)
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     # and coro PSF without aberrations
@@ -418,8 +341,8 @@ def contrast_luvoir_num(matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
     psf_luvoir /= normp
 
     # Create DH
-    dh_outer = hc.circular_aperture(2 * owa * lam_over_d)(focal_grid_det)
-    dh_inner = hc.circular_aperture(2 * iwa * lam_over_d)(focal_grid_det)
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
     # Get the mean contrast

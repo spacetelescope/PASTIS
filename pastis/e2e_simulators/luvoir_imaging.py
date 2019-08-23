@@ -51,13 +51,18 @@ class SegmentedTelescopeAPLC:
         self.wf_aper = hc.Wavefront(aper, wavelength=self.wvln)
         self.focal_det = focal_grid
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=False):
+    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
         """Calculate the PSF of the segmented telescope, normalized to contrast units.
 
         Parameters:
         ----------
         ref : bool
             Keyword for additionally returning the refrence PSF without the FPM.
+        display_intermediate : bool
+            Keyword for display of all planes.
+        return_intermediate : string
+            Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
+            or 'efield', return the E-fields in all planes. Default none.
         Returns:
         --------
         wf_im_coro.intensity : Field
@@ -65,8 +70,14 @@ class SegmentedTelescopeAPLC:
             not returned).
         wf_im_ref.intensity : Field, optional
             Reference image without FPM.
-        intermediates : dict, optional
+        intermediates : dict of Fields, optional
             Intermediate plane intensity images; except for full wavefront on segmented mirror.
+        wf_im_coro : Wavefront
+            Wavefront in last focal plane.
+        wf_im_ref : Wavefront, optional
+            Wavefront of reference image without FPM.
+        intermediates : dict of Wavefronts, optional
+            Intermediate plane E-fields; except intensity in focal plane after FPM.
         """
 
         # Create fake FPM for plotting
@@ -127,8 +138,9 @@ class SegmentedTelescopeAPLC:
             plt.title('Final image')
             plt.colorbar()
 
-        if return_intermediate:
+        if return_intermediate == 'intensity':
 
+            # Return the intensity in all planes; except phase on the SM (first plane)
             intermediates = {'seg_mirror': wf_sm.phase,
                              'apod': wf_apod.intensity,
                              'before_fpm': wf_before_fpm.intensity / wf_before_fpm.intensity.max(),
@@ -140,6 +152,21 @@ class SegmentedTelescopeAPLC:
                 return wf_im_coro.intensity, wf_im_ref.intensity, intermediates
             else:
                 return wf_im_coro.intensity, intermediates
+
+        if return_intermediate == 'efield':
+
+            # Return the E-fields in all planes; except intensity in focal plane after FPM
+            intermediates = {'seg_mirror': wf_sm,
+                             'apod': wf_apod,
+                             'before_fpm': wf_before_fpm,
+                             'after_fpm': int_after_fpm,
+                             'before_lyot': wf_before_lyot,
+                             'after_lyot': wf_lyot}
+
+            if ref:
+                return wf_im_coro, wf_im_ref, intermediates
+            else:
+                return wf_im_coro, intermediates
 
         if ref:
             return wf_im_coro.intensity, wf_im_ref.intensity
@@ -164,7 +191,7 @@ class SegmentedTelescopeAPLC:
 
 
 class LuvoirAPLC(SegmentedTelescopeAPLC):
-    """ Simple E2E simulator for Luvoir.
+    """ Simple E2E simulator for LUVOIR A (with APLC).
 
     Parameters:
     ----------
