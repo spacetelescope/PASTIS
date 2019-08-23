@@ -49,6 +49,7 @@ class SegmentedTelescopeAPLC:
         self.prop = hc.FraunhoferPropagator(indexed_aperture.grid, focal_grid)
         self.coro_no_ls = hc.LyotCoronagraph(indexed_aperture.grid, fpm)
         self.wf_aper = hc.Wavefront(aper, wavelength=self.wvln)
+        self.wf_ref_pup = hc.Wavefront(self.apodizer * self.lyotstop, wavelength=self.wvln)
         self.focal_det = focal_grid
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
@@ -57,7 +58,7 @@ class SegmentedTelescopeAPLC:
         Parameters:
         ----------
         ref : bool
-            Keyword for additionally returning the refrence PSF without the FPM.
+            Keyword for additionally returning the reference PSF without the FPM.
         display_intermediate : bool
             Keyword for display of all planes.
         return_intermediate : string
@@ -83,7 +84,7 @@ class SegmentedTelescopeAPLC:
         # Create fake FPM for plotting
         fpm_plot = 1 - hc.circular_aperture(2 * self.fpm_rad * self.lamDrad)(self.focal_det)
 
-        # Create apodozer as hc.Apodizer() object to be able to propagate through it
+        # Create apodizer as hc.Apodizer() object to be able to propagate through it
         apod_prop = hc.Apodizer(self.apodizer)
 
         # Calculate all wavefronts of the full propagation
@@ -98,8 +99,7 @@ class SegmentedTelescopeAPLC:
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Wavefronts of the reference propagation
-        wf_ref_pup = hc.Wavefront(self.apodizer * self.lyotstop, wavelength=self.wvln)
-        wf_im_ref = self.prop(wf_ref_pup)
+        wf_im_ref = self.prop(self.wf_ref_pup)
 
         # Display intermediate planes
         if display_intermediate:
@@ -266,3 +266,18 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
         self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
         self.coro_no_ls = hc.LyotCoronagraph(pupil_grid, self.fpm)
+
+    def apply_global_zernike(self, zernike_mode):
+        """
+        Apply a global Zernike mode to the pupil phase.
+        :param zernike_mode: Field, can be from hcipy.mode_basis.zernike()
+        :return:
+        """
+
+        # For coro PSF
+        aper_efield = self.aper * np.exp(-1j * zernike_mode)
+        self.wf_aper = hc.Wavefront(aper_efield, wavelength=self.wvln)
+
+        # For ref PSF
+        ref_efield = self.apodizer * self.lyotstop * np.exp(-1j * zernike_mode)
+        self.wf_ref_pup = hc.Wavefront(ref_efield, wavelength=self.wvln)
