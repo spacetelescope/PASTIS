@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import hcipy as hc
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
@@ -21,6 +22,7 @@ def modes_from_matrix(datadir, saving=True):
     """
     Calculate mode basis and singular values from PASTIS matrix using an SVD.
     :param datadir: string, path to overall data directory containing matrix and results folder
+    :param saving: string, whether to save singular values, modes and their plots or not; default=True
     :return: pmodes, svals
     """
 
@@ -141,7 +143,7 @@ def apply_mode_to_sm(pmode, sm, wf_aper):
     :param pmode: array, a single PASTIS mode [nseg]
     :param sm: hcipy.SegmentedMirror
     :param wf_aper: hcipy.Wavefront of the aperture
-    :return: wf_sm: hcipy.Wavefront of the MS propagation
+    :return: wf_sm: hcipy.Wavefront of the SM propagation
     """
 
     #Flatten SM to be sure we have no residual aberrations
@@ -254,14 +256,25 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     """
 
     # Create as many random numbers between 0 and 1 as we have segments
-    rand = np.random.random(nseg) * u.nm
+    rand = np.random.random(nseg)
+
+    mus *= u.nm
 
     # Multiply each segment mu by one of these random numbers,
     # put that on the LUVOIR SM and calculate the PSF.
     luvoir.flatten()
     for seg, (mu, randval) in enumerate(zip(mus, rand)):
         luvoir.set_segment(seg+1, (mu*randval).to(u.m).value/2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True)
+    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+
+    # plt.figure()
+    # plt.subplot(1, 3, 1)
+    # hc.imshow_field(dh_mask)
+    # plt.subplot(1, 3, 2)
+    # hc.imshow_field(psf, norm=LogNorm(), mask=dh_mask)
+    # plt.subplot(1, 3, 3)
+    # hc.imshow_field(psf, norm=LogNorm())
+    # plt.show()
 
     rand_contrast = util.dh_mean(psf/ref.max() - psf_unaber/ref.max(), dh_mask)
 
@@ -271,14 +284,14 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
 if __name__ == '__main__':
 
     ### Preparations
-    run_choice = '2019-8-07_002_1nm'
+    run_choice = '2019-8-13_002_1nm'
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
     calculate_modes = False
     calculate_sigmas = False
     calc_cumulative_contrast = False
-    calculate_mus = False
+    calculate_mus = True
     run_monte_carlo = True
 
     # LUVOIR coronagraph parameters
@@ -335,13 +348,22 @@ if __name__ == '__main__':
 
     # Generate reference PSF and coronagraph baseline
     luvoir.flatten()
-    psf_unaber, ref = luvoir.calc_psf(ref=True)
+    psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
     norm = ref.max()
-
+    #plt.show()
     # Make dark hole mask
     dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
+
+    # plt.figure()
+    # plt.subplot(1, 3, 1)
+    # hc.imshow_field(dh_mask)
+    # plt.subplot(1, 3, 2)
+    # hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
+    # plt.subplot(1, 3, 3)
+    # hc.imshow_field(psf_unaber, norm=LogNorm())
+    # plt.show()
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
@@ -407,19 +429,20 @@ if __name__ == '__main__':
         for segnum in range(nseg):
             mus[segnum] = calculate_segment_constraints(pmodes, sigmas, segnum)
 
-        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'), mus)
+        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'_test.txt'), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
         plt.figure()
-        hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='RdBu')  # in meters
+        hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='Blues')  # in meters
         plt.title('Static segment constraints $\mu_p$ for C = '+str(c_stat), size=20)
         plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'_test.pdf'))
 
     else:
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus.txt'))
+        print('Reading mus from {}'.format(workdir))
+        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'_test.txt'))
 
     ### Calculate Monte Carlo confirmation with E2E
     if run_monte_carlo:
@@ -435,7 +458,7 @@ if __name__ == '__main__':
 
         end_monte_carlo = time.time()
 
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand)
+        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
@@ -444,7 +467,8 @@ if __name__ == '__main__':
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
+        #plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_' + str(c_stat) + '_test.pdf'))
 
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
 
