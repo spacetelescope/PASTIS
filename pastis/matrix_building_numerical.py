@@ -257,8 +257,7 @@ def num_matrix_luvoir(design):
         os.mkdir(os.path.join(resDir, 'psfs'))
 
     ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
+    luvoir = LuvoirAPLC(CONFIG_INI.get('LUVOIR', 'optics_path'), design, sampling)
 
     ### Dark hole mask
     dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)

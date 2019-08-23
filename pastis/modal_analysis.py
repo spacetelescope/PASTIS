@@ -343,8 +343,7 @@ if __name__ == '__main__':
     sm = SegmentedMirror(aper_ind, seg_pos)
 
     # Instantiate LUVOIR
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
-    luvoir = LuvoirAPLC(optics_input, apodizer_design, sampling)
+    luvoir = LuvoirAPLC(CONFIG_INI.get('LUVOIR', 'optics_path'), apodizer_design, sampling)
 
     # Generate reference PSF and coronagraph baseline
     luvoir.flatten()
