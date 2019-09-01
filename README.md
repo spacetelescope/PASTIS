@@ -12,7 +12,7 @@ Quickstart from template:
 - `git clone git@github.com:spacetelescope/PASTIS.git`
 - `cd <repo>/pastis`
 - open `config.ini` with a text editor and change the entry for "local_data_path" to the directory you want to save the data to and "local_repo_path" to the path where you keep your PASTIS repository.
-- run `python matrix_building_numerical.py`
+- run `python matrix_building_numerical.py` - this will take a couple of hours
 - run `hockeystick_contrast_curve.py` to get your contrast pucks in
 - run `modal_analysis.py` to get modal and segment constraints
 - inspect your results in your output directory
