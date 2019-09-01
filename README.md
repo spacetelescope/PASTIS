@@ -21,13 +21,9 @@ Quickstart from template:
 ------
 Requirements:
 ------
-
-- numpy
-- astropy
-- matplotlib
-- pandas
-- hcipy, specifically from commit `980f39c`
-- future releases will include an `environement.yml` file to make setup easier
+Set up a conda environment with the provided `environement.yml`:
+1) `$ conda env create --file environment.yml`
+2) install `hcipy` specifically from commit `980f39c`
 
 ------
 Setup:
