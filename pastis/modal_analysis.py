@@ -284,13 +284,13 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
 if __name__ == '__main__':
 
     ### Preparations
-    run_choice = '2019-8-13_002_1nm'
+    run_choice = 'active'
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
-    calculate_modes = False
-    calculate_sigmas = False
-    calc_cumulative_contrast = False
+    calculate_modes = True
+    calculate_sigmas = True
+    calc_cumulative_contrast = True
     calculate_mus = True
     run_monte_carlo = True
 

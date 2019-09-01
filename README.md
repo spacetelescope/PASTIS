@@ -1,7 +1,9 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed by Lucie Leboulleux and published in Leboulleux at al. (2018).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed by Lucie Leboulleux and published in Leboulleux at al. (2018) and Laginja et al (2019).
+
+This release was specifically made to accompany the Laginja et al. (2019) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope only. For further info, please anticipate the next release or contact the author under `ilaginja@stsci.edu`.
 
 ------
 Quickstart from template:
@@ -9,11 +11,12 @@ Quickstart from template:
 - cd into the directory you want to have your repo in
 - `git clone git@github.com:spacetelescope/PASTIS.git`
 - `cd <repo>/pastis`
-- open `config.ini` with a text editor and change the entry for "local_data_path" to the directory you want to save the data to and "webbpsf_data_path" to the path you have your WebbPSF data saved in. You can figure this out by running `webbpsf.utils.get_webbpsf_data_path()`
-- `python aperture_definition.py`
-- `python calibration.py`
-- run either `python matrix_building_analytical.py` or `python matrix_building_numerical.py`, depending on what matrix you want to use
-- open `contrast_calculation.py` and set whether you want to use the numerical or analytical matrix and enter an RMS value you want to use, then run
+- open `config.ini` with a text editor and change the entry for "local_data_path" to the directory you want to save the data to and "local_repo_path" to the path where you keep your PASTIS repository.
+- run `python matrix_building_numerical.py`
+- run `hockeystick_contrast_curve.py` to get your contrast pucks in
+- run `modal_analysis.py` to get modal and segment constraints
+- inspect your results in your output directory
+
 
 ------
 Requirements:
@@ -22,101 +25,43 @@ Requirements:
 - numpy
 - astropy
 - matplotlib
-- poppy
-- webbpsf
+- pandas
+- hcipy, specifically from commit `980f39c`
+- future releases will include an `environement.yml` file to make setup easier
 
 ------
 Setup:
 ------
 - SETUP OF CONFIGFILE AND CHANGING PASTIS PARAMETERS:
-The template configfile `config.ini` is supposed to be a static template. It is version controlled and should hence not be changed if you're only using a different parameter setup. You should copy `config.ini` and call the copy `config_local.ini`. This file should be ignored by git (if it is not, add it to your .gitignore file) and you should only change the local configfile to update your parameters.
-
-If you just want to run the code, there is no need for you to open any of the scripts, except in the contrast calculation itself. Just go into your `config_local.ini` and adjust your experimental parameters there, save, and run the code (see below or in the quickstart section). The outputs will be saved in the directory you specified in "local_data_path".
+The template configfile `config.ini` is supposed to be a static template. It is version controlled and should hence not be changed if you're only using a different parameter setup. You should copy `config.ini` and call the copy `config_local.ini`. You should only change the local configfile to update your parameters and not push any changes made to `config.ini`.
 
 - SETTING UP LOCAL DATA PATHS:
-Open up `config_local.ini` and put your global path to where you keep your webbpsf-data in the line [local] --> webbpsf_data_path. you can figure out where this is by printing `webbpsf.utils.get_webbpsf_data_path()` in any python session in which you have imported webbpsf.  Then pick or create a folder in which all the PASTIS data you generate will be saved and copy its global path to [local] --> local_data_path.
+Pick or create a folder in which all the PASTIS data you generate will be saved and copy its global path to `[local] --> local_data_path`. Specify where you keep your clone of the PASTIS repository and copy its global path (including "/PASTIS" to `[local] --> local_repo_path`.
 
------------------
-Running the code:
------------------
-
-1) adjust the necessary parameters in `config_local.ini`
-2) run `aperture_definition.py`, this creates the telescope aperture in the format PASTIS needs it. This is currently (v1.1.0) only implemented for the James Webb Space Telescope.
-3) run `calibration.py`, this calibrates the PASTIS model with the E2E simulator (WebbPSF for JWST)
-4) run `matrix_building_analytical.py` or `matrix_building_numerical.py` to generate either an analytical or numerical PASTIS matrix
-
---> Now everything is set up and you can *use* the model to calculate contrasts. Currently only one example script is given: `contrast_calculation.py`. Open it up and adjust:
-- keyword `matrix_mode` to pick between using the `numerical` or `analytical` matrix
-- keyword `rms_wanted` to set the total RMS value on your telescope for which you want to calculate the contrast
-
-The output will be just a couple of lines, including the calculated contrast values by the E2E model, image PASTIS and matrix PASTIS, e.g. (for `matrix_mode = 'analytical'` and `rms_wanted = 1`):
-
-```
---- CONTRASTS: ---
-Mean contrast from WebbPSF: 1.53897501438e-05
-Mean contrast with image PASTIS: 2.9384920197e-05
-Contrast from matrix PASTIS: 2.9384920197e-05
-```
 
 ----------------
 Folder structure:
 ----------------
 
-In the config file, the entry `[local] --> local_data_path` specifies where the houtput data will be saved. The code will create a subfolder `active` that contains everything from your current code run. It is set up this way so that if you want to save some data, you just rename that directory into something else.
-
-
-**segmentation**  
-  + pupil.fits  
-  + NR_pairs_list.txt  
-  + Projection_Matrix.fits  
-  + A couple of helper files  
-    
-**calibration**  
-  + base-contrast_piston_Noll1.txt: E2E contrast with coronagraph, no aberrations  
-  + contrast_IMAGE-PASTIS_piston_Noll1.fits: analytical contrast with coronagraph, per one aberrated segment  
-  + contrast_WEBBPSF_piston_Noll1.fits: E2E contrast with coronagraph, per one aberrated segment  
-  + calibration_piston_Noll1.fits: calibration coefficients per segment  
-  + dh_area.fits  
-  + psf_coro.fits: E2E PSF with coronagraph, no aberrations  
-  + psf_default.fits: E2E PSF no coronagraph, no aberrations  
-  + images  
-    - Full analytical images per one aberrated segment  
-    - Full E2E images per one aberrated segment  
-    - E2E OPDs per one aberrated segment  
+In the config file, the entry `[local] --> local_data_path` specifies where the output data will be saved. The code will create a subfolder `active` that contains everything from your current code run. It is set up this way so that if you want to save some data, you just rename that directory into something else.
 
 **matrix_numerical**  
-  + contrasts.txt: E2E DH average contrast per aberrated segment pair  
-  + PASTISmatrix_num_piston_Noll1.fits: numerical PASTIS matrix  
-  + darkholes:  
-    - dh_cube.fits: all E2E DH images in one cube  
-    - E2E DH images per aberrated segment pair  
-  + OTE_images:  
-    - OTE images per aberrated segment pair  
-  + psfs:  
-    - psf_cube.fits: all E2E full PSFs in one cube  
-    - E2E full PSFs per aberrated segment pair  
-
-**matrix_analytical**
-  + contrasts.txt: analytical DH average contrast per aberrated segment pair
-  + PASTISmatrix_num_piston_Noll1.fits: analytical PASTIS matrix
-  + darkholes:
-    - dh_cube.fits: all analytical DH images in one cube
-    - analytical DH images per aberrated segment pair
-  + psfs:
-    - psf_cube.fits: all analytical full PSFs in one cube
-    - analytical full PSFs per aberrated segment pair
++ contrasts.txt: E2E DH average contrast per aberrated segment pair  
++ PASTISmatrix_num_piston_Noll1.fits: numerical PASTIS matrix  
++ darkholes:  
+- dh_cube.fits: all E2E DH images in one cube  
+- E2E DH images per aberrated segment pair  
++ OTE_images:  
+- OTE images per aberrated segment pair  
++ psfs:  
+- psf_cube.fits: all E2E full PSFs in one cube  
+- E2E full PSFs per aberrated segment pair  
 
 **results**
-    Whatever results we’re saving
+Whatever results we’re saving
 
 -----------------
 Jupyter notebooks:
 -----------------
 
-The directory "Jupyter Notebooks" contains a suite of notebooks that test and explain each part of the code step by step. Their numbering refers to the order they were generated in and exist mostly for easier identification.
-
--------
-Caveats:
--------
-
-PASTIS was developped for high-contrast, low-aberration regimes and was first validated on an ATLAST geometry in Leboulleux et al. (2018). Its application to JWST is supposed to 1) translate the original IDL code into Python and 2) validate the model on a different telescope setup. This is not fully done yet.
+The directory "Jupyter Notebooks" contains a suite of notebooks that test and explain each part of the code step by step. Their numbering refers to the order they were generated in and exist mostly for easier identification. The most up-to-date ones are in the subdirectory "LUVOIR".
