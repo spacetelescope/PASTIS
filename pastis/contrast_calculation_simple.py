@@ -1,7 +1,12 @@
-"""This program compares the contrast calculation from different methods:
-WebbPSF coronagraph
-Image-based PASTIS
-Matrix-based PASTIS"""
+"""
+This module has functions that compares the contrast calculation from different methods:
+1. E2E coronagraph
+2. (Image-based PASTIS)
+3. Matrix-based PASTIS
+
+All three methods are currently only supported for JWST, and you can pick between the analytical or numerical matrix.
+HiCAT and LUVOIR only have an E2E vs numerical PASTIS comparison (1 + 3).
+"""
 
 import os
 import time
@@ -10,24 +15,26 @@ from astropy.io import fits
 import astropy.units as u
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
-import webbpsf_imaging as webbim
+from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 
 @u.quantity_input(rms=u.nm)
-def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, plotting=False):
+def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pastis=False, plotting=False):
     """
     Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
-    :param dir: data directory to use for matrix and calibration coefficients from
+    :param matdir: data directory to use for matrix and calibration coefficients from
     :param matrix_mode: use 'analytical or 'numerical' matrix
     :param rms: RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
     :param im_pastis: default False, whether to also calculate contrast from image PASTIS
     :param plotting: default False, whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
     :return:
     """
+    from e2e_simulators import webbpsf_imaging as webbim
 
     print("THIS ONLY WORKS FOR PISTON FOR NOW")
 
@@ -35,14 +42,14 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     start_time = time.time()   # runtime currently is around 12 min
 
     # Parameters
-    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), dir)
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('filter', 'lambda') * u.nm
-    filter = CONFIG_INI.get('filter', 'name')
-    fpm = CONFIG_INI.get('coronagraph', 'focal_plane_mask')         # focal plane mask
-    lyot_stop = CONFIG_INI.get('coronagraph', 'pupil_plane_stop')   # Lyot stop
-    inner_wa = CONFIG_INI.getint('coronagraph', 'IWA')
-    outer_wa = CONFIG_INI.getint('coronagraph', 'OWA')
+    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), matdir)
+    which_tel = CONFIG_INI.get('telescope', 'name')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
+    filter = CONFIG_INI.get(which_tel, 'filter_name')
+    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
+    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
@@ -78,13 +85,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
     Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    print('Generating baseline PSF from WebbPSF - no coronagraph, no aberrations')
+    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating WebbPSF coro contrast')
+    print('Generating E2E coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
@@ -126,13 +133,13 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
 
     # Outputs
     print('\n--- CONTRASTS: ---')
-    print('Mean contrast from WebbPSF:', contrast_webbpsf)
+    print('Mean contrast from E2E:', contrast_webbpsf)
     print('Mean contrast with image PASTIS:', contrast_am)
     print('Contrast from matrix PASTIS:', contrast_matrix)
     print('Ratio image PASTIS / matrix PASTIS:', ratio)
 
     print('\n--- RUNTIMES: ---')
-    print('WebbPSF: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
+    print('E2E: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
     if im_pastis:
         print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
     print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
@@ -165,14 +172,225 @@ def pastis_vs_e2e(dir, matrix_mode="analytical", rms=1.*u.nm, im_pastis=False, p
             plt.colorbar()
             plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
                                      '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
-            #TODO: check image rotation, I think there is a 90 degree difference in them
+            #TODO: check image rotation, I think there is a 90 degree difference in them for the JWST simulations
 
     return contrast_webbpsf, contrast_am, contrast_matrix
 
 
+def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
+    """
+    Compute the contrast for a random IrisAO mislignment on the HiCAT simulator.
+    :param matrix_dir: str, directory of saved matrix
+    :param matrix_mode: str, analytical or numerical; currently only numerical supported
+    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :return: 2x float, E2E and matrix contrast
+    """
+    import hicat.simulators
+
+    # Keep track of time
+    start_time = time.time()   # runtime currently is around 12 min
+
+    # Parameters
+    nb_seg = CONFIG_INI.getint('HiCAT', 'nb_subapertures')
+    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+
+    # Import numerical PASTIS matrix for HiCAT sim
+    filename = 'PASTISmatrix_num_HiCAT_piston_Noll1'
+    matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
+
+    # Create random aberration coefficients
+    aber = np.random.random([nb_seg])   # piston values in input units
+    print('PISTON ABERRATIONS:', aber)
+
+    # Normalize to the RMS value I want
+    rms_init = util.rms(aber)
+    aber *= rms.value / rms_init
+    calc_rms = util.rms(aber) * u.nm
+    aber *= u.nm    # making sure the aberration has the correct units
+    print("Calculated RMS:", calc_rms)
+
+    # Remove global piston
+    aber -= np.mean(aber)
+
+    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
+    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
+    hc = hicat.simulators.hicat_sim.HICAT_Sim()
+    hc.iris_ao = 'iris_ao'
+    hc.apodizer = 'cnt1_apodizer'
+    hc.lyot_stop = 'cnt1_apodizer_lyot_stop'
+    hc.include_fpm = False
+
+    psf_perfect = hc.calc_psf(display=False, return_intermediates=False)
+    normp = np.max(psf_perfect[0].data)
+    #psf_perfect = psf_perfect[0].data / normp   don't actually need the perfect PSF
+
+    ### HiCAT sim
+    start_e2e = time.time()
+    # Set up the HiCAT simulator, get PSF
+    hc.apodizer = 'cnt1_apodizer'
+    hc.lyot_stop = 'cnt1_apodizer_lyot_stop'
+    hc.include_fpm = True
+
+    # Calculate coro PSF without aberrations
+    psf_coro = hc.calc_psf(display=False, return_intermediates=False)
+    psf_coro = psf_coro[0].data / normp
+
+
+    print('Calculating E2E contrast...')
+    # Put aberration on Iris AO
+    for nseg in range(nb_seg):
+        hc.iris_dm.set_actuator(nseg+1, aber[nseg], 0, 0)
+
+    psf_hicat = hc.calc_psf(display=False, return_intermediates=False)
+    psf_hicat = psf_hicat[0].data / normp
+
+    # Create DH
+    dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=13 / 4)
+    # Get the mean contrast
+    hicat_dh_psf = psf_hicat * dh_mask
+    contrast_hicat = np.mean(hicat_dh_psf[np.where(hicat_dh_psf != 0)])
+    end_e2e = time.time()
+
+    ###
+    # Calculate baseline contrast
+    baseline_dh = psf_coro * dh_mask
+    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+
+    ## MATRIX PASTIS
+    print('Generating contrast from matrix-PASTIS')
+    start_matrixpastis = time.time()
+    # Get mean contrast from matrix PASTIS
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    end_matrixpastis = time.time()
+
+    ## Outputs
+    print('\n--- CONTRASTS: ---')
+    print('Mean contrast from E2E:', contrast_hicat)
+    print('Contrast from matrix PASTIS:', contrast_matrix)
+
+    print('\n--- RUNTIMES: ---')
+    print('E2E: ', end_e2e-start_e2e, 'sec =', (end_e2e-start_e2e)/60, 'min')
+    print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+
+    return contrast_hicat, contrast_matrix
+
+
+def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
+    """
+    Compute the contrast for a random SM mislignment on the LUVOIR simulator.
+    :param matrix_dir: str, directory of saved matrix
+    :param matrix_mode: str, analytical or numerical; currently only numerical supported
+    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :return: 2x float, E2E and matrix contrast
+    """
+
+    # Keep track of time
+    start_time = time.time()   # runtime currently is around ? min
+
+    # Parameters
+    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    sampling = 4
+
+    # Import numerical PASTIS matrix for HiCAT sim
+    filename = 'PASTISmatrix_num_piston_Noll1'
+    matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
+
+    # Create random aberration coefficients
+    aber = np.random.random([nb_seg])   # piston values in input units
+    print('PISTON ABERRATIONS:', aber)
+
+    # Normalize to the RMS value I want
+    rms_init = util.rms(aber)
+    aber *= rms.value / rms_init
+    calc_rms = util.rms(aber) * u.nm
+    aber *= u.nm    # making sure the aberration has the correct units
+    print("Calculated RMS:", calc_rms)
+
+    # Remove global piston
+    aber -= np.mean(aber)
+
+    # Coronagraph parameters
+    # The LUVOIR STDT delivery in May 2018 included three different apodizers
+    # we can work with, so I will implement an easy way of making a choice between them.
+    design = apodizer_choice
+    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+
+    # Instantiate LUVOIR telescope with APLC
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
+    # and coro PSF without aberrations
+    start_e2e = time.time()
+    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
+    print('Also generating coro PSF without aberrations')
+    psf_perfect, ref = luvoir.calc_psf(ref=True)
+    normp = np.max(ref)
+    psf_coro = psf_perfect / normp
+
+    print('Calculating E2E contrast...')
+    # Put aberrations on segmented mirror
+    for nseg in range(nb_seg):
+        luvoir.set_segment(nseg+1, aber[nseg].to(u.m).value/2, 0, 0)
+
+    psf_luvoir = luvoir.calc_psf()
+    psf_luvoir /= normp
+
+    # Create DH
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_mask = (dh_outer - dh_inner).astype('bool')
+
+    # Get the mean contrast
+    dh_intensity = psf_luvoir * dh_mask
+    contrast_luvoir = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+    end_e2e = time.time()
+
+    ###
+    # Calculate baseline contrast
+    baseline_dh = psf_coro * dh_mask
+    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    print('Baseline contrast: {}'.format(contrast_base))
+
+    ## MATRIX PASTIS
+    print('Generating contrast from matrix-PASTIS')
+    start_matrixpastis = time.time()
+    # Get mean contrast from matrix PASTIS
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    end_matrixpastis = time.time()
+
+    ## Outputs
+    print('\n--- CONTRASTS: ---')
+    print('Mean contrast from E2E:', contrast_luvoir)
+    print('Contrast from matrix PASTIS:', contrast_matrix)
+
+    print('\n--- RUNTIMES: ---')
+    print('E2E: ', end_e2e-start_e2e, 'sec =', (end_e2e-start_e2e)/60, 'min')
+    print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+
+    return contrast_luvoir, contrast_matrix
+
+
 if __name__ == '__main__':
 
-    WORKDIRECTORY = "active"    # you can chose here what data directory to work in
-    matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
-    total_rms = 100 * u.nm
-    pastis_vs_e2e(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
+    # Test JWST
+    # WORKDIRECTORY = "active"    # you can chose here what data directory to work in
+    # matrix = "analytical"       # "analytical" or "numerical" PASTIS matrix to use
+    # total_rms = 100 * u.nm
+    # contrast_jwst_ana_num(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
+
+    # Test HiCAT
+    #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT', rms=10*u.nm)
+    #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical', rms=10*u.nm)
+
+    # Test LUVOIR
+    c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
+                                         rms=1 * u.nm)

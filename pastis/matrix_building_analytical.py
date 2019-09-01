@@ -1,4 +1,9 @@
-"""This program constructs the matrix M for PASTIS and saves it."""
+"""
+This program constructs the matrix M for PASTIS and saves it.
+
+Currently supported:
+JWST
+"""
 
 import os
 import time
@@ -10,15 +15,17 @@ import util_pastis as util
 import image_pastis as impastis
 
 
-if __name__ == '__main__':
+def ana_matrix_jwst():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 11 minutes
+    print('Building analytical matrix for JWST\n')
 
     # Parameters
     datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
+    which_tel = CONFIG_INI.get('telescope', 'name')
     resDir = os.path.join(datadir, 'matrix_analytical')
-    nb_seg = CONFIG_INI.getint('telescope', 'nb_subapertures')
+    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
     zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
@@ -92,3 +99,8 @@ if __name__ == '__main__':
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
+
+
+if __name__ == '__main__':
+
+    ana_matrix_jwst()
