@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3382986.svg)](https://doi.org/10.5281/zenodo.3382986)
+
 # PASTIS
 Sweet liquor from the south of France.
 
