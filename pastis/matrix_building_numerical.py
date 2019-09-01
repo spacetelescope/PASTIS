@@ -356,4 +356,4 @@ if __name__ == '__main__':
 
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
-        num_matrix_luvoir(design='large')
+        num_matrix_luvoir(design='small')

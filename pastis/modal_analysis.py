@@ -284,13 +284,13 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
 if __name__ == '__main__':
 
     ### Preparations
-    run_choice = '2019-8-13_002_1nm'
+    run_choice = 'active'
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
-    calculate_modes = False
-    calculate_sigmas = False
-    calc_cumulative_contrast = False
+    calculate_modes = True
+    calculate_sigmas = True
+    calc_cumulative_contrast = True
     calculate_mus = True
     run_monte_carlo = True
 
@@ -469,6 +469,18 @@ if __name__ == '__main__':
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
         #plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
         plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_' + str(c_stat) + '_test.pdf'))
+
+    ### apply mu map and run through E2E simulator
+    mus *= u.nm
+    luvoir.flatten()
+    for seg, mu in enumerate(mus):
+        luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
+    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
+    plt.show()
+    contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
+    print(contrast_mu)
+
+    ###
 
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
 
