@@ -39,7 +39,7 @@ class SegmentedTelescopeAPLC:
         self.aper = aper
         self.apodizer = apod
         self.lyotstop = lyotst
-        self.fpm = fpm
+        self.fpm = fpm   #TODO: this is not actually used inside this class
         self.wvln = params['wavelength']
         self.diam = params['diameter']
         self.imlamD = params['imlamD']
@@ -266,3 +266,5 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
         self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
         self.coro_no_ls = hc.LyotCoronagraph(pupil_grid, self.fpm)
+        #TODO: these three propagators should actually happen in the super init
+        # -> how are self.aper_ind and pupil_grid connected?
