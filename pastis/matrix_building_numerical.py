@@ -332,7 +332,189 @@ def num_matrix_luvoir(design):
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Runtime for matrix_building_numerical.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
+    print('Data saved to {}'.format(resDir))
+
+
+def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, nm_aber, zern_mode, resDir, segment_pair):
+
+    # Instantiate LUVOIR object
+    luv = LuvoirAPLC(optics_input, design, sampling)
+
+    print('\nPAIR: {}-{}'.format(segment_pair[0]+1, segment_pair[1]+1))
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    luv.flatten()
+    luv.set_segment(segment_pair[0]+1, nm_aber / 2, 0, 0)
+    if segment_pair[0] != segment_pair[1]:
+        luv.set_segment(segment_pair[1]+1, nm_aber / 2, 0, 0)
+
+    print('Calculating coro image...')
+    image, inter = luv.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
+    # Normalize PSF by reference image
+    psf = image / norm
+
+    # Save PSF image to disk
+    filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+        segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+    hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    print('Calculating mean contrast in dark hole')
+    dh_intensity = psf * dh_mask
+    contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    print('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
+
+    return float(contrast), segment_pair, inter['seg_mirror'], psf
+
+
+def num_matrix_luvoir_multiprocess(design):
+    """
+    Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
+
+    Multiprocessed version of num_matrix_luvoir(). Implementation adapted from
+    hicat.scripts.stroke_minimization.calculate_jacobian
+    """
+    import multiprocessing
+    from itertools import product
+
+    # Keep track of time
+    start_time = time.time()   # runtime is currently around 150 minutes
+    print('Building numerical matrix for LUVOIR with multiprocessing\n')
+
+    # Figure out how many processes is optimal and create a Pool.
+    # Assume we're the only one on the machine so we can hog all the resources.
+    # We expect numpy to use multithreaded math via the Intel MKL library, so
+    # we check how many threads MKL will use, and create enough processes so
+    # as to use 100% of the CPU cores.
+    # You might think we should divide number of cores by 2 to get physical cores
+    # to account for hyperthreading, however empirical testing on telserv3 shows that
+    # it is slightly more performant on telserv3 to use all logical cores
+    num_cpu = multiprocessing.cpu_count()
+    try:
+        import mkl
+        num_core_per_process = mkl.get_max_threads()
+    except ImportError:
+        # typically this is 4, so use that as default
+        print("Couldn't import MKL; guessing default value of 4 cores per process")
+        num_core_per_process = 4
+    num_processes = int(num_cpu // num_core_per_process)
+    print("Multiprocess PASTIS matrix for LUVOIR will use {} processes (with {} threads per process)".format(num_processes, num_core_per_process))
+
+    ### Parameters
+
+    # System parameters
+    os.makedirs(os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active'), exist_ok=True)
+    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
+
+    # General telescope parameters
+    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
+    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
+    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
+
+    # Image system parameters
+    im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+
+    # Print some of the defined parameters
+    print('LUVOIR apodizer design: {}'.format(design))
+    print()
+    print('Wavelength: {} m'.format(wvln))
+    print('Telescope diameter: {} m'.format(diam))
+    print('Number of segments: {}'.format(nb_seg))
+    print()
+    print('Image size: {} lambda/D'.format(im_lamD))
+    print('Sampling: {} px per lambda/D'.format(sampling))
+
+    # Create necessary directories if they don't exist yet
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+
+    # Instantiate Luvoir telescope with chosen apodizer design
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    # Create dark hole mask
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_mask = (dh_outer - dh_inner).astype('bool')
+
+    # Calculate reference images for contrast normalization and coronagraph floor
+    unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
+    norm = np.max(ref)
+
+    dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    print('contrast floor: {}'.format(contrast_floor))
+
+    print('nm_aber: {} m'.format(nm_aber))
+    matrix_direct = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
+
+    # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
+    luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, dh_inner,
+                                           nm_aber, zern_mode, resDir)
+
+    # Iterate over all segment pairs via a multiprocess pool
+    mypool = multiprocessing.Pool(num_processes)
+    t_start = time.time()
+    results = mypool.map(luvoir_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
+    t_stop = time.time()
+
+    print("\nMultiprocess calculation complete in {:.1f} s".format(t_stop-t_start))
+
+    # Unscramble results
+    #all_psfs = np.zeros(nb_seg, nb_seg, pixels?)
+    all_contrasts = np.zeros_like(matrix_direct)
+    for i, res in enumerate(results):
+
+        # Fill according entry in the matrix and subtract baseline contrast
+        all_contrasts[results[i][1][0], results[i][1][1]] = results[i][0]
+        matrix_direct = all_contrasts - contrast_floor
+
+        # Plot all OPDs (or are these surfaces?)
+        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+            results[i][1][0]+1) + '-' + str(results[i][1][1]+1)
+        plt.clf()
+        hc.imshow_field(results[i][2], grid=luvoir.aperture.grid, mask=luvoir.aperture, cmap='RdBu')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+        # Collect all PSFs   #TODO: make this actually work, so we can save them as a cube later outside this loop
+        #all_psfs[results[i][1][0], results[i][1][1]] = results[i][3]
+
+    mypool.close()
+
+    # Save the PSF image *cube* as well (as opposed to each one individually)
+    #hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+
+    # Filling the off-axis elements
+    print('\nCalculating off-axis matrix elements...')
+    matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(matrix_direct)     # This will be the final PASTIS matrix.
+
+    for i in range(nb_seg):
+        for j in range(nb_seg):
+            if i != j:
+                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                matrix_pastis[i,j] = matrix_off_val
+                #print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+
+    # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
+    # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
+    # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
+    #matrix_pastis /= np.square(nm_aber)
+
+    # Save matrix to file
+    filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    print('\nMatrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+
+    # Tell us how long it took to finish.
+    end_time = time.time()
+    print('Runtime for matrix_building_numerical.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
 
 
@@ -341,3 +523,4 @@ if __name__ == '__main__':
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
         num_matrix_luvoir(design='small')
+        #num_matrix_luvoir_multiprocess(design='small')
