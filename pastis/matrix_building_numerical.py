@@ -264,6 +264,7 @@ def num_matrix_luvoir(design):
 
     print('nm_aber: {} m'.format(nm_aber))
 
+    # I could probably use itertools.product for this, see the multiprocessed implementation
     for i in range(nb_seg):
         for j in range(nb_seg):
 
@@ -488,6 +489,7 @@ def num_matrix_luvoir_multiprocess(design):
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
     #hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    all_contrasts = all_contrasts.ravel()
     np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
