@@ -454,7 +454,7 @@ def num_matrix_luvoir_multiprocess(design):
     matrix_direct = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
-    luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, dh_inner,
+    luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, dh_mask,
                                            nm_aber, zern_mode, resDir)
 
     # Iterate over all segment pairs via a multiprocess pool
