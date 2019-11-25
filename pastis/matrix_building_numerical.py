@@ -10,7 +10,10 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 
 import os
 import time
+import functools
 import numpy as np
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import astropy.units as u
@@ -19,9 +22,6 @@ import hcipy as hc
 from config import CONFIG_INI
 import util_pastis as util
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
-
-# Set WebbPSF environment variable
-os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
 
 def num_matrix_jwst():
@@ -33,6 +33,8 @@ def num_matrix_jwst():
 
     import webbpsf
     from e2e_simulators import webbpsf_imaging as webbim
+    # Set WebbPSF environment variable
+    os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
@@ -56,21 +58,11 @@ def num_matrix_jwst():
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
-    # If subfolder "matrix_numerical" doesn't exist yet, create it.
-    if not os.path.isdir(resDir):
-        os.mkdir(resDir)
-
-    # If subfolder "OTE_images" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
-        os.mkdir(os.path.join(resDir, 'OTE_images'))
-
-    # If subfolder "psfs" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'psfs')):
-        os.mkdir(os.path.join(resDir, 'psfs'))
-
-    # If subfolder "darkholes" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'darkholes')):
-        os.mkdir(os.path.join(resDir, 'darkholes'))
+    # Create necessary directories if they don't exist yet
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'darkholes'), exist_ok=True)
 
     # Create the dark hole mask.
     pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
@@ -218,6 +210,7 @@ def num_matrix_luvoir(design):
     ### Parameters
 
     # System parameters
+    os.makedirs(os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active'), exist_ok=True)
     resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
@@ -229,8 +222,8 @@ def num_matrix_luvoir(design):
     nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
 
     # Image system parameters
-    im_lamD = 30  # image size in lambda/D
-    sampling = 4
+    im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Print some of the defined parameters
     print('LUVOIR apodizer design: {}'.format(design))
@@ -242,22 +235,13 @@ def num_matrix_luvoir(design):
     print('Image size: {} lambda/D'.format(im_lamD))
     print('Sampling: {} px per lambda/D'.format(sampling))
 
-    ### Setting up the paths
-
-    # If subfolder "matrix_numerical" doesn't exist yet, create it.
-    if not os.path.isdir(resDir):
-        os.mkdir(resDir)
-
-    # If subfolder "OTE_images" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
-        os.mkdir(os.path.join(resDir, 'OTE_images'))
-
-    # If subfolder "psfs" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'psfs')):
-        os.mkdir(os.path.join(resDir, 'psfs'))
+    # Create necessary directories if they don't exist yet
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### Dark hole mask
@@ -269,9 +253,9 @@ def num_matrix_luvoir(design):
     unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
     norm = np.max(ref)
 
-    dh_intensity = unaberrated_coro_psf / norm * dh_mask
-    contrast_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-    print(contrast_floor)
+    dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    print('contrast floor: {}'.format(contrast_floor))
 
     ### Generating the PASTIS matrix and a list for all contrasts
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
@@ -310,8 +294,8 @@ def num_matrix_luvoir(design):
 
             print('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
-            contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-            print('contrast:', contrast)
+            contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+            print('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast

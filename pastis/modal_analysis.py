@@ -8,6 +8,8 @@ import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import hcipy as hc
@@ -305,8 +307,8 @@ if __name__ == '__main__':
     # How many repetitions for Monte Carlo?
     n_repeat = 100
 
-    nseg = 120
-    wvln = 638e-9
+    nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
 
     print('Setting up optics...')
     print('Data folder: {}'.format(workdir))
@@ -343,7 +345,7 @@ if __name__ == '__main__':
     sm = SegmentedMirror(aper_ind, seg_pos)
 
     # Instantiate LUVOIR
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, apodizer_design, sampling)
 
     # Generate reference PSF and coronagraph baseline
@@ -429,7 +431,7 @@ if __name__ == '__main__':
         for segnum in range(nseg):
             mus[segnum] = calculate_segment_constraints(pmodes, sigmas, segnum)
 
-        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'_test.txt'), mus)
+        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
@@ -438,7 +440,7 @@ if __name__ == '__main__':
         hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='Blues')  # in meters
         plt.title('Static segment constraints $\mu_p$ for C = '+str(c_stat), size=20)
         plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'_test.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'.pdf'))
 
     else:
         print('Reading mus from {}'.format(workdir))
@@ -467,8 +469,8 @@ if __name__ == '__main__':
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        #plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_' + str(c_stat) + '_test.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
+        #plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_' + str(c_stat) + '_test.pdf'))
 
     ### apply mu map and run through E2E simulator
     mus *= u.nm
