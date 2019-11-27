@@ -49,11 +49,8 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     # Set up path for results
     outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
-    if not os.path.isdir(outDir):
-        os.mkdir(outDir)
-
-    if not os.path.isdir(os.path.join(outDir, 'dh_images_'+matrix_mode)):
-        os.mkdir(os.path.join(outDir, 'dh_images_'+matrix_mode))
+    os.makedirs(outDir, exist_ok=True)
+    os.makedirs(os.path.join(outDir, 'dh_images_'+matrix_mode), exist_ok=True)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
@@ -218,6 +215,9 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
     realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
+
+    # Create results directory if it doesn't exist yet
+    os.makedirs(resultdir, exist_ok=True)
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
