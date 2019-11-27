@@ -544,3 +544,6 @@ if __name__ == '__main__':
 
         coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
         num_matrix_luvoir(design=coro_design)
+
+        num_matrix_luvoir(design='small')
+        # num_matrix_luvoir_multiprocess(design='small')
