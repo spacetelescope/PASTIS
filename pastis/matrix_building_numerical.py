@@ -12,8 +12,6 @@ import os
 import time
 import functools
 import numpy as np
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import astropy.units as u

@@ -15,8 +15,6 @@ import time
 import numpy as np
 import pandas as pd
 import astropy.units as u
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 from config import CONFIG_INI

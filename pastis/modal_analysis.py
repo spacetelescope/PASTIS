@@ -8,8 +8,6 @@ import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import hcipy as hc
