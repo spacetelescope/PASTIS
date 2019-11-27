@@ -318,7 +318,7 @@ def num_matrix_luvoir(design):
     # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
     # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
     # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
-    #matrix_pastis /= np.square(nm_aber)
+    #matrix_pastis /= np.square(nm_aber * 1e9)    # transform back to nm
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
