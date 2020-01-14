@@ -339,6 +339,8 @@ def num_matrix_luvoir(design):
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
+    
+    return overall_dir
 
 
 if __name__ == '__main__':
