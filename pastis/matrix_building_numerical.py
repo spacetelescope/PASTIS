@@ -11,6 +11,7 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 import os
 import time
 import functools
+from shutil import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -235,6 +236,9 @@ def num_matrix_luvoir(design):
     print()
     print('Image size: {} lambda/D'.format(im_lamD))
     print('Sampling: {} px per lambda/D'.format(sampling))
+
+    #  Copy configfile to resulting matrix directory
+    util.copy_config()
 
     # Create necessary directories if they don't exist yet
     os.makedirs(resDir, exist_ok=True)

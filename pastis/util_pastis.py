@@ -261,3 +261,16 @@ def create_data_path(initial_path, telescope="", suffix=""):
     print(suffix)
     full_path = os.path.join(initial_path, date_time_string + telescope + suffix)
     return full_path
+
+
+def copy_config(outdir):
+    """
+    Copy the config_local, or if non-existent, config.ini to outdir
+    :param outdir: string, target location of copied configfile
+    :return: 
+    """
+    print('Saving the configfile to outputs folder.')
+    try:
+        copy('config_local.ini', outdir)
+    except IOError:
+        copy('config.ini', outdir)
