@@ -284,7 +284,7 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
 if __name__ == '__main__':
 
     ### Preparations
-    run_choice = 'active'
+    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     c_dyn = 1e-11    # not working with this yet
 
     # How many repetitions for Monte Carlo?
-    n_repeat = 100
+    n_repeat = 10
 
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]

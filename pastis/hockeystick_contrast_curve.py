@@ -277,8 +277,8 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    run_choice = 'active'
+    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=1, no_realizations=1)
+    hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=10)

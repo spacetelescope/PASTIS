@@ -39,7 +39,8 @@ def num_matrix_jwst():
     print('Building numerical matrix for JWST\n')
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='jwst')
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
     which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
@@ -57,6 +58,7 @@ def num_matrix_jwst():
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
     # Create necessary directories if they don't exist yet
+    os.makedirs(overall_dir, exist_ok=True)
     os.makedirs(resDir, exist_ok=True)
     os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
     os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
@@ -208,8 +210,9 @@ def num_matrix_luvoir(design):
     ### Parameters
 
     # System parameters
-    os.makedirs(os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active'), exist_ok=True)
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope = 'luvoir-'+design)
+    os.makedirs(overall_dir, exist_ok=True)
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
@@ -317,7 +320,7 @@ def num_matrix_luvoir(design):
     # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
     # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
     # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
-    #matrix_pastis /= np.square(nm_aber)
+    matrix_pastis /= np.square(nm_aber)
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
