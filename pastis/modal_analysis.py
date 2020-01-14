@@ -281,10 +281,9 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     return rand_contrast
 
 
-if __name__ == '__main__':
+def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'current_analysis'), c_stat_in=1e-10, n_repeat_in=10):
 
     ### Preparations
-    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
@@ -299,11 +298,11 @@ if __name__ == '__main__':
     apodizer_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
 
     # Define contrast requirements
-    c_stat = 1e-10
+    c_stat = c_stat_in
     c_dyn = 1e-11    # not working with this yet
 
     # How many repetitions for Monte Carlo?
-    n_repeat = 10
+    n_repeat = n_repeat_in
 
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
@@ -490,3 +489,8 @@ if __name__ == '__main__':
                                                                    (end_monte_carlo - start_monte_carlo)/3600))
 
     print('\nGood job')
+
+
+if __name__ == '__main__':
+
+    run_full_pastis_analysis_luvoir()
