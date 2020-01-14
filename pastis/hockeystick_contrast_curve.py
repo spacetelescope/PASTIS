@@ -278,7 +278,7 @@ if __name__ == '__main__':
 
     # LUVOIR
     run_choice = 'active'
-    apod_design = 'small'
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice=apod_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=10)
+    hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=1, no_realizations=1)

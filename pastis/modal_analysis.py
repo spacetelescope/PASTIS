@@ -295,8 +295,8 @@ if __name__ == '__main__':
     run_monte_carlo = True
 
     # LUVOIR coronagraph parameters
-    sampling = 4
-    apodizer_design = 'small'
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    apodizer_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
 
     # Define contrast requirements
     c_stat = 1e-10
@@ -442,7 +442,7 @@ if __name__ == '__main__':
 
     else:
         print('Reading mus from {}'.format(workdir))
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'_test.txt'))
+        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'))
 
     ### Calculate Monte Carlo confirmation with E2E
     if run_monte_carlo:
