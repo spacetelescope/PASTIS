@@ -199,9 +199,9 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
     of results in a figure that shows contrast vs. rms phase error.
 
+    :param apodizer_choice: string, use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
     :param resultsdir: string, Path to directory where results will be saved.
-    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :param range_points: int, How many points of rms error to use in the predefined aberration range.
     :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
                                 is used.
@@ -213,7 +213,6 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     ##########################
     rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
-    realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
 
     # Create results directory if it doesn't exist yet
@@ -224,7 +223,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
     print("RMS range: {} nm".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    print("Random realizations: {}".format(no_realizations))
 
     for i, rms in enumerate(rms_range):
 
@@ -233,12 +232,12 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         e2e_rand = []
         matrix_rand = []
 
-        for j in range(realiz):
+        for j in range(no_realizations):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
             print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            print("Random realization: {}/{}".format(j+1, no_realizations))
+            print("Total: {}/{}\n".format((i*no_realizations)+(j+1), len(rms_range)*no_realizations))
 
             c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
@@ -255,7 +254,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     # Plot
     plt.clf()
-    plt.title("Contrast calculation with " + str(realiz) + " realizations each")
+    plt.title("Contrast calculation with " + str(no_realizations) + " realizations each")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
