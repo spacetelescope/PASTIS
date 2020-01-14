@@ -5,6 +5,7 @@ Helper functions for PASTIS.
 import os
 import time
 import datetime
+from shutil  import copy
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
