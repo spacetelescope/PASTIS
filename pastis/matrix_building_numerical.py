@@ -238,7 +238,7 @@ def num_matrix_luvoir(design):
     print('Sampling: {} px per lambda/D'.format(sampling))
 
     #  Copy configfile to resulting matrix directory
-    util.copy_config()
+    util.copy_config(resDir)
 
     # Create necessary directories if they don't exist yet
     os.makedirs(resDir, exist_ok=True)
