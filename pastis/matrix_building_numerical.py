@@ -237,13 +237,13 @@ def num_matrix_luvoir(design):
     print('Image size: {} lambda/D'.format(im_lamD))
     print('Sampling: {} px per lambda/D'.format(sampling))
 
-    #  Copy configfile to resulting matrix directory
-    util.copy_config(resDir)
-
     # Create necessary directories if they don't exist yet
     os.makedirs(resDir, exist_ok=True)
     os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
     os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+
+    #  Copy configfile to resulting matrix directory
+    util.copy_config(resDir)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
