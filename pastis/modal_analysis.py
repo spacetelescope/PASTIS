@@ -281,7 +281,7 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     return rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'current_analysis'), c_stat_in=1e-10, n_repeat_in=10):
+def run_full_pastis_analysis_luvoir(design, run_choice=CONFIG_INI.get('numerical', 'current_analysis'), c_stat_in=1e-10, n_repeat_in=10):
 
     ### Preparations
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -295,7 +295,6 @@ def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'curr
 
     # LUVOIR coronagraph parameters
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-    apodizer_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
 
     # Define contrast requirements
     c_stat = c_stat_in
@@ -309,7 +308,7 @@ def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'curr
 
     print('Setting up optics...')
     print('Data folder: {}'.format(workdir))
-    print('Coronagraph: {}'.format(apodizer_design))
+    print('Coronagraph: {}'.format(design))
 
     # Create SM
     # Read pupil and indexed pupil
@@ -343,7 +342,7 @@ def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'curr
 
     # Instantiate LUVOIR
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, apodizer_design, sampling)
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Generate reference PSF and coronagraph baseline
     luvoir.flatten()
@@ -493,4 +492,5 @@ def run_full_pastis_analysis_luvoir(run_choice=CONFIG_INI.get('numerical', 'curr
 
 if __name__ == '__main__':
 
-    run_full_pastis_analysis_luvoir()
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    run_full_pastis_analysis_luvoir(coro_design)

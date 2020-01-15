@@ -32,6 +32,6 @@ if __name__ == '__main__':
     hockeystick_luvoir(apodizer_choice='large', matrixdir=matrix_dir_large, resultdir=result_dir_large, range_points=50, no_realizations=20)
     
     # Finally run full analysis on all three cases
-    run_full_pastis_analysis_luvoir(run_choice=dir_small)
-    run_full_pastis_analysis_luvoir(run_choice=dir_medium)
-    run_full_pastis_analysis_luvoir(run_choice=dir_large)
+    run_full_pastis_analysis_luvoir(design='small', run_choice=dir_small)
+    run_full_pastis_analysis_luvoir(design='medium', run_choice=dir_medium)
+    run_full_pastis_analysis_luvoir(design='large', run_choice=dir_large)
