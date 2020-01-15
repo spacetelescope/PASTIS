@@ -321,10 +321,10 @@ def num_matrix_luvoir(design):
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
-    # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
-    # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
-    # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
-    matrix_pastis /= np.square(nm_aber)
+    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
+    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
+    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
+    matrix_pastis /= np.square(nm_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
