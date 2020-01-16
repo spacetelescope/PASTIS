@@ -281,7 +281,7 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     return rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(design, run_choice=CONFIG_INI.get('numerical', 'current_analysis'), c_stat_in=1e-10, n_repeat_in=10):
+def run_full_pastis_analysis_luvoir(design, run_choice, c_stat_in=1e-10, n_repeat_in=100):
 
     ### Preparations
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -474,9 +474,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice=CONFIG_INI.get('numerical
     for seg, mu in enumerate(mus):
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    plt.show()
+    #plt.show()
     contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
-    print(contrast_mu)
+    print('Contrast with mu-map: {}'.format(contrast_mu))
 
     ###
 
@@ -493,4 +493,5 @@ def run_full_pastis_analysis_luvoir(design, run_choice=CONFIG_INI.get('numerical
 if __name__ == '__main__':
 
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
-    run_full_pastis_analysis_luvoir(coro_design)
+    run = CONFIG_INI.get('numerical', 'current_analysis')
+    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, n_repeat_in=100)

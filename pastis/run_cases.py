@@ -9,8 +9,7 @@ from modal_analysis import run_full_pastis_analysis_luvoir
 
 if __name__ == '__main__':
     
-    # First generate a couple of matrices, all with 1 nm of calibration aberration
-    # matrix_pastis /= np.square(nm_aber) *after* fixing of off-axis elements is included
+    # First generate a couple of matrices
     dir_small = num_matrix_luvoir(design='small')
     dir_medium = num_matrix_luvoir(design='medium')
     dir_large = num_matrix_luvoir(design='large')
