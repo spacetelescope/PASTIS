@@ -241,7 +241,8 @@ def calculate_segment_constraints(pmodes, sigmas, segnum):
     :param segnum: int, segment number for which to calculate the segment-based constraint
     :return: mu: float, segment-based PASTIS constraint for segment segnum
     """
-    mu = np.nansum(pmodes[segnum,:]**2 * sigmas)
+    mu = np.sqrt(np.nansum(pmodes[segnum,:]**2 * sigmas**2))
+
     return mu
 
 
@@ -255,8 +256,8 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     :return: rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Create as many random numbers between 0 and 1 as we have segments
-    rand = np.random.random(nseg)
+    # Create as many random numbers between -1 and 1 as we have segments
+    rand = np.random.uniform(-1, 1, nseg)
 
     mus *= u.nm
 
@@ -287,9 +288,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat_in=1e-10, n_repea
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
-    calculate_modes = True
-    calculate_sigmas = True
-    calc_cumulative_contrast = True
+    calculate_modes = False
+    calculate_sigmas = False
+    calc_cumulative_contrast = False
     calculate_mus = True
     run_monte_carlo = True
 
@@ -424,8 +425,35 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat_in=1e-10, n_repea
     if calculate_mus:
         print('Calculating static segment-based constraints')
         mus = np.zeros_like(sigmas)
-        for segnum in range(nseg):
-            mus[segnum] = calculate_segment_constraints(pmodes, sigmas, segnum)
+        #for segnum in range(nseg):
+        #    mus[segnum] = calculate_segment_constraints(pmodes, sigmas, segnum)
+
+        #mus = calculate_all_mus(pmodes, sigmas)
+
+        mus = np.array([0.42457398, 0.43263137, 0.53531237, 0.43269394, 0.42464677,
+       0.56847316, 0.25481019, 0.2679411 , 0.25628146, 0.29960313,
+       0.32101311, 0.29971809, 0.25628622, 0.26793028, 0.25481893,
+       0.32905428, 0.40217741, 0.32887443, 0.27493438, 0.2637859 ,
+       0.26169566, 0.2775577 , 0.25743874, 0.2844261 , 0.3649898 ,
+       0.28446919, 0.2573941 , 0.27757212, 0.26171027, 0.26379745,
+       0.27493869, 0.26954265, 0.34122172, 0.35207975, 0.34113248,
+       0.26959655, 0.26104497, 0.2687888 , 0.26134843, 0.26194354,
+       0.26136324, 0.26688566, 0.26021199, 0.29276589, 0.32462372,
+       0.29286084, 0.26016204, 0.26700708, 0.26122089, 0.26188324,
+       0.26119975, 0.26871528, 0.26089517, 0.26046364, 0.30805558,
+       0.34552694, 0.28276461, 0.34548374, 0.30820283, 0.26033985,
+       0.36608843, 0.28052426, 0.27933035, 0.27767442, 0.28863459,
+       0.36302424, 0.28076897, 0.27925961, 0.27229457, 0.31314117,
+       0.45231715, 0.31321509, 0.27219549, 0.27937241, 0.28059408,
+       0.36347006, 0.28870836, 0.27783143, 0.27951575, 0.28058942,
+       0.36666666, 0.29339235, 0.29520819, 0.35932055, 0.32765891,
+       0.36103842, 0.32769696, 0.35947034, 0.29504509, 0.29362397,
+       0.61149286, 0.51640849, 0.51411437, 0.521537  , 0.64687777,
+       0.588027  , 0.52026545, 0.49487706, 0.51003088, 0.67511845,
+       0.67551096, 0.50997287, 0.49523922, 0.5196469 , 0.58862483,
+       0.6457101 , 0.52131111, 0.51361705, 0.51619164, 0.61026733,
+       0.6678321 , 0.52509346, 0.55485576, 0.62254253, 0.66433524,
+       0.66356959, 0.62269195, 0.55429979, 0.52566332, 0.66674057])
 
         np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'), mus)
 
