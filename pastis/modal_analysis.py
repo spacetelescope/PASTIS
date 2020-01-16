@@ -281,10 +281,9 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     return rand_contrast
 
 
-if __name__ == '__main__':
+def run_full_pastis_analysis_luvoir(design, run_choice, c_stat_in=1e-10, n_repeat_in=100):
 
     ### Preparations
-    run_choice = 'active'
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Which parts are we running?
@@ -295,22 +294,21 @@ if __name__ == '__main__':
     run_monte_carlo = True
 
     # LUVOIR coronagraph parameters
-    sampling = 4
-    apodizer_design = 'small'
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Define contrast requirements
-    c_stat = 1e-10
+    c_stat = c_stat_in
     c_dyn = 1e-11    # not working with this yet
 
     # How many repetitions for Monte Carlo?
-    n_repeat = 100
+    n_repeat = n_repeat_in
 
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
 
     print('Setting up optics...')
     print('Data folder: {}'.format(workdir))
-    print('Coronagraph: {}'.format(apodizer_design))
+    print('Coronagraph: {}'.format(design))
 
     # Create SM
     # Read pupil and indexed pupil
@@ -344,7 +342,7 @@ if __name__ == '__main__':
 
     # Instantiate LUVOIR
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, apodizer_design, sampling)
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Generate reference PSF and coronagraph baseline
     luvoir.flatten()
@@ -352,8 +350,8 @@ if __name__ == '__main__':
     norm = ref.max()
     #plt.show()
     # Make dark hole mask
-    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
     # plt.figure()
@@ -442,7 +440,7 @@ if __name__ == '__main__':
 
     else:
         print('Reading mus from {}'.format(workdir))
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'_test.txt'))
+        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'))
 
     ### Calculate Monte Carlo confirmation with E2E
     if run_monte_carlo:
@@ -476,9 +474,9 @@ if __name__ == '__main__':
     for seg, mu in enumerate(mus):
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    plt.show()
+    #plt.show()
     contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
-    print(contrast_mu)
+    print('Contrast with mu-map: {}'.format(contrast_mu))
 
     ###
 
@@ -490,3 +488,10 @@ if __name__ == '__main__':
                                                                    (end_monte_carlo - start_monte_carlo)/3600))
 
     print('\nGood job')
+
+
+if __name__ == '__main__':
+
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    run = CONFIG_INI.get('numerical', 'current_analysis')
+    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, n_repeat_in=100)

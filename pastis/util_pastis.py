@@ -3,6 +3,9 @@ Helper functions for PASTIS.
 """
 
 import os
+import time
+import datetime
+from shutil  import copy
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
@@ -235,3 +238,40 @@ class ZernikeMode:
     def name(self):
         zern_name = zernike_name(self.index, self.convention)
         return zern_name
+
+
+def create_data_path(initial_path, telescope="", suffix=""):
+    """
+    Will create a timestamp and join it to the output_path found in the INI.
+    :param initial_path: output directory as defined in the configfile
+    :param suffix: appends this to the end of the timestamp (ex: 2017-06-15T121212_suffix), also read from config
+    :return: A path with the final folder containing a timestamp of the current datetime.
+    """
+
+    # Create a string representation of the current timestamp.
+    time_stamp = time.time()
+    date_time_string = datetime.datetime.fromtimestamp(time_stamp).strftime("%Y-%m-%dT%H-%M-%S")
+
+    if suffix != "":
+        suffix = "_" + suffix
+    if telescope != "":
+        telescope = "_" + telescope
+
+    # Return the full path.
+    print(initial_path)
+    print(suffix)
+    full_path = os.path.join(initial_path, date_time_string + telescope + suffix)
+    return full_path
+
+
+def copy_config(outdir):
+    """
+    Copy the config_local, or if non-existent, config.ini to outdir
+    :param outdir: string, target location of copied configfile
+    :return: 
+    """
+    print('Saving the configfile to outputs folder.')
+    try:
+        copy('config_local.ini', outdir)
+    except IOError:
+        copy('config.ini', outdir)

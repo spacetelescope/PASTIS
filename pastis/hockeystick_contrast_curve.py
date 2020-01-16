@@ -23,12 +23,12 @@ import contrast_calculation_simple as consim
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for JWST.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. rms phase error.
 
     :param range_points: int, How many points of rms error to use in the predefined aberration range.
     :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
@@ -115,19 +115,18 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
 def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for HiCAT.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. rms phase error.
 
     :param matrixdir: string, Path to matrix that should be used.
     :param resultsdir: string, Path to directory where results will be saved.
-    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :param range_points: int, How many points of rms error to use in the predefined aberration range.
     :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
-                                is used.
+                                is used in the plot.
     :return:
     """
 
@@ -192,19 +191,19 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
 
 def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3, no_realizations=3):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for LUVOIR.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. rms phase error.
 
+    :param apodizer_choice: string, use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
-    :param resultsdir: string, Path to directory where results will be saved.
-    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
+    :param resultdir: string, Path to directory where results will be saved.
     :param range_points: int, How many points of rms error to use in the predefined aberration range.
     :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
-                                is used.
+                                is used  in the plot
     :return:
     """
 
@@ -213,7 +212,6 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     ##########################
     rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
-    realiz = no_realizations                             # how many random realizations per RMS values to do
     ##########################
 
     # Create results directory if it doesn't exist yet
@@ -224,7 +222,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
     print("RMS range: {} nm".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    print("Random realizations: {}".format(no_realizations))
 
     for i, rms in enumerate(rms_range):
 
@@ -233,12 +231,12 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         e2e_rand = []
         matrix_rand = []
 
-        for j in range(realiz):
+        for j in range(no_realizations):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
             print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            print("Random realization: {}/{}".format(j+1, no_realizations))
+            print("Total: {}/{}\n".format((i*no_realizations)+(j+1), len(rms_range)*no_realizations))
 
             c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
@@ -255,7 +253,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     # Plot
     plt.clf()
-    plt.title("Contrast calculation with " + str(realiz) + " realizations each")
+    plt.title("Contrast calculation with " + str(no_realizations) + " realizations each")
     plt.plot(rms_range, e2e_contrasts, label="E2E")
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
@@ -277,8 +275,8 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    run_choice = 'active'
-    apod_design = 'small'
+    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice=apod_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=10)
+    hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=10)

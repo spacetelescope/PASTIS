@@ -11,6 +11,7 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 import os
 import time
 import functools
+from shutil import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -39,7 +40,8 @@ def num_matrix_jwst():
     print('Building numerical matrix for JWST\n')
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='jwst')
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
     which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
@@ -57,6 +59,7 @@ def num_matrix_jwst():
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
     # Create necessary directories if they don't exist yet
+    os.makedirs(overall_dir, exist_ok=True)
     os.makedirs(resDir, exist_ok=True)
     os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
     os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
@@ -208,8 +211,9 @@ def num_matrix_luvoir(design):
     ### Parameters
 
     # System parameters
-    os.makedirs(os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active'), exist_ok=True)
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope = 'luvoir-'+design)
+    os.makedirs(overall_dir, exist_ok=True)
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
@@ -237,6 +241,9 @@ def num_matrix_luvoir(design):
     os.makedirs(resDir, exist_ok=True)
     os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
     os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+
+    #  Copy configfile to resulting matrix directory
+    util.copy_config(resDir)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
@@ -314,10 +321,10 @@ def num_matrix_luvoir(design):
                 matrix_pastis[i,j] = matrix_off_val
                 print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
-    # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
-    # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
-    # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
-    #matrix_pastis /= np.square(nm_aber)
+    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
+    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
+    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
+    matrix_pastis /= np.square(nm_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
@@ -332,10 +339,14 @@ def num_matrix_luvoir(design):
     end_time = time.time()
     print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
+    
+    return overall_dir
 
 
 if __name__ == '__main__':
 
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
-        num_matrix_luvoir(design='small')
+
+        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+        num_matrix_luvoir(design=coro_design)

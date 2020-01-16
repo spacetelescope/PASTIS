@@ -318,7 +318,7 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
     design = apodizer_choice
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
 
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)
