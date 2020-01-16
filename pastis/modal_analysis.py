@@ -350,8 +350,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice=CONFIG_INI.get('numerical
     norm = ref.max()
     #plt.show()
     # Make dark hole mask
-    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[apodizer_design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
+    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
     # plt.figure()
