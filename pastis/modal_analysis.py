@@ -303,15 +303,11 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     calculate_mus = True
     run_monte_carlo = True
 
+    # Data directory
+    workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
+
     # LUVOIR coronagraph parameters
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-
-    # Define contrast requirements
-    c_stat = c_stat_in
-    c_dyn = 1e-11    # not working with this yet
-
-    # How many repetitions for Monte Carlo?
-    n_repeat = n_repeat_in
 
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
@@ -461,6 +457,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
             one_contrast = calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask)
             all_contr_rand.append(one_contrast)
 
+        # Mean of the distribution
+        print('Mean of the Monte Carlo result: {}'.format(np.mean(all_contr_rand)))
+
         end_monte_carlo = time.time()
 
         #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand)
@@ -473,7 +472,6 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
         plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
-        #plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_' + str(c_stat) + '_test.pdf'))
 
     ### apply mu map and run through E2E simulator
     mus *= u.nm
@@ -501,4 +499,4 @@ if __name__ == '__main__':
 
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     run = CONFIG_INI.get('numerical', 'current_analysis')
-    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, n_repeat_in=100)
+    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_stat=1e-10, n_repeat=100)
