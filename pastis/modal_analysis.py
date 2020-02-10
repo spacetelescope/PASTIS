@@ -258,13 +258,13 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, baseline_contr
     return mu_map
 
 
-def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
+def calc_random_segment_configuration(nseg, luvoir, mus, dh_mask):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
     :param nseg: int, number of segments
     :param luvoir: LuvoirAPLC
     :param mus: array, segment-based PASTIS constraints
-    :param psf_unaber: hcipy.Field, unaberrated coronagraphic PSF
+    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
     :return: rand_contrast: float, mean contrast of the calculated PSF
     """
 
@@ -294,14 +294,42 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     return rand_contrast
 
 
+def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
+    """
+    Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
+    :param pmodes: array, pastis MODE matrix [nseg, nmodes]
+    :param luvoir: LuvoirAPLC
+    :param sigmas: array, mode-based PASTIS constraints
+    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
+    :return: rand_contrast: float, mean contrast of the calculated PSF
+    """
+
+    # Create normal distribution
+    rand = np.random.normal(0, 1, pmodes.shape[0])
+
+    # Sum up all modes to make total OPD
+    opd = np.nansum(pmodes[:, :] * sigmas * rand, axis=1)
+    opd *= u.nm
+
+    luvoir.flatten()
+    for seg, aber in enumerate(opd):
+        luvoir.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
+    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+
+    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
+
+    return rand_contrast
+
+
 def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=100):
 
     # Which parts are we running?
     calculate_modes = False
     calculate_sigmas = False
+    run_monte_carlo_modes = True
     calc_cumulative_contrast = False
-    calculate_mus = True
-    run_monte_carlo = True
+    calculate_mus = False
+    run_monte_carlo_segments = True
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -407,6 +435,31 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         print('Reading sigmas from {}'.format(workdir))
         sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.txt'))
 
+    ### Calculate Monte Carlo simulation for sigmas
+    if run_monte_carlo_modes:
+        print('Running Monte Carlo simulation for modes')
+        # Keep track of time
+        start_monte_carlo_modes = time.time()
+
+        all_contr_rand_modes = []
+        for rep in range(n_repeat):
+            print('Mode realization {}/{}'.format(rep + 1, n_repeat))
+            one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask)
+            all_contr_rand_modes.append(one_contrast_mode)
+
+        # Mean of the distribution
+        print('Mean of the Monte Carlo result modes: {}'.format(np.mean(all_contr_rand_modes)))
+
+        end_monte_carlo_modes = time.time()
+
+        plt.figure(figsize=(16, 10))
+        n, bins, patches = plt.hist(all_contr_rand_modes, int(n_repeat/10))
+        plt.title('E2E raw contrast', size=20)
+        plt.xlabel('Mean contrast in DH', size=20)
+        plt.ylabel('PDF', size=20)
+        plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
+        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_'+str(c_stat)+'.pdf'))
+
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         print('Calculating cumulative contrast plot')
@@ -446,27 +499,27 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'))
 
     ### Calculate Monte Carlo confirmation with E2E
-    if run_monte_carlo:
-        print('Running Monte Carlo simulation')
+    if run_monte_carlo_segments:
+        print('Running Monte Carlo simulation for segments')
         # Keep track of time
-        start_monte_carlo = time.time()
+        start_monte_carlo_seg = time.time()
 
-        all_contr_rand = []
+        all_contr_rand_seg = []
         for rep in range(n_repeat):
-            print('Realization {}/{}'.format(rep + 1, n_repeat))
-            one_contrast = calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask)
-            all_contr_rand.append(one_contrast)
+            print('Segment realization {}/{}'.format(rep + 1, n_repeat))
+            one_contrast_seg = calc_random_segment_configuration(nseg, luvoir, mus, dh_mask)
+            all_contr_rand_seg.append(one_contrast_seg)
 
         # Mean of the distribution
-        print('Mean of the Monte Carlo result: {}'.format(np.mean(all_contr_rand)))
+        print('Mean of the Monte Carlo result segments: {}'.format(np.mean(all_contr_rand_seg)))
 
-        end_monte_carlo = time.time()
+        end_monte_carlo_seg = time.time()
 
-        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand)
+        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand_seg)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
-        n, bins, patches = plt.hist(all_contr_rand, int(n_repeat/10))
+        n, bins, patches = plt.hist(all_contr_rand_seg, int(n_repeat/10))
         plt.title('E2E raw contrast, '+str(n_repeat)+' iterations', size=20)
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
@@ -488,9 +541,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
 
     print('\nRuntimes:')
-    print('Monte Carlo with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo-start_monte_carlo,
-                                                                   (end_monte_carlo-start_monte_carlo)/60,
-                                                                   (end_monte_carlo - start_monte_carlo)/3600))
+    print('Monte Carlo with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg-start_monte_carlo_seg,
+                                                                   (end_monte_carlo_seg-start_monte_carlo_seg)/60,
+                                                                   (end_monte_carlo_seg - start_monte_carlo_seg)/3600))
 
     print('\nGood job')
 
