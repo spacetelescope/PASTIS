@@ -289,15 +289,12 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     # hc.imshow_field(psf, norm=LogNorm())
     # plt.show()
 
-    rand_contrast = util.dh_mean(psf/ref.max() - psf_unaber/ref.max(), dh_mask)
+    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
 
     return rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(design, run_choice, c_stat_in=1e-10, n_repeat_in=100):
-
-    ### Preparations
-    workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
+def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=100):
 
     # Which parts are we running?
     calculate_modes = False
