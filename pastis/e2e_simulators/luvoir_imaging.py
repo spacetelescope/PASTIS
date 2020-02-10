@@ -98,7 +98,7 @@ class SegmentedTelescopeAPLC:
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Wavefronts of the reference propagation
-        wf_ref_pup = hc.Wavefront(self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_ref_pup = hc.Wavefront(self.aper * self.apodizer * self.lyotstop, wavelength=self.wvln)
         wf_im_ref = self.prop(wf_ref_pup)
 
         # Display intermediate planes
