@@ -256,8 +256,8 @@ def calc_random_e2e_configuration(nseg, luvoir, mus, psf_unaber, dh_mask):
     :return: rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Create as many random numbers between -1 and 1 as we have segments
-    rand = np.random.uniform(-1, 1, nseg)
+    # Draw a normal distribution where the stddev gets scaled to mu later on
+    rand = np.random.normal(0, 1, nseg)
 
     mus *= u.nm
 
