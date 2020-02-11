@@ -235,9 +235,10 @@ def cumulative_contrast_mastix(pmodes, sigmas, matrix, c_floor):
 
 def calculate_segment_constraints(pmodes, pastismatrix, c_target, baseline_contrast):
     """
-    Calculate segment-based PASTIS constraints from PASTIS modes and mode-based constraints.
+    Calculate segment-based PASTIS constraints from PASTIS matrix and PASTIS modes.
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param pastismatrix: array, full PASTIS matrix [nseg, nseg]
+    :param c_target: float, static target contrast
     :param baseline_contrast: float, coronagraph floor contrast
     :return: mu_map: array, map of segment-based PASTIS constraints
     """
@@ -258,10 +259,9 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, baseline_contr
     return mu_map
 
 
-def calc_random_segment_configuration(nseg, luvoir, mus, dh_mask):
+def calc_random_segment_configuration(luvoir, mus, dh_mask):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param nseg: int, number of segments
     :param luvoir: LuvoirAPLC
     :param mus: array, segment-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
@@ -269,7 +269,7 @@ def calc_random_segment_configuration(nseg, luvoir, mus, dh_mask):
     """
 
     # Draw a normal distribution where the stddev gets scaled to mu later on
-    rand = np.random.normal(0, 1, nseg)
+    rand = np.random.normal(0, 1, mus.shape[0])
 
     mus *= u.nm
 
@@ -305,9 +305,9 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     """
 
     # Create normal distribution
-    rand = np.random.normal(0, 1, pmodes.shape[0])
+    rand = np.random.normal(0, 1, sigmas.shape[0])
 
-    # Sum up all modes to make total OPD
+    # Sum up all modes with randomly scaled sigmas to make total OPD
     opd = np.nansum(pmodes[:, :] * sigmas * rand, axis=1)
     opd *= u.nm
 
@@ -324,11 +324,11 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
 def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=100):
 
     # Which parts are we running?
-    calculate_modes = False
-    calculate_sigmas = False
+    calculate_modes = True
+    calculate_sigmas = True
     run_monte_carlo_modes = True
-    calc_cumulative_contrast = False
-    calculate_mus = False
+    calc_cumulative_contrast = True
+    calculate_mus = True
     run_monte_carlo_segments = True
 
     # Data directory
@@ -507,7 +507,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         all_contr_rand_seg = []
         for rep in range(n_repeat):
             print('Segment realization {}/{}'.format(rep + 1, n_repeat))
-            one_contrast_seg = calc_random_segment_configuration(nseg, luvoir, mus, dh_mask)
+            one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
             all_contr_rand_seg.append(one_contrast_seg)
 
         # Mean of the distribution
