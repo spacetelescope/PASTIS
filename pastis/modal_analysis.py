@@ -220,7 +220,7 @@ def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
     return cont_cum_e2e
 
 
-def cumulative_contrast_mastix(pmodes, sigmas, matrix, c_floor):
+def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor):
     # Calculate cumulative contrast
     cont_cum_pastis = []
     for maxmode in range(pmodes.shape[0]):
@@ -464,7 +464,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     if calc_cumulative_contrast:
         print('Calculating cumulative contrast plot')
         cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask)
-        cumulative_pastis = cumulative_contrast_mastix(pmodes, sigmas, matrix, coro_floor)
+        cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_stat)), cumulative_e2e)
         np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_stat)), cumulative_pastis)
