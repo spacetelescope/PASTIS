@@ -265,7 +265,8 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     :param luvoir: LuvoirAPLC
     :param mus: array, segment-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
-    :return: rand_contrast: float, mean contrast of the calculated PSF
+    :return: random_map: list, random segment map used in this PSF calculation in m;
+             rand_contrast: float, mean contrast of the calculated PSF
     """
 
     # Draw a normal distribution where the stddev gets scaled to mu later on
@@ -276,8 +277,11 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     # Multiply each segment mu by one of these random numbers,
     # put that on the LUVOIR SM and calculate the PSF.
     luvoir.flatten()
+    random_map = []
     for seg, (mu, randval) in enumerate(zip(mus, rand)):
-        luvoir.set_segment(seg+1, (mu*randval).to(u.m).value/2, 0, 0)
+        random_seg = mu * randval
+        random_map.append(random_seg.to(u.m).value)
+        luvoir.set_segment(seg+1, (random_seg).to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
 
     # plt.figure()
@@ -291,7 +295,7 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
 
     rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
 
-    return rand_contrast
+    return random_map, rand_contrast
 
 
 def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
@@ -301,14 +305,16 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     :param luvoir: LuvoirAPLC
     :param sigmas: array, mode-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
-    :return: rand_contrast: float, mean contrast of the calculated PSF
+    :return: random_weights: array, random weights used in this PSF calculation
+             rand_contrast: float, mean contrast of the calculated PSF
     """
 
     # Create normal distribution
     rand = np.random.normal(0, 1, sigmas.shape[0])
+    random_weights = sigmas * rand
 
     # Sum up all modes with randomly scaled sigmas to make total OPD
-    opd = np.nansum(pmodes[:, :] * sigmas * rand, axis=1)
+    opd = np.nansum(pmodes[:, :] * random_weights, axis=1)
     opd *= u.nm
 
     luvoir.flatten()
@@ -318,7 +324,7 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
 
     rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
 
-    return rand_contrast
+    return random_weights, rand_contrast
 
 
 def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=100):
@@ -442,15 +448,20 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         start_monte_carlo_modes = time.time()
 
         all_contr_rand_modes = []
+        all_random_weight_sets = []
         for rep in range(n_repeat):
             print('Mode realization {}/{}'.format(rep + 1, n_repeat))
-            one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask)
+            random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask)
+            all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
         # Mean of the distribution
         print('Mean of the Monte Carlo result modes: {}'.format(np.mean(all_contr_rand_modes)))
-
         end_monte_carlo_modes = time.time()
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', 'random_weights_{}.txt'.format(c_stat)), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_modes_{}.txt'.format(c_stat)), all_contr_rand_modes)
 
         plt.figure(figsize=(16, 10))
         n, bins, patches = plt.hist(all_contr_rand_modes, int(n_repeat/10))
@@ -505,17 +516,25 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         start_monte_carlo_seg = time.time()
 
         all_contr_rand_seg = []
+        all_random_maps = []
         for rep in range(n_repeat):
             print('Segment realization {}/{}'.format(rep + 1, n_repeat))
-            one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
+            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
+            all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
         # Mean of the distribution
         print('Mean of the Monte Carlo result segments: {}'.format(np.mean(all_contr_rand_seg)))
-
         end_monte_carlo_seg = time.time()
 
-        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_{}.txt'.format(c_stat)), all_contr_rand_seg)
+        print('\nRuntimes:')
+        print('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
+                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
+                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_stat)), all_random_maps)   # in m
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_segments_{}.txt'.format(c_stat)), all_contr_rand_seg)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
@@ -526,7 +545,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
         plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_{}.pdf'.format(c_stat)))
 
-    ### apply mu map and run through E2E simulator
+    ### Apply mu map and run through E2E simulator
     mus *= u.nm
     luvoir.flatten()
     for seg, mu in enumerate(mus):
@@ -537,14 +556,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     print('Contrast with mu-map: {}'.format(contrast_mu))
 
     ###
-
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
-
-    print('\nRuntimes:')
-    print('Monte Carlo with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg-start_monte_carlo_seg,
-                                                                   (end_monte_carlo_seg-start_monte_carlo_seg)/60,
-                                                                   (end_monte_carlo_seg - start_monte_carlo_seg)/3600))
-
     print('\nGood job')
 
 
@@ -552,4 +564,7 @@ if __name__ == '__main__':
 
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     run = CONFIG_INI.get('numerical', 'current_analysis')
-    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_stat=1e-10, n_repeat=100)
+    c_target = 1e-10
+    mc_repeat = 100
+
+    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_stat=c_target, n_repeat=mc_repeat)
