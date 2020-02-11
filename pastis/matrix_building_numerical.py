@@ -201,7 +201,10 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
     we can work with, so I will implement an easy way of making a choice between them.
-    small, medium and large
+    :param design: string, what coronagraph design to use - 'small', 'medium' or 'large'
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files, additionally to the
+                     total PSF cube. If False, the total cube will still get saved at the very end of the script.
+           saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk
     """
 
     # Keep track of time
