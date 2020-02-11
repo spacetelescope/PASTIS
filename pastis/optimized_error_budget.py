@@ -19,6 +19,9 @@ def build_optimized_error_budget(design, run_choice, c_target):
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
+    # Info
+    print('Working on {} coronagraph design.'.format(design))
+
     # Instantiate LUVOIR
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
@@ -50,9 +53,15 @@ def build_optimized_error_budget(design, run_choice, c_target):
     sigmas_opt = np.sqrt(np.diag(cx))
     np.savetxt(os.path.join(workdir, 'results', 'sigmas_opt_{}.txt'.format(c_target)), sigmas_opt)
 
+    # Calculate contast per mode
+    per_mode_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, dh_mask, individual=True)
+    np.savetxt(os.path.join(workdir, 'results', 'per-mode_contrast_optimized_e2e_{}.txt'.format(c_target)),
+               per_mode_opt_e2e)
+
     # Calculate optimized cumulative contrast plot
     cumulative_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, dh_mask)
-    np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_optimized_e2e_{}.txt'.format(c_target)), cumulative_opt_e2e)
+    np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_optimized_e2e_{}.txt'.format(c_target)),
+               cumulative_opt_e2e)
 
     ### Plotting
 
@@ -83,10 +92,18 @@ def build_optimized_error_budget(design, run_choice, c_target):
     plt.colorbar()
     plt.savefig(os.path.join(workdir, 'results', 'cx_{}.pdf'.format(c_target)))
 
+    # Contrast per mode from E2E simulator for optimized error budget
+    plt.figure(figsize=(16, 10))
+    plt.plot(per_mode_opt_e2e)
+    plt.title('Optimized E2E contrast per mode for target $c$ = {}'.format(c_target), size=15)
+    plt.xlabel('Mode number', size=15)
+    plt.ylabel('Contrast', size=15)
+    plt.savefig(os.path.join(workdir, 'results', 'per-mode_contrast_plot_optimized_{}.pdf'.format(c_target)))
+
     # Cumulative contrast from E2E simulator for optimized error budget
     plt.figure(figsize=(16, 10))
     plt.plot(cumulative_opt_e2e)
-    plt.title('Optimized E2E cumulative contrast for target $C$ = {}'.format(c_target), size=15)
+    plt.title('Optimized E2E cumulative contrast for target $c$ = {}'.format(c_target), size=15)
     plt.xlabel('Mode number', size=15)
     plt.ylabel('Contrast', size=15)
     plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_optimized_{}.pdf'.format(c_target)))

@@ -198,11 +198,25 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
+def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, individual=False):
+    """
+    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    using an E2E simulator.
+    :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param sigmas: array, weights per PASTIS mode
+    :param luvoir: LuvoirAPLC
+    :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
+    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
+    :return: cont_cum_e2e, list of cumulative contrasts
+    """
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
-        opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+
+        if individual:
+            opd = pmodes[:, maxmode] * sigmas[maxmode]
+        else:
+            opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
 
         luvoir.flatten()
         for seg, val in enumerate(opd):
@@ -220,11 +234,24 @@ def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
     return cont_cum_e2e
 
 
-def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor):
-    # Calculate cumulative contrast
+def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False):
+    """
+    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    using PASTIS propagation.
+    :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param sigmas: array, weights per PASTIS mode
+    :param matrix: array, PASTIS matrix [nseg, nseg]
+    :param c_floor: float, coronagraph floor contrast
+    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
+    :return: cont_cum_pastis, list of cumulative contrasts
+    """
     cont_cum_pastis = []
     for maxmode in range(pmodes.shape[0]):
-        aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+
+        if individual:
+            aber = pmodes[:, maxmode] * sigmas[maxmode]
+        else:
+            aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         aber *= u.nm
 
         contrast_matrix = util.pastis_contrast(aber, matrix) + c_floor
@@ -443,7 +470,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
     ### Calculate Monte Carlo simulation for sigmas
     if run_monte_carlo_modes:
-        print('Running Monte Carlo simulation for modes')
+        print('\nRunning Monte Carlo simulation for modes')
         # Keep track of time
         start_monte_carlo_modes = time.time()
 
@@ -511,7 +538,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
     ### Calculate Monte Carlo confirmation with E2E
     if run_monte_carlo_segments:
-        print('Running Monte Carlo simulation for segments')
+        print('\nRunning Monte Carlo simulation for segments')
         # Keep track of time
         start_monte_carlo_seg = time.time()
 
