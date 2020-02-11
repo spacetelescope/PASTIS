@@ -27,7 +27,7 @@ def modes_from_matrix(datadir, saving=True):
     """
 
     # Read matrix
-    matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical/PASTISmatrix_num_piston_Noll1.fits'))
+    matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
     # Get singular modes and values from SVD
     pmodes, svals, vh = np.linalg.svd(matrix, full_matrices=True)
@@ -80,7 +80,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
 
-    nseg = 120
+    nseg = pmodes.shape[0]
 
     ### Put all modes on the SM and get their phase
     all_modes = []
@@ -108,7 +108,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
             plt.subplot(12, 10, thismode + 1)
             hc.imshow_field(all_modes[thismode], cmap='RdBu')
             plt.axis('off')
-            plt.title('Mode ' + str(thismode + 1))
+            plt.title('Mode {}'.format(thismode + 1))
         plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
 
     ### Plot them individually and save as fits and pdf
@@ -119,9 +119,9 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
         plt.clf()
         hc.imshow_field(all_modes[thismode], cmap='RdBu')
         plt.axis('off')
-        plt.title('Mode ' + str(thismode + 1), size=30)
+        plt.title('Mode {}'.format(thismode + 1), size=30)
         if saving:
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', 'mode'+str(thismode+1)+'.pdf'))
+            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', 'mode{}.pdf'.format(thismode+1)))
 
         # for the fits cube
         mode_cube.append(all_modes[thismode].shaped)
@@ -420,7 +420,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     if calculate_sigmas:
         print('Calculating static sigmas')
         sigmas = calculate_sigma(c_stat, nseg-1, svals, coro_floor)   # -1 because I want to ignore global piston
-        np.savetxt(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.txt'), sigmas)
+        np.savetxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_stat)), sigmas)
 
         # Plot stastic mode constraints
         plt.figure()
@@ -429,11 +429,11 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         plt.title('Constraints per mode', size=15)
         plt.xlabel('Mode', size=15)
         plt.ylabel('Max mode contribution $\sigma_p$ (nm)', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'sigmas_{}.pdf'.format(c_stat)))
 
     else:
         print('Reading sigmas from {}'.format(workdir))
-        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_'+str(c_stat)+'.txt'))
+        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_stat)))
 
     ### Calculate Monte Carlo simulation for sigmas
     if run_monte_carlo_modes:
@@ -458,7 +458,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_{}.pdf'.format(c_stat)))
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
@@ -466,37 +466,37 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask)
         cumulative_pastis = cumulative_contrast_mastix(pmodes, sigmas, matrix, coro_floor)
 
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_'+str(c_stat)+'.txt'), cumulative_e2e)
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_'+str(c_stat)+'.txt'), cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_stat)), cumulative_e2e)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_stat)), cumulative_pastis)
 
         # Plot the cumulative contrast from E2E simulator and matrix
         plt.figure(figsize=(16, 10))
         plt.plot(cumulative_e2e, label='E2E simulator')
         plt.plot(cumulative_pastis, label='PASTIS')
-        plt.title('E2E cumulative contrast for target $C$ = ' + str(c_stat), size=15)
+        plt.title('E2E cumulative contrast for target $C$ = {}'.format(c_stat), size=15)
         plt.xlabel('Mode number', size=15)
         plt.ylabel('Constrast', size=15)
         plt.legend()
-        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_{}.pdf'.format(c_stat)))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
         print('Calculating static segment-based constraints')
         mus = calculate_segment_constraints(pmodes, matrix, c_stat, coro_floor)
-        np.savetxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'), mus)
+        np.savetxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_stat)), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
         plt.figure()
         hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='Blues')  # in meters
-        plt.title('Static segment constraints $\mu_p$ for C = '+str(c_stat), size=20)
+        plt.title('Static segment constraints $\mu_p$ for C = {}'.format(c_stat), size=20)
         plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_{}.pdf'.format(c_stat)))
 
     else:
         print('Reading mus from {}'.format(workdir))
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_'+str(c_stat)+'.txt'))
+        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_stat)))
 
     ### Calculate Monte Carlo confirmation with E2E
     if run_monte_carlo_segments:
@@ -515,16 +515,16 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
         end_monte_carlo_seg = time.time()
 
-        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_'+str(c_stat)+'.txt'), all_contr_rand_seg)
+        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_{}.txt'.format(c_stat)), all_contr_rand_seg)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
         n, bins, patches = plt.hist(all_contr_rand_seg, int(n_repeat/10))
-        plt.title('E2E raw contrast, '+str(n_repeat)+' iterations', size=20)
+        plt.title('E2E raw contrast, {} iterations'.format(n_repeat), size=20)
         plt.xlabel('Mean contrast in DH', size=20)
         plt.ylabel('PDF', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_'+str(c_stat)+'.pdf'))
+        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_{}.pdf'.format(c_stat)))
 
     ### apply mu map and run through E2E simulator
     mus *= u.nm
