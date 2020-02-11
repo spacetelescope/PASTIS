@@ -265,7 +265,7 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     :param luvoir: LuvoirAPLC
     :param mus: array, segment-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
-    :return: random_map: list, random segment map used in this PSF calculation in m
+    :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
