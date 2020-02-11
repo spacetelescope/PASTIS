@@ -265,7 +265,8 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     :param luvoir: LuvoirAPLC
     :param mus: array, segment-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
-    :return: rand_contrast: float, mean contrast of the calculated PSF
+    :return: random_map: list, random segment map used in this PSF calculation in m
+             rand_contrast: float, mean contrast of the calculated PSF
     """
 
     # Draw a normal distribution where the stddev gets scaled to mu later on
@@ -276,8 +277,11 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     # Multiply each segment mu by one of these random numbers,
     # put that on the LUVOIR SM and calculate the PSF.
     luvoir.flatten()
+    random_map = []
     for seg, (mu, randval) in enumerate(zip(mus, rand)):
-        luvoir.set_segment(seg+1, (mu*randval).to(u.m).value/2, 0, 0)
+        random_seg = mu * randval
+        random_map.append(random_seg.to(u.m).value)
+        luvoir.set_segment(seg+1, (random_seg).to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
 
     # plt.figure()
@@ -291,7 +295,7 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
 
     rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
 
-    return rand_contrast
+    return random_map, rand_contrast
 
 
 def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
@@ -505,9 +509,11 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         start_monte_carlo_seg = time.time()
 
         all_contr_rand_seg = []
+        all_random_maps = []
         for rep in range(n_repeat):
             print('Segment realization {}/{}'.format(rep + 1, n_repeat))
-            one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
+            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
+            all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
         # Mean of the distribution
@@ -515,7 +521,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
         end_monte_carlo_seg = time.time()
 
-        #np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_{}.txt'.format(c_stat)), all_contr_rand_seg)
+        np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_stat)), all_random_maps)   # in m
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_{}.txt'.format(c_stat)), all_contr_rand_seg)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
