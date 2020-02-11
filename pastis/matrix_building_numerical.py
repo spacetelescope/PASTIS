@@ -194,7 +194,7 @@ def num_matrix_jwst():
     # runtime = 20 min
 
 
-def num_matrix_luvoir(design):
+def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
@@ -284,18 +284,20 @@ def num_matrix_luvoir(design):
             image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
             # Normalize PSF by reference image
             psf = image / norm
-
-            # Save image to disk
-            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
-            hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
             all_psfs.append(psf)
 
+            # Save image to disk
+            if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
+                filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+                hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
             # Save OPD images for testing (are these actually surface images, not OPD?)
-            opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-                i + 1) + '-' + str(j + 1)
-            plt.clf()
-            hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
-            plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+            if saveopds:
+                opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+                    i + 1) + '-' + str(j + 1)
+                plt.clf()
+                hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
+                plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
@@ -309,6 +311,10 @@ def num_matrix_luvoir(design):
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
     all_contrasts = np.array(all_contrasts)
+
+    # Save the PSF image *cube* as well (as opposed to each one individually)
+    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
@@ -330,10 +336,6 @@ def num_matrix_luvoir(design):
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
-
-    # Save the PSF image *cube* as well (as opposed to each one individually)
-    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
