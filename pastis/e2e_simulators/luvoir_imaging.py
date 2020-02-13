@@ -262,6 +262,13 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         super().__init__(aper=self.aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
                          lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
+        # Make dark hole mask
+        dh_outer = hc.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
+            self.focal_det)
+        dh_inner = hc.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
+            self.focal_det)
+        self.dh_mask = (dh_outer - dh_inner).astype('bool')
+
         # Propagators
         self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
         self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
