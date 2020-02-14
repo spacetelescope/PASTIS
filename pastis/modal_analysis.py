@@ -379,7 +379,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
     # Create SM
     # Read pupil and indexed pupil
-    inputdir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    inputdir = CONFIG_INI.get('LUVOIR', 'optics_path')
     aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
     aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
     aper_read = hc.read_fits(os.path.join(inputdir, aper_path))
