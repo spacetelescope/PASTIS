@@ -300,7 +300,7 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
                     i + 1) + '-' + str(j + 1)
                 plt.clf()
                 hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
-                plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+                #plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             print('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
