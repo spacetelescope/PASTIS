@@ -285,7 +285,7 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     Compute the contrast for a random SM mislignment on the LUVOIR simulator.
     :param matrix_dir: str, directory of saved matrix
     :param matrix_mode: str, analytical or numerical; currently only numerical supported
-    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :param rms: astropy quantity (e.g. m or nm), rms wfe (OPD) to be put randomly on the SM
     :return: 2x float, E2E and matrix contrast
     """
 

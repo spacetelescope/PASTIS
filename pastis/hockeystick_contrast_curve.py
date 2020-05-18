@@ -30,8 +30,8 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. rms phase error.
 
-    :param range_points: int, How many points of rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+    :param range_points: int, How many points of rms error (OPD) to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error (OPD) should be calculated; the mean of the realizations
                                 is used.
     :param matrix_mode: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :return:
@@ -102,7 +102,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
-    plt.xlabel("Surface RMS in " + str(u.nm))
+    plt.xlabel("WFE RMS (OPD) in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()
