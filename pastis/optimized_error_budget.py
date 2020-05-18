@@ -53,7 +53,7 @@ def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
         return contrast
 
 
-def build_mode_based_error_budget(design, run_choice, c_target, error_budget='optimized', single_mode=73):
+def build_mode_based_error_budget(design, run_choice, c_target, error_budget='optimized', single_mode=None):
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -81,7 +81,7 @@ def build_mode_based_error_budget(design, run_choice, c_target, error_budget='op
 
         # Calculate the mode weight
         single_sigma = single_mode_sigma(c_target, baseline_contrast, svals[single_mode-1])
-        print(svals[single_mode-1])
+        print('Eigenvalue: {}'.format(svals[single_mode-1]))
         print('single_sigma: {}'.format(single_sigma))
 
         single_contrast = single_mode_contrasts(single_sigma, pmodes, single_mode, luvoir)
@@ -191,4 +191,5 @@ if __name__ == '__main__':
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_stat = 1e-10
 
-    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='single_mode', single_mode=73)
+    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='single_mode', single_mode=69)
+    #build_mode_based_error_budget(coro_design, run, c_stat, error_budget='optimized')
