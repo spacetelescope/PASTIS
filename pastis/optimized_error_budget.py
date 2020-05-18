@@ -32,28 +32,52 @@ def single_mode_sigma(c_target, c_floor, evalue):
 
 
 def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
+    """
+    Calculate the contrast stemming from one weighted PASTIS mode.
+    :param sigma: mode weight for the mode with unmber single_mode
+    :param pmodes: all PASTIS modes
+    :param single_mode: mode number of mode to weight and calculate contrast for
+    :param luvoir: LuvoirAPLC instance
+    :return: float, DH mean contrast for weighted PASTIS mode
+    """
 
-        # Calculate the OPD from scaling the  mode by sigma
-        opd = pmodes[:, single_mode - 1] * sigma
+    # Calculate the OPD from scaling the  mode by sigma
+    opd = pmodes[:, single_mode - 1] * sigma
 
-        # Put OPD on LUVOIR simulator
-        luvoir.flatten()
-        for seg, val in enumerate(opd):
-            val *= u.nm
-            luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)
+    # Put OPD on LUVOIR simulator
+    luvoir.flatten()
+    for seg, val in enumerate(opd):
+        val *= u.nm
+        luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)
 
-        # Get PSF from putting this OPD on the SM
-        psf, ref = luvoir.calc_psf(ref=True)
-        norm = ref.max()
+    # Get PSF from putting this OPD on the SM
+    psf, ref = luvoir.calc_psf(ref=True)
+    norm = ref.max()
 
-        # Calculate the contrast from that PSF
-        dh_intensity = psf / norm * luvoir.dh_mask
-        contrast = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
+    # Calculate the contrast from that PSF
+    dh_intensity = psf / norm * luvoir.dh_mask
+    contrast = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
 
-        return contrast
+    return contrast
 
 
 def build_mode_based_error_budget(design, run_choice, c_target, error_budget='optimized', single_mode=None):
+    """
+    Calculate and plot optimized error budget, optimized for all PASTIS modes from the segment tolerances, or for a single mode.
+
+    If error_budget='single_mode', calculate the mode weight and consecutive contrast for a range of target contrasts
+    and plot the recovered contrasts against the target contrasts.
+
+    If error_budget='optimized', calculate mode-space covariance matrix Cb from the mu map, extract mode weights
+    (sigmas) and plot the sigmas, the contrast per mode, as well as an optimized cumulative contrast plot.
+
+    :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
+    :param run_choice: str, path to data
+    :param c_target: float, target contrast
+    :param error_budget: str, "optimized" across all PASTIS modes from segment tolerances, or "single_mode"
+    :param single_mode: int, optional, mode number for single mode error budget
+    :return:
+    """
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
