@@ -61,7 +61,7 @@ def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
     return contrast
 
 
-def build_mode_based_error_budget(design, run_choice, c_target, error_budget='optimized', single_mode=None):
+def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budget='optimized', single_mode=None):
     """
     Calculate and plot optimized error budget, optimized for all PASTIS modes from the segment tolerances, or for a single mode.
 
