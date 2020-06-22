@@ -487,8 +487,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
-        # Mean of the distribution
+        # Empirical mean and standard deviation of the distribution
         print('Mean of the Monte Carlo result modes: {}'.format(np.mean(all_contr_rand_modes)))
+        print('Standard deviation of the Monte Carlo result modes: {}'.format(np.std(all_contr_rand_modes)))
         end_monte_carlo_modes = time.time()
 
         # Save Monte Carlo simulation
