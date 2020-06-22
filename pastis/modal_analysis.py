@@ -475,7 +475,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         print('Reading sigmas from {}'.format(workdir))
         sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_stat)))
 
-    ### Calculate Monte Carlo simulation for sigmas
+    ### Calculate Monte Carlo simulation for sigmas, with E2E
     if run_monte_carlo_modes:
         print('\nRunning Monte Carlo simulation for modes')
         # Keep track of time
@@ -543,7 +543,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
         print('Reading mus from {}'.format(workdir))
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_stat)))
 
-    ### Calculate Monte Carlo confirmation with E2E
+    ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
         print('\nRunning Monte Carlo simulation for segments')
         # Keep track of time
@@ -557,8 +557,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
-        # Mean of the distribution
+        # Empirical mean and standard deviation of the distribution
         print('Mean of the Monte Carlo result segments: {}'.format(np.mean(all_contr_rand_seg)))
+        print('Standard deviation of the Monte Carlo result segments: {}'.format(np.std(all_contr_rand_seg)))
         end_monte_carlo_seg = time.time()
 
         print('\nRuntimes:')
