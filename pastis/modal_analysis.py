@@ -417,24 +417,29 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     luvoir.flatten()
     psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
     norm = ref.max()
-    #plt.show()
+
     # Make dark hole mask
     dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    # plt.figure()
-    # plt.subplot(1, 3, 1)
-    # hc.imshow_field(dh_mask)
-    # plt.subplot(1, 3, 2)
-    # hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
-    # plt.subplot(1, 3, 3)
-    # hc.imshow_field(psf_unaber, norm=LogNorm())
-    # plt.show()
+    plt.figure()
+    plt.subplot(1, 3, 1)
+    plt.title("Dark hole mask")
+    hc.imshow_field(dh_mask)
+    plt.subplot(1, 3, 2)
+    plt.title("Unaberrated PSF")
+    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
+    plt.subplot(1, 3, 3)
+    plt.title("Unaberrated PSF (masked)")
+    hc.imshow_field(psf_unaber, norm=LogNorm())
+    plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
     print('Coronagraph floor: {}'.format(coro_floor))
+    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
+        file.write(f'{coro_floor}')
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
