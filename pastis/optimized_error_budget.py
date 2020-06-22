@@ -75,7 +75,7 @@ def build_mode_based_error_budget(design, run_choice, c_target, error_budget='op
     :param run_choice: str, path to data
     :param c_target: float, target contrast
     :param error_budget: str, "optimized" across all PASTIS modes from segment tolerances, or "single_mode"
-    :param single_mode: int, optional, mode number for single mode error budget
+    :param single_mode: int, optional, mode index for single mode error budget
     :return:
     """
 
@@ -95,6 +95,7 @@ def build_mode_based_error_budget(design, run_choice, c_target, error_budget='op
     pmodes, svals = modes_from_file(workdir)
 
     if error_budget == 'single_mode':
+        print('Single mode error budget')
 
         # Generate baseline contrast
         psf_unaber, ref = luvoir.calc_psf(ref=True)
@@ -137,6 +138,7 @@ def build_mode_based_error_budget(design, run_choice, c_target, error_budget='op
         plt.savefig(os.path.join(workdir, 'results', 'single_mode_scaled_mode{}.pdf'.format(single_mode)))
 
     if error_budget == 'optimized':
+        print('Optimized error budget')
 
         # Load the mu map
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)))
@@ -215,5 +217,5 @@ if __name__ == '__main__':
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_stat = 1e-10
 
-    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='single_mode', single_mode=69)
-    #build_mode_based_error_budget(coro_design, run, c_stat, error_budget='optimized')
+    #build_mode_based_error_budget(coro_design, run, c_stat, error_budget='single_mode', single_mode=69)
+    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='optimized')
