@@ -194,27 +194,27 @@ def num_matrix_jwst():
     # runtime = 20 min
 
 
-def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
+def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
-    we can work with, so I will implement an easy way of making a choice between them.
+    we can work with, you pick which of the three you want with the 'design' parameter.
     :param design: string, what coronagraph design to use - 'small', 'medium' or 'large'
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files, additionally to the
                      total PSF cube. If False, the total cube will still get saved at the very end of the script.
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
     """
 
     # Keep track of time
-    start_time = time.time()   # runtime is currently around 150 minutes
+    start_time = time.time()
     print('Building numerical matrix for LUVOIR\n')
 
     ### Parameters
 
     # System parameters
-    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope = 'luvoir-'+design)
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-'+design)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
     zern_number = CONFIG_INI.getint('calibration', 'zernike')
@@ -224,7 +224,7 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
     diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
+    wfe_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
 
     # Image system parameters
     im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
@@ -270,7 +270,7 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     all_psfs = []
     all_contrasts = []
 
-    print('nm_aber: {} m'.format(nm_aber))
+    print('wfe_aber: {} m'.format(wfe_aber))
 
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -279,9 +279,9 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
 
             # Put aberration on correct segments. If i=j, apply only once!
             luvoir.flatten()
-            luvoir.set_segment(i+1, nm_aber/2, 0, 0)
+            luvoir.set_segment(i+1, wfe_aber/2, 0, 0)
             if i != j:
-                luvoir.set_segment(j+1, nm_aber/2, 0, 0)
+                luvoir.set_segment(j+1, wfe_aber/2, 0, 0)
 
             print('Calculating coro image...')
             image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
@@ -333,7 +333,7 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
     # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
-    matrix_pastis /= np.square(nm_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
+    matrix_pastis /= np.square(wfe_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)

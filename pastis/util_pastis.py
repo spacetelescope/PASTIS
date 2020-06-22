@@ -68,7 +68,7 @@ def zoom_point(im, x, y, bb):
     :param bb: half-box size
     :return:
     """
-    return (im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)])
+    return im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)]
 
 
 def zoom_cen(im, bb):
@@ -102,7 +102,7 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     :param iwa: inner working angle in lambda/D
     :param owa: outer working angle in lambda/D
     :param samp: sampling factor
-    :return: dh_area, np.array
+    :return: dh_area: np.array
     """
     circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 converts from booleans to integers
     circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
@@ -117,6 +117,8 @@ def dh_mean(im, dh):
 
     Calculate the mean intensity in the dark hole area dh of the image im.
     im and dh have to have the same array size and shape.
+    :param im: array, image
+    :param dh: array, dark hole mask
     """
     darkh = im * dh
     con = np.mean(darkh[np.where(darkh != 0)])
@@ -127,8 +129,8 @@ def dh_mean(im, dh):
 def pastis_contrast(aber, matrix_pastis):
     """
     Calculate the contrast with PASTIS matrix model.
-    :param aber: aberration vector, its length is number of segments, aberration coefficients in NANOMETERS
-    :param matrix_pastis: PASTIS matrix
+    :param aber: aberration vector, its length is number of segments, WFE aberration coefficients in NANOMETERS
+    :param matrix_pastis: PASTIS matrix, in contrast/nm^2
     :return:
     """
     result = np.matmul(np.matmul(aber, matrix_pastis), aber)
@@ -136,6 +138,11 @@ def pastis_contrast(aber, matrix_pastis):
 
 
 def rms(ar):
+    """
+    Manual root-mean-square calculation, assuming a zero-mean
+    :param ar: quantity to calculate the rms for
+    :return:
+    """
     rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
     return rms
 
@@ -145,8 +152,7 @@ def aber_to_opd(aber_rad, wvln):
     Convert phase aberration in rad to OPD in meters.
     :param aber_rad: float, phase aberration in radians
     :param wvln: float, wavelength
-    :return:
-    aber_m: float, OPD in meters
+    :return: aber_m: float, OPD in meters
     """
     aber_m = aber_rad * wvln / (2 * np.pi)
     return aber_m
@@ -183,7 +189,12 @@ def wss_to_noll(zern):
 
 
 def zernike_name(index, framework='Noll'):
-    """Get the name of the Zernike with input index in inpit framework (Noll or WSS)."""
+    """
+    Get the name of the Zernike with input index in input framework (Noll or WSS).
+    :param index: int, Zernike index
+    :param framework: str, 'Noll' or 'WSS' for Zernike ordering framework
+    :return zern_name: str, name of the Zernike in the chosen framework
+    """
     noll_names = {1: 'piston', 2: 'tip', 3: 'tilt', 4: 'defocus', 5: 'astig45', 6: 'astig0', 7: 'ycoma', 8: 'xcoma',
                   9: 'ytrefoil', 10: 'xtrefoil', 11: 'spherical'}
     wss_names = {1: 'piston', 2: 'tip', 3: 'tilt', 5: 'defocus', 4: 'astig45', 6: 'astig0', 8: 'ycoma', 7: 'xcoma',
@@ -207,6 +218,9 @@ class ZernikeMode:
     It initializes with framework = 'Noll', but needs an index given.
     If you change ZernikeMode.convention directly, you screw things up... there are methods to change naming convention
     which are capable of changing everything that comes with that.
+
+    :param index: int, Zernike mode index
+    :param framework: 'Noll' or 'WSS' for Zernike ordering framework, default is Noll
     """
 
     def __init__(self, index, framework='Noll'):
@@ -243,8 +257,9 @@ class ZernikeMode:
 def create_data_path(initial_path, telescope="", suffix=""):
     """
     Will create a timestamp and join it to the output_path found in the INI.
-    :param initial_path: output directory as defined in the configfile
-    :param suffix: appends this to the end of the timestamp (ex: 2017-06-15T121212_suffix), also read from config
+    :param initial_path: str, output directory as defined in the configfile
+    :param telescope: str, telescope name that gets added to data path name; somewhat redundant with suffix
+    :param suffix: str, appends this to the end of the timestamp (ex: 2017-06-15T121212_suffix), also read from config
     :return: A path with the final folder containing a timestamp of the current datetime.
     """
 
