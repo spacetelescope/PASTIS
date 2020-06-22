@@ -16,6 +16,7 @@ from hcipy.optics.segmented_mirror import SegmentedMirror
 from config import CONFIG_INI
 import util_pastis as util
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+from optimized_error_budget import build_mode_based_error_budget
 
 
 def modes_from_matrix(datadir, saving=True):
@@ -363,6 +364,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     calc_cumulative_contrast = True
     calculate_mus = True
     run_monte_carlo_segments = True
+    optimized_error_budget = True
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -581,6 +583,12 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     #plt.show()
     contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
     print('Contrast with mu-map: {}'.format(contrast_mu))
+
+    # Optimized error budget
+    if optimized_error_budget:
+        build_mode_based_error_budget(design, run_choice, c_stat, error_budget='optimized')
+    else:
+        print("No optimized error budget requested.")
 
     ###
     print('All saved in {}'.format(os.path.join(workdir, 'results')))
