@@ -444,7 +444,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
-    ### Get PASTIS modes and singular values
+    ### Calculate PASTIS modes and singular values
     if calculate_modes:
         print('Calculating all PASTIS modes')
         pmodes, svals = modes_from_matrix(workdir)
@@ -586,11 +586,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     for seg, mu in enumerate(mus):
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    #plt.show()
     contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
     print('Contrast with mu-map: {}'.format(contrast_mu))
 
-    # Optimized error budget
+    ### Calculate optimized error budget
     if optimized_error_budget:
         build_mode_based_error_budget(design, run_choice, c_stat, error_budget='optimized')
     else:
