@@ -9,6 +9,8 @@ from astropy.io import fits
 import hcipy as hc
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
+from config import CONFIG_INI
+
 
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
@@ -202,7 +204,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
     """
     def __init__(self, input_dir, apod_design, samp):
         self.nseg = 120
-        self.wvln = 638e-9  # m
+        self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
         self.diam = 15.  # m
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
