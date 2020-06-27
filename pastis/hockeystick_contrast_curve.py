@@ -30,8 +30,8 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. rms phase error.
 
-    :param range_points: int, How many points of rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+    :param range_points: int, How many points of rms error (OPD) to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error (OPD) should be calculated; the mean of the realizations
                                 is used.
     :param matrix_mode: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :return:
@@ -102,7 +102,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
-    plt.xlabel("Surface RMS in " + str(u.nm))
+    plt.xlabel("WFE RMS (OPD) in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()
@@ -194,16 +194,16 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for LUVOIR.
 
     The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
-    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
-    mean of this set of results in a figure that shows contrast vs. rms phase error.
+    mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
     :param apodizer_choice: string, use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
     :param resultdir: string, Path to directory where results will be saved.
-    :param range_points: int, How many points of rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
-                                is used  in the plot
+    :param range_points: int, How many points of WFE rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per WFE rms error should be calculated; the mean of the realizations
+                                is used in the plot
     :return:
     """
 
@@ -211,7 +211,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     start_time = time.time()
 
     ##########################
-    rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
+    rms_range = np.logspace(-4, 4, range_points)      # Create range of WFE RMS values to test
     ##########################
 
     # Create results directory if it doesn't exist yet
@@ -234,7 +234,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         for j in range(no_realizations):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
+            print("WFE RMS number {}/{}".format(i + 1, len(rms_range)))
             print("Random realization: {}/{}".format(j+1, no_realizations))
             print("Total: {}/{}\n".format((i*no_realizations)+(j+1), len(rms_range)*no_realizations))
 
@@ -258,7 +258,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
-    plt.xlabel("Surface RMS in " + str(u.nm))
+    plt.xlabel("WFE RMS in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
     plt.savefig(os.path.join(resultdir, 'hockeystick_contrasts.pdf'))

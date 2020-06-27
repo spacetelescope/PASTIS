@@ -1,5 +1,5 @@
 """
-This is a module that lets you do a full PASTIS modal analysis from a PASTIS matrix.
+This is a module that lets you do a full PASTIS WFE requirement analysis from a PASTIS matrix.
 
 Currently supports only LUVOIR.
 """
@@ -20,10 +20,12 @@ from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 def modes_from_matrix(datadir, saving=True):
     """
-    Calculate mode basis and singular values from PASTIS matrix using an SVD.
+    Calculate mode basis and singular values from PASTIS matrix using an SVD. In the case of the PASTIS matrix,
+    this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
+    modes and singular values in reverse order conpared to an eigendecomposition.
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param saving: string, whether to save singular values, modes and their plots or not; default=True
-    :return: pmodes, svals
+    :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
     """
 
     # Read matrix
@@ -58,7 +60,7 @@ def modes_from_file(datadir):
     """
     Read mode basis and singular values of a PASTIS matrix from file.
     :param datadir: string, path to overall data directory containing matrix and results folder
-    :return: pmodes, svals
+    :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
     """
 
     svals = np.loadtxt(os.path.join(datadir, 'results', 'singular_values.txt'))
@@ -69,20 +71,20 @@ def modes_from_file(datadir):
 
 def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     """
-    Put all modes onto the pupuil SM and get full 2D modes.
+    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes.
 
-    Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmenter mirror
+    Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
     in the pupil. This phase gets returned both as an array of hcipy.Fields, as well as a standard array of 2D arrays.
     Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
     :param pmodes: array of PASTIS modes [segnum, modenum]
     :param datadir: string, path to overall data directory containing matrix and results folder
-    :param saving: bool, whether to save figure to disk or not
+    :param saving: bool, whether to save figure to disk or not, default=False
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
 
     nseg = pmodes.shape[0]
 
-    ### Put all modes on the SM and get their phase
+    ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
     for thismode in range(nseg):
         print('Working on mode {}/{}.'.format(thismode + 1, nseg))
@@ -136,20 +138,20 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
 
 def apply_mode_to_sm(pmode, sm, wf_aper):
     """
-    Apply a PASTIS mode to the SM and return the propagated wavefront.
+    Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
 
-    This function first flattens the SM and then applies al segment coefficients from the input mode one by one to the
-    SM.
+    This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
+    one by one to the segmented mirror.
     :param pmode: array, a single PASTIS mode [nseg]
     :param sm: hcipy.SegmentedMirror
     :param wf_aper: hcipy.Wavefront of the aperture
-    :return: wf_sm: hcipy.Wavefront of the SM propagation
+    :return: wf_sm: hcipy.Wavefront of the segmented mirror propagation
     """
 
-    #Flatten SM to be sure we have no residual aberrations
+    # Flatten SM to be sure we have no residual aberrations
     sm.flatten()
 
-    # Loop through all segments to put them on the SM one by one
+    # Loop through all segments to put them on the segmented mirror one by one
     for seg, val in enumerate(pmode):
         val *= u.nm  # the LUVOIR modes come out in units of nanometers
         sm.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
@@ -173,22 +175,22 @@ def full_modes_from_file(datadir):
     return all_modes, mode_cube
 
 
-def calculate_sigma(cstat, nmodes, svalue, c_floor):
+def calculate_sigma(cstat, nmodes, svalues, c_floor):
     """
-    Calculate the maximum mode contribution from the static contrast target and the singular values
+    Calculate the maximum mode contribution(s) from the static contrast target and the singular values.
     :param cstat: float, static contrast requirement
-    :param nmodes: int, number of contributing PASTIS modes
-    :param svalue: float, singular value of the mode we are calculating the sigma for
+    :param nmodes: int, number of contributing PASTIS modes we want to calculate the sigmas for
+    :param svalues: float or array, singular value(s) of the mode(s) we are calculating the sigma(s) for
     :param c_floor: float, coronagraph floor (baseline contrast without aberrations)
-    :return: float, maximum mode contribution sigma
+    :return: sigma: float or array, maximum mode contribution sigma for each mode
     """
-    sigma = np.sqrt((cstat - c_floor) / (nmodes * svalue))
+    sigma = np.sqrt((cstat - c_floor) / (nmodes * svalues))
     return sigma
 
 
 def calculate_delta_sigma(cdyn, nmodes, svalue):
     """
-    Calculate dynamic contrast contribution of a mode.
+    Calculate dynamic contrast contribution of a mode - not tested, not implemented anywhere
     :param cdyn: float, dynamic contrast requirement
     :param nseg: float, dynamic contrast requirement
     :param svalue: float, singular value of the mode we are calculating delta sigma for
@@ -198,18 +200,32 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
+def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, individual=False):
+    """
+    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    using an E2E simulator.
+    :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param sigmas: array, weights per PASTIS mode
+    :param luvoir: LuvoirAPLC
+    :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
+    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
+    :return: cont_cum_e2e, list of cumulative or individual contrasts
+    """
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
-        opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+
+        if individual:
+            opd = pmodes[:, maxmode] * sigmas[maxmode]
+        else:
+            opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
 
         luvoir.flatten()
         for seg, val in enumerate(opd):
             val *= u.nm    # the LUVOIR modes come out in units of nanometers
             luvoir.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
 
-        # Get PSF from putting this OPD on the SM
+        # Get PSF from putting this WFE on the simulator
         psf, ref = luvoir.calc_psf(ref=True)
         norm = ref.max()
 
@@ -220,11 +236,24 @@ def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask):
     return cont_cum_e2e
 
 
-def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor):
-    # Calculate cumulative contrast
+def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False):
+    """
+    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    using PASTIS propagation.
+    :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param sigmas: array, weights per PASTIS mode
+    :param matrix: array, PASTIS matrix [nseg, nseg]
+    :param c_floor: float, coronagraph contrast floor
+    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
+    :return: cont_cum_pastis, list of cumulative or individual contrasts
+    """
     cont_cum_pastis = []
     for maxmode in range(pmodes.shape[0]):
-        aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+
+        if individual:
+            aber = pmodes[:, maxmode] * sigmas[maxmode]
+        else:
+            aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         aber *= u.nm
 
         contrast_matrix = util.pastis_contrast(aber, matrix) + c_floor
@@ -233,28 +262,28 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor):
     return cont_cum_pastis
 
 
-def calculate_segment_constraints(pmodes, pastismatrix, c_target, baseline_contrast):
+def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_floor):
     """
     Calculate segment-based PASTIS constraints from PASTIS matrix and PASTIS modes.
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param pastismatrix: array, full PASTIS matrix [nseg, nseg]
     :param c_target: float, static target contrast
-    :param baseline_contrast: float, coronagraph floor contrast
+    :param coronagraph_floor: float, coronagraph contrast floor
     :return: mu_map: array, map of segment-based PASTIS constraints
     """
     nmodes = pmodes.shape[0]
 
-    # Calculate the inverse of the pastis MODE matrix
+    # Calculate the inverse of the pastis mode matrix
     modestosegs = np.linalg.pinv(pmodes)
 
     # Calculate all mean contrasts of the pastis modes directly (as-is, with natural normalization)
     c_avg = []
     for i in range(nmodes):
-        c_avg.append(util.pastis_contrast(pmodes[:, i] * u.nm, pastismatrix) + baseline_contrast)
+        c_avg.append(util.pastis_contrast(pmodes[:, i] * u.nm, pastismatrix) + coronagraph_floor)
 
     # Calculate segment requirements
     mu_map = np.sqrt(
-        ((c_target - baseline_contrast) / nmodes) / (np.dot(c_avg - baseline_contrast, np.square(modestosegs))))
+        ((c_target - coronagraph_floor) / nmodes) / (np.dot(c_avg - coronagraph_floor, np.square(modestosegs))))
 
     return mu_map
 
@@ -263,8 +292,8 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
     :param luvoir: LuvoirAPLC
-    :param mus: array, segment-based PASTIS constraints
-    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
+    :param mus: array, segment-based PASTIS constraints in nm
+    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by LuvoirAPLC instance
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
@@ -301,7 +330,7 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
 def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
-    :param pmodes: array, pastis MODE matrix [nseg, nmodes]
+    :param pmodes: array, pastis mode matrix [nseg, nmodes]
     :param luvoir: LuvoirAPLC
     :param sigmas: array, mode-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
@@ -327,7 +356,23 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=100):
+def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat=100):
+    """
+    Run a full PASTIS analysis on a given PASTIS matrix.
+
+    The first couple of lines contain switches to turn different parts of the analysis on and off. These include:
+    1. calculating the PASTIS modes
+    2. calculating the PASTIS mode weights sigma under assumption of a uniform contrast allocation across all modes
+    3. running an E2E Monte Carlo simulation on the modes with their weights sigma from the uniform contrast allocation
+    4. calculating a cumulative contrast plot from the sigmas of the uniform contrast allocation
+    5. calculating the segment constraints mu under assumption of uniform statistical contrast contribution across segments
+    6. running an E2E Monte Carlo simulation on the segments with their weights mu
+
+    :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
+    :param run_choice: str, path to data and where outputs will be saved
+    :param c_target: float, target contrast
+    :param n_repeat: number of realizations in both Monte Carlo simulations (modes and segments), default=100
+    """
 
     # Which parts are we running?
     calculate_modes = True
@@ -352,7 +397,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
 
     # Create SM
     # Read pupil and indexed pupil
-    inputdir = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    inputdir = CONFIG_INI.get('LUVOIR', 'optics_path')
     aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
     aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
     aper_read = hc.read_fits(os.path.join(inputdir, aper_path))
@@ -377,40 +422,45 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     poslist = np.transpose(np.array(poslist))
     seg_pos = hc.CartesianGrid(poslist)
 
-    # Instantiate SM
+    # Instantiate segmented mirror
     sm = SegmentedMirror(aper_ind, seg_pos)
 
     # Instantiate LUVOIR
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-    # Generate reference PSF and coronagraph baseline
+    # Generate reference PSF and coronagraph contrast floor
     luvoir.flatten()
     psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
     norm = ref.max()
-    #plt.show()
+
     # Make dark hole mask
     dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
     dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    # plt.figure()
-    # plt.subplot(1, 3, 1)
-    # hc.imshow_field(dh_mask)
-    # plt.subplot(1, 3, 2)
-    # hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
-    # plt.subplot(1, 3, 3)
-    # hc.imshow_field(psf_unaber, norm=LogNorm())
-    # plt.show()
+    plt.figure()
+    plt.subplot(1, 3, 1)
+    plt.title("Dark hole mask")
+    hc.imshow_field(dh_mask)
+    plt.subplot(1, 3, 2)
+    plt.title("Unaberrated PSF")
+    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
+    plt.subplot(1, 3, 3)
+    plt.title("Unaberrated PSF (masked)")
+    hc.imshow_field(psf_unaber, norm=LogNorm())
+    plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
     print('Coronagraph floor: {}'.format(coro_floor))
+    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
+        file.write(f'{coro_floor}')
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
-    ### Get PASTIS modes and singular values
+    ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:
         print('Calculating all PASTIS modes')
         pmodes, svals = modes_from_matrix(workdir)
@@ -425,25 +475,25 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     ### Calculate mode-based static constraints
     if calculate_sigmas:
         print('Calculating static sigmas')
-        sigmas = calculate_sigma(c_stat, nseg-1, svals, coro_floor)   # -1 because I want to ignore global piston
-        np.savetxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_stat)), sigmas)
+        sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
+        np.savetxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_target)), sigmas)
 
         # Plot stastic mode constraints
         plt.figure()
         plt.plot(sigmas)
         plt.semilogy()
-        plt.title('Constraints per mode', size=15)
-        plt.xlabel('Mode', size=15)
-        plt.ylabel('Max mode contribution $\sigma_p$ (nm)', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'sigmas_{}.pdf'.format(c_stat)))
+        plt.title('Mode weights', size=15)
+        plt.xlabel('Mode index', size=15)
+        plt.ylabel('Mode weight $\sigma_p$ (nm)', size=15)
+        plt.savefig(os.path.join(workdir, 'results', 'sigmas_{}.pdf'.format(c_target)))
 
     else:
         print('Reading sigmas from {}'.format(workdir))
-        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_stat)))
+        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_target)))
 
-    ### Calculate Monte Carlo simulation for sigmas
+    ### Calculate Monte Carlo simulation for sigmas, with E2E
     if run_monte_carlo_modes:
-        print('Running Monte Carlo simulation for modes')
+        print('\nRunning Monte Carlo simulation for modes')
         # Keep track of time
         start_monte_carlo_modes = time.time()
 
@@ -455,63 +505,64 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
-        # Mean of the distribution
+        # Empirical mean and standard deviation of the distribution
         print('Mean of the Monte Carlo result modes: {}'.format(np.mean(all_contr_rand_modes)))
+        print('Standard deviation of the Monte Carlo result modes: {}'.format(np.std(all_contr_rand_modes)))
         end_monte_carlo_modes = time.time()
 
         # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', 'random_weights_{}.txt'.format(c_stat)), all_random_weight_sets)
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_modes_{}.txt'.format(c_stat)), all_contr_rand_modes)
+        np.savetxt(os.path.join(workdir, 'results', 'random_weights_{}.txt'.format(c_target)), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_modes_{}.txt'.format(c_target)), all_contr_rand_modes)
 
         plt.figure(figsize=(16, 10))
         n, bins, patches = plt.hist(all_contr_rand_modes, int(n_repeat/10))
         plt.title('E2E raw contrast', size=20)
         plt.xlabel('Mean contrast in DH', size=20)
-        plt.ylabel('PDF', size=20)
+        plt.ylabel('Frequency', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_{}.pdf'.format(c_stat)))
+        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_{}.pdf'.format(c_target)))
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
-        print('Calculating cumulative contrast plot')
+        print('Calculating cumulative contrast plot, uniform contrast across all modes')
         cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_stat)), cumulative_e2e)
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_stat)), cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_target)), cumulative_e2e)
+        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_target)), cumulative_pastis)
 
         # Plot the cumulative contrast from E2E simulator and matrix
         plt.figure(figsize=(16, 10))
         plt.plot(cumulative_e2e, label='E2E simulator')
         plt.plot(cumulative_pastis, label='PASTIS')
-        plt.title('E2E cumulative contrast for target $C$ = {}'.format(c_stat), size=15)
-        plt.xlabel('Mode number', size=15)
-        plt.ylabel('Constrast', size=15)
+        plt.title('E2E cumulative contrast for target $c$ = {}'.format(c_target), size=15)
+        plt.xlabel('Mode index', size=15)
+        plt.ylabel('Contrast', size=15)
         plt.legend()
-        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_{}.pdf'.format(c_stat)))
+        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_{}.pdf'.format(c_target)))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
-        print('Calculating static segment-based constraints')
-        mus = calculate_segment_constraints(pmodes, matrix, c_stat, coro_floor)
-        np.savetxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_stat)), mus)
+        print('Calculating segment-based constraints')
+        mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
+        np.savetxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
         plt.figure()
         hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='Blues')  # in meters
-        plt.title('Static segment constraints $\mu_p$ for C = {}'.format(c_stat), size=20)
+        plt.title('Segment constraints $\mu_p$ for $c_t$ = {}'.format(c_target), size=20)
         plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_{}.pdf'.format(c_stat)))
+        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_{}.pdf'.format(c_target)))
 
     else:
         print('Reading mus from {}'.format(workdir))
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_stat)))
+        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)))
 
-    ### Calculate Monte Carlo confirmation with E2E
+    ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
-        print('Running Monte Carlo simulation for segments')
+        print('\nRunning Monte Carlo simulation for segments')
         # Keep track of time
         start_monte_carlo_seg = time.time()
 
@@ -523,8 +574,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
-        # Mean of the distribution
+        # Empirical mean and standard deviation of the distribution
         print('Mean of the Monte Carlo result segments: {}'.format(np.mean(all_contr_rand_seg)))
+        print('Standard deviation of the Monte Carlo result segments: {}'.format(np.std(all_contr_rand_seg)))
         end_monte_carlo_seg = time.time()
 
         print('\nRuntimes:')
@@ -533,17 +585,17 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
                                                                                           (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
 
         # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_stat)), all_random_maps)   # in m
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_segments_{}.txt'.format(c_stat)), all_contr_rand_seg)
+        np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_target)), all_random_maps)   # in m
+        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_segments_{}.txt'.format(c_target)), all_contr_rand_seg)
 
         # Plot histogram
         plt.figure(figsize=(16, 10))
         n, bins, patches = plt.hist(all_contr_rand_seg, int(n_repeat/10))
         plt.title('E2E raw contrast, {} iterations'.format(n_repeat), size=20)
         plt.xlabel('Mean contrast in DH', size=20)
-        plt.ylabel('PDF', size=20)
+        plt.ylabel('Frequency', size=20)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_{}.pdf'.format(c_stat)))
+        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_{}.pdf'.format(c_target)))
 
     ### Apply mu map and run through E2E simulator
     mus *= u.nm
@@ -551,7 +603,6 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_stat=1e-10, n_repeat=1
     for seg, mu in enumerate(mus):
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    #plt.show()
     contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
     print('Contrast with mu-map: {}'.format(contrast_mu))
 
@@ -567,4 +618,4 @@ if __name__ == '__main__':
     c_target = 1e-10
     mc_repeat = 100
 
-    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_stat=c_target, n_repeat=mc_repeat)
+    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)

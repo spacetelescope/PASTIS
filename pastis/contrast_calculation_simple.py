@@ -107,7 +107,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     # Load in baseline contrast
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
+    coro_floor = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
     contrast_am = np.nan
@@ -117,14 +117,14 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
         # Create calibrated image from analytical model
         psf_am, full_psf = impastis.analytical_model(zern_number, aber, cali=True)
         # Get the mean contrast from image PASTIS
-        contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
+        contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + coro_floor
         end_impastis = time.time()
 
     ### MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ratio = None
@@ -253,15 +253,15 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     end_e2e = time.time()
 
     ###
-    # Calculate baseline contrast
+    # Calculate coronagraph contrast floor
     baseline_dh = psf_coro * dh_mask
-    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
 
     ## MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ## Outputs
@@ -280,17 +280,16 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
+def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
     """
-    Compute the contrast for a random SM mislignment on the LUVOIR simulator.
+    Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
     :param matrix_dir: str, directory of saved matrix
-    :param matrix_mode: str, analytical or numerical; currently only numerical supported
-    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
     :return: 2x float, E2E and matrix contrast
     """
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around ? min
+    start_time = time.time()
 
     # Parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
@@ -304,12 +303,12 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     aber = np.random.random([nb_seg])   # piston values in input units
     print('PISTON ABERRATIONS:', aber)
 
-    # Normalize to the RMS value I want
+    # Normalize to the WFE RMS value I want
     rms_init = util.rms(aber)
     aber *= rms.value / rms_init
     calc_rms = util.rms(aber) * u.nm
     aber *= u.nm    # making sure the aberration has the correct units
-    print("Calculated RMS:", calc_rms)
+    print("Calculated WFE RMS:", calc_rms)
 
     # Remove global piston
     aber -= np.mean(aber)
@@ -351,16 +350,16 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     end_e2e = time.time()
 
     ###
-    # Calculate baseline contrast
+    # Calculate coronagraph contrast floor
     baseline_dh = psf_coro * dh_mask
-    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
-    print('Baseline contrast: {}'.format(contrast_base))
+    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    print('Baseline contrast: {}'.format(coro_floor))
 
     ## MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ## Outputs
