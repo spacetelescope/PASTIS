@@ -1,14 +1,14 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed by Lucie Leboulleux and published in Leboulleux at al. (2018) and Laginja et al (2020).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al (2020).
 
 This release was specifically made to accompany the Laginja et al. (2020) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Quickstart from template:
 
 *This section will you give all the necessary terminal commands to go from opening our GitHub page in the browser to having 
-reduced results of the template data on your local machine.
+reduced results of the template on your local machine.*
 
 We assume that you have `conda` and `git` installed and that you're using `bash`.
 
@@ -19,7 +19,7 @@ We assume that you have `conda` and `git` installed and that you're using `bash`
 $ cd /User/<YourUser>/repos/
 ```
 
-- Clonen the repository:
+- Clone the repository:
 ```bash
  git clone https://github.com/spacetelescope/PASTIS.git
 ```
@@ -94,7 +94,7 @@ local_data_path = /Users/<user-name>/<path-to-data>
 
 ### Create a PASTIS matrix and run the analysis
 
-- If not already activate, activate the `pastis` conda environment:
+- If not already activated, activate the `pastis` conda environment:
 ```bash
 $ conda activate pastis
 ```
@@ -108,7 +108,7 @@ When it is done, you can inspect your results in the path you  specified under `
 
 ### Changing the input parameters
 
-The default out-of-the-box analysis from the Quickstart section run the following case:  
+The default out-of-the-box analysis from the Quickstart section runs the following case:  
 - LUVOIR-A telescope
 - narrow-angle ("small") Apodized Pupil Lyot Coronagraph (APLC)
 - wavelength = 500 nm
@@ -148,10 +148,9 @@ Each new run will create a new subdirectory whose name starts with a time stamp.
 + contrasts.txt: E2E DH average contrast per aberrated segment pair  
 + OTE_images: PDF images of the segment pair aberrations in the pupil
 + PASTISmatrix_num_piston_Noll1.fits: semi-analytical PASTIS matrix  
-+ psfs:  
-- psf_cube.fits: all E2E DH images in one cube   
++ psfs: psf_cube.fits: all E2E DH images in one cube   
 
-**results**
+**results**  
 contains all results from the PASTIS analysis
 
 
