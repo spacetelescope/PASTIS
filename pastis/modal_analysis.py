@@ -142,7 +142,7 @@ def apply_mode_to_sm(pmode, sm, wf_aper):
 
     This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
     one by one to the segmented mirror.
-    :param pmode: array, a single PASTIS mode [nseg]
+    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
     :param sm: hcipy.SegmentedMirror
     :param wf_aper: hcipy.Wavefront of the aperture
     :return: wf_sm: hcipy.Wavefront of the segmented mirror propagation
