@@ -91,18 +91,18 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
     luvoir = LuvoirAPLC(optics_input, design, sampling)
     luvoir.flatten()
 
+    # Generate baseline contrast
+    psf_unaber, ref = luvoir.calc_psf(ref=True)
+    norm = ref.max()
+    dh_intensity = psf_unaber / norm * luvoir.dh_mask
+    coronagraph_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+    print('coronagraph_floor: {}'.format(coronagraph_floor))
+
     # Load PASTIS modes and eigenvalues
     pmodes, svals = modes_from_file(workdir)
 
     if error_budget == 'single_mode':
         print('Single mode error budget')
-
-        # Generate baseline contrast
-        psf_unaber, ref = luvoir.calc_psf(ref=True)
-        norm = ref.max()
-        dh_intensity = psf_unaber / norm * luvoir.dh_mask
-        coronagraph_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-        print('coronagraph_floor: {}'.format(coronagraph_floor))
 
         # Calculate the mode weight
         single_sigma = single_mode_sigma(c_target, coronagraph_floor, svals[single_mode-1])
@@ -196,7 +196,7 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
 
         # Contrast per mode from E2E simulator for optimized error budget
         plt.figure(figsize=(16, 10))
-        plt.plot(per_mode_opt_e2e)
+        plt.plot(per_mode_opt_e2e - coronagraph_floor)
         plt.title('Optimized E2E contrast per mode for target $c$ = {}'.format(c_target), size=15)
         plt.xlabel('Mode index', size=15)
         plt.ylabel('Contrast', size=15)
