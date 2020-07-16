@@ -21,16 +21,16 @@ $ cd /User/<YourUser>/repos/
 
 - Clone the repository:
 ```bash
- git clone https://github.com/spacetelescope/PASTIS.git
+$ git clone https://github.com/spacetelescope/PASTIS.git
 ```
 or use SSH if that is your preferred way of cloning repositories:
 ```bash
- git clone git@github.com:spacetelescope/PASTIS.git
+$ git clone git@github.com:spacetelescope/PASTIS.git
 ```
 
 - Navigate into the cloned `PASTIS` repository:  
 ```bash
-cd PASTIS
+$ cd PASTIS
 ```
 
 - Create the `pastis` conda environment:  
@@ -50,12 +50,12 @@ $ git clone https://github.com/ehpor/hcipy.git
 ```
 or
 ```bash
-git@github.com:ehpor/hcipy.git
+$ git clone git@github.com:ehpor/hcipy.git
 ```
 
 - Navigate into the cloned `hcipy` repository:  
 ```bash
-cd hcipy
+$ cd hcipy
 ```
 
 - Check out commit `980f39c`:
@@ -73,7 +73,7 @@ $ python setup.py install
 
 - Go into the code directory:
 ```bash
-cd pastis
+$ cd pastis
 ```
 
 - Copy the file `config.ini` and name the copy `config_local.ini`.
@@ -101,7 +101,7 @@ $ conda activate pastis
 
 - Create a PASTIS matrix and analysis for the narrow-angle LUVOIR-A APLC design:
 ```bash
-python run_cases.py
+$ python run_cases.py
 ```
 This will run for a couple of hours as the first thing that is generated is the PASTIS matrix.
 When it is done, you can inspect your results in the path you  specified under `[local][local_data_path]` in your `config_local.ini`!
