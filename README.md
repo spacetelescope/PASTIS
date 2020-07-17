@@ -1,6 +1,6 @@
 <!-- PROJECT SHIELDS -->
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-![Python version][https://img.shields.io/badge/Python-3.7-green.svg?style=flat]
+![Python version][python-version-url]
 
 
 # PASTIS
@@ -211,6 +211,7 @@ This will make it use Type 42 fonts instead.
 The `tkagg` backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you
 encounter this issue you can change the default backend in the `matplotlibrc` file under `backend` at almost the very top of the file.
 
+
 ## Configuration file
 
 - SETUP OF CONFIGFILE AND CHANGING PASTIS PARAMETERS:
@@ -250,3 +251,21 @@ The directory "Jupyter Notebooks" contains a suite of notebooks that were used t
 Their numbering refers to the order they were generated in and exist mostly for easier identification. The most 
 up-to-date ones are in the subdirectory "LUVOIR", although there is no guarantee the notebooks are correct, as the main 
 code is in the scripts within `pastis`.
+
+
+## About this repository
+
+### Contributing and code of conduct
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and the process for submitting issues and pull requests to us.
+Please also see our [CODE OF CONDUCT](CODE_OF_CONDUCT.md).
+
+If you use this code in your work, please find citation snippets to give us credit with in [CITATION.txt](CITATION.txt).
+
+### License
+
+This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](LICENSE.txt) file for details.
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[python-version-url]: https://img.shields.io/badge/Python-3.7-green.svg?style=flat
