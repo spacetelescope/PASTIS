@@ -203,9 +203,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = 120
+        self.nseg = 120   # FIXME: this should not be hard-coded
         self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = 15.  # m
+        self.diam = 15.  # m   # FIXME: this should not be hard-coded
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
