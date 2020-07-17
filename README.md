@@ -214,16 +214,79 @@ encounter this issue you can change the default backend in the `matplotlibrc` fi
 
 ## Configuration file
 
-- SETUP OF CONFIGFILE AND CHANGING PASTIS PARAMETERS:
-The template configfile `config.ini` is supposed to be a static template. It is version controlled and should hence not 
-be changed if you're only using a different parameter setup. You should copy `config.ini` and call the copy 
-`config_local.ini`. You should only change the local configfile to update your parameters and not push any changes 
-made to `config.ini`.
+The main configuration file is `config.ini`, which holds all of your simulation parameters. This specific file, however, 
+is version controlled, and the paths to local directories will get messed up if you push or pull this file; you might 
+also lose the changes you made to the parameters. This is why `config.ini` is initially supposed to be used as a **template**.
 
-- SETTING UP LOCAL DATA PATHS:
-Pick or create a folder in which all the PASTIS data you generate will be saved and copy its global path 
-to `[local] --> local_data_path`. Specify where you keep your clone of the PASTIS repository and copy its global 
-path (including "/PASTIS" to `[local] --> local_repo_path`.
+In order to make it work for you, copy `config.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
+you can set all your parameters, and it will override the `config.ini` at runtime. Whichever configfile is used in the 
+code, the version controlled one or the local one, a copy of it is always saved together with the output data. In the 
+case you want to version control the configfile you use, we recommend that you **fork** the repository and simply use the 
+`config.ini` file directly.
+
+The first section deals with local paths. Here, you need to point the file to the local clone of your repo and the 
+directory you want to have the output data saved to:
+```ini
+[local]
+...
+local_data_path = /Users/user-name/Documents/data_from_repos/pastis_data
+local_repo_path = /Users/user-name/Documents/Git/PASTIS
+```
+
+In the next section, you make a selection of the telescope you want to run the analysis on. Currently, only LUVOIR-A is
+supported, although there exist other telescope sections in the configfile that were used for testing and setup.
+```ini
+[telescope]
+name = LUVOIR
+```
+This name has to equal the section name of the configfile that specifies the telescope parameters. In the LUVOIR case, 
+we have some parameters for the telescope itself, and for the coronagraph, as well as the operating wavelength.
+```ini
+[LUVOIR]
+; telescope
+nb_subapertures = 120
+diameter = 15.
+gaps = 0.02
+optics_path = ${local:local_repo_path}/LUVOIR_delivery_May2019/
+
+; coronagraph
+; iwa and owa from dictionaries within files. could move that to util.
+
+; the coro size is not used automatically in the functions, it is always defined (or read from here) manually
+coronagraph_size = small
+lambda = 500.
+```
+The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path`  specifies
+the data location of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC designs. The path goes into 
+the local repo path from `[local] -> [local_path]` and into the right location. There are three APLC designs available, 
+with a small, medium and large FPM, and the key `coronagraph_size` lets you switch between them. Finally, `lambda` sets
+the wavelength in nanometers.
+
+The following section sets some image parameters:
+```ini
+[numerical]
+...
+sampling = 4.
+...
+im_size_lamD_hcipy = 30
+
+; this is not used automatically in the functions, it is always defined (or read from here) manually
+current_analysis = 2020-01-13T21-34-29_luvoir-small
+```
+`sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
+the dark hole images in units of lambda/D. `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
+but lets you define a matrix directory for repeating an analysis with some of the other scripts and the pastis functions.
+
+Finally, the calibration section defines the local aberration used on each segment and the amplitude of the calibration
+aberration for the generation of the PASTIS matrix.
+```ini
+[calibration]
+;! Noll convention!  --- units are NANOMETERS
+single_aberration = 1.
+zernike = 1
+```
+`zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
+`1` means piston. `single_aberration` is the amplitude of the calibration aberration of the matrix in nanometers.
 
 
 ## Folder structure
