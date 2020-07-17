@@ -289,23 +289,32 @@ zernike = 1
 `1` means piston. `single_aberration` is the amplitude of the calibration aberration of the matrix in nanometers.
 
 
-## Folder structure
+## Output directory
 
-In the configfile, the entry `[local] --> local_data_path` specifies where the output data will be saved.
-Each new run will create a new subdirectory whose name starts with a time stamp.
+Each time a new PASTIS matrix is generated, this will create a new data folder in the directory you specified under
+`[local]` --> `[local_data_path]`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
+date and time of the start of the matrix generation, the telescope name, and for LUVOIR the APLC choice.
 
-+ coronagraph_floor.txt: E2E DH average contrast for unaberrated pupil
-+ unaberrated_dh.pdf: image of unaberrated DH from E2E simulator
+The code will copy the used configfile into this data folder, among other things. The data directory structure is as
+follows:
 
-**matrix_numerical**  
-+ config_local.ini: a copy of the configfile that the matrix was created with
-+ contrasts.txt: E2E DH average contrast per aberrated segment pair  
-+ OTE_images: PDF images of the segment pair aberrations in the pupil
-+ PASTISmatrix_num_piston_Noll1.fits: semi-analytical PASTIS matrix  
-+ psfs: psf_cube.fits: all E2E DH images in one cube   
-
-**results**  
-contains all results from the PASTIS analysis
+```bash
+|-- 2020-01-13T21-34-29_example
+|   |-- coronagraph_floor.txt: E2E DH average contrast for unaberrated pupil
+|   |--matrix_numerical
+|      |-- config_local.ini: copy of the configfile used for matrix generation
+|      |-- contrasts.txt: list of E2E DH average contrasts per aberrated segment pair
+|      |-- OTE_images
+|          |-- PDF images of each segment pair aberration in the pupil
+|          |-- ...
+|      |-- PASTISmatrix_num_piston_Noll1.fits: the PASTIS matrix
+|      |-- psfs
+|          |-- psf_cube.fits: an image cube of the PSF from each segment pair aberration
+|   |--results
+|      |-- all results form the PASTIS analysis
+|      |-- ...
+|   |-- unaberrated_dh.pdf: image of unaberrated DH from E2E simulator
+```
 
 
 ## Jupyter notebooks
