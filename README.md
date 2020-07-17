@@ -5,7 +5,7 @@ In this repo though, PASTIS is an algorithm for analytical contrast predictions 
 
 This release was specifically made to accompany the Laginja et al. (in prep) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
-## Quickstart from template:
+## Quickstart from template
 
 *This section will you give all the necessary terminal commands to go from opening our GitHub page in the browser to having 
 reduced results of the template on your local machine.*
@@ -115,13 +115,98 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 - local aberration = piston
 - calibration aberration per segment to generate the PASTIS matrix with: 1 nm
 
-## Requirements:
+If you want to change any of these, please refer to the section about the section about the [configfile](#Configuration file). 
 
-Set up a conda environment with the provided `environement.yml`:
-1) `$ conda env create --file environment.yml`
-2) install `hcipy` specifically from commit `980f39c`
+## Requirements
 
-## Setup:
+### Conda environment
+We provide an `environement.yml` file that can be taken advantage of with conda package management system. By creating 
+a conda environment from this file, you will be set up to run all the code in this package. The only other thing you 
+will need is to install `hcipy` correctly, see below.
+
+If you don't know how to start with conda, you can [download miniconda here](https://docs.conda.io/en/latest/miniconda.html). 
+After a successful installation, you can create the `pastis` conda environment by navigating with the terminal into the 
+`PASTIS` repository, where the `environement.yml` is located, and run:
+```bash
+$ conda env create --file environment.yml
+```
+This will create a conda environment called `pastis` that contains all the needed packages at the correction versions 
+(except hcipy). If you want to give the environment a different name while it is getting created, you can run:
+```bash
+$ conda env create --name <env-name> --file environment.yml
+```
+where you have to replace <env-name> with your desired package name.
+
+### `hcipy`
+PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
+PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
+this reason, you will need to clone the `hcipy` repository manually instead of installing the package from pip, then 
+checkout the commit with the correct version and install this version into your `pastis` conda environment. To do that,
+navigate to the location on disk that contains your repos and clone the `hcipy` repository per http *or* ssh:
+```bash
+$ git clone https://github.com/ehpor/hcipy.git
+$ git clone git@github.com:ehpor/hcipy.git
+```
+Make sure to activate you `pastis` conda environment since this is where we want to install `hcipy` into:
+```bash
+$ conda activate pastis
+```
+Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
+```bash
+$ git checkout 980f39c
+```
+Then install the package:
+```bash
+$ python setup.py install
+```
+This is a static installation of the `hcipy` package into the conda environment `pastis` only. If you now check out a 
+different commit or branch in your local `hcipy` repository, this will not influence this environment. Note how the installation
+process will create a "build" directory inside the `hcipy` repository that you are free to delete if you like.
+
+We are currently refactoring our code to be compatible with the improved, current version of `hcipy` and will update our
+readme accordingly when this change has successfully happened.
+
+### Plotting
+There are certain things that the code is not controlling that are connected to plotting settings with `maplotlib`. Initially,
+the plotting should work as expected but the results might be slightly different from what is presented in the paper 
+Laginja et al. (2020, in prep), for example where `matplotlib` puts the image origin. If you want to use the lower left
+as your origin, this adjustable in the plots directly by setting `origin=lower`, although I recommend adjustint your global
+plotting parameters in the `matplotlib rc` file so that you don't have to edit each plot manually.
+
+In short, you can find the location of your rc file on disk by running:
+```python
+>>> import matplotlib
+>>> matplotlib.matplotlib_fname()
+'/home/<some-path>/.config/matplotlib/matplotlibrc'
+```
+Opening up this file will show you a template rc file like described in the [matplotlib documentation for these settings](https://matplotlib.org/3.1.1/tutorials/introductory/customizing.html#the-matplotlibrc-file).
+To set your image origin permanently to the lower left for whenever you plot anything with `maplotlib`, search for `image.origin`
+within that file, delete the `#` which is commenting it out and set it to `lower`:
+```bash
+image.origin : lower
+```
+then save and close.
+
+While writing code for the repository, we ran into a couple of other issues with the plotting that were dependent on the
+OS and its version that we were using. If you run into the same issues, here how we solved them:
+
+#### On MacOS Catalina 10.15.5 - PDF font types
+It does not support Type 3 PostScript fonts in PDF documents, while `matplotlib` uses Type 3 fonts by default.
+We got the error message:
+```bash
+The PDF backend does not currently support the selected font.
+```
+To  mitigate this, go to your matplotlib rc file and make sure to uncomment and set:
+```bash
+pdf.fonttype       : 42
+```
+This will make it use Type 42 fonts instead.
+
+#### On MacOS Mojave 10.14.6 - backend
+The tkagg backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you
+encounter this issue you can change the default backend in the matplorlib rc file under `backend` at almost the very top of the file/
+
+## Configuration file
 
 - SETUP OF CONFIGFILE AND CHANGING PASTIS PARAMETERS:
 The template configfile `config.ini` is supposed to be a static template. It is version controlled and should hence not 
@@ -135,7 +220,7 @@ to `[local] --> local_data_path`. Specify where you keep your clone of the PASTI
 path (including "/PASTIS" to `[local] --> local_repo_path`.
 
 
-## Folder structure:
+## Folder structure
 
 In the configfile, the entry `[local] --> local_data_path` specifies where the output data will be saved.
 Each new run will create a new subdirectory whose name starts with a time stamp.
@@ -154,7 +239,7 @@ Each new run will create a new subdirectory whose name starts with a time stamp.
 contains all results from the PASTIS analysis
 
 
-## Jupyter notebooks:
+## Jupyter notebooks
 
 The directory "Jupyter Notebooks" contains a suite of notebooks that were used to develop the code on the repository.
 Their numbering refers to the order they were generated in and exist mostly for easier identification. The most 
