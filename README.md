@@ -258,13 +258,13 @@ code is in the scripts within `pastis`.
 ### Contributing and code of conduct
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and the process for submitting issues and pull requests to us.
-Please also see our [CODE OF CONDUCT](CODE_OF_CONDUCT.md).
+Please also see our [CODE OF CONDUCT.md](CODE_OF_CONDUCT.md).
 
 If you use this code in your work, please find citation snippets to give us credit with in [CITATION.txt](CITATION.txt).
 
 ### License
 
-This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](LICENSE.txt) file for details.
+This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](LICENSE.md) file for details.
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
