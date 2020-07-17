@@ -1,3 +1,8 @@
+<!-- PROJECT SHIELDS -->
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+![Python version][https://img.shields.io/badge/Python-3.7-green.svg?style=flat]
+
+
 # PASTIS
 Sweet liquor from the south of France.
 
