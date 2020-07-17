@@ -6,9 +6,9 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al (in prep).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al. (2020, in prep).
 
-This release was specifically made to accompany the Laginja et al. (in prep) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
+This release was specifically made to accompany the Laginja et al. (2020, in prep) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ This release was specifically made to accompany the Laginja et al. (in prep) pap
 
 ## Quickstart from template
 
-*This section will you give all the necessary terminal commands to go from opening our GitHub page in the browser to having 
+*This section will give you all the necessary terminal commands to go from opening this GitHub page in the browser to having 
 reduced results of the template on your local machine.*
 
 We assume that you have `conda` and `git` installed and that you're using `bash`.
@@ -107,7 +107,7 @@ $ cd pastis
 ```ini
 [local]
 ...
-local_repo_path = /Users/<user-name>/<my-repos>/PASTIS
+local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
 - In the same file, define with `[local][local_data_path]` where your output data should be saved to, e.g.:  
@@ -140,12 +140,12 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 - local aberration = piston
 - calibration aberration per segment to generate the PASTIS matrix with: 1 nm
 
-If you want to change any of these, please refer to the section about the section about the [configfile](#configuration-file). 
+If you want to change any of these, please refer to the section about the [configfile](#configuration-file). 
 
 ## Requirements
 
 ### Conda environment
-We provide an `environement.yml` file that can be taken advantage of with conda package management system. By creating 
+We provide an `environement.yml` file that can be taken advantage of with the conda package management system. By creating 
 a conda environment from this file, you will be set up to run all the code in this package. The only other thing you 
 will need is to install `hcipy` correctly, see below.
 
@@ -155,12 +155,12 @@ After a successful installation, you can create the `pastis` conda environment b
 ```bash
 $ conda env create --file environment.yml
 ```
-This will create a conda environment called `pastis` that contains all the needed packages at the correction versions 
+This will create a conda environment called `pastis` that contains all the needed packages at the correct versions 
 (except hcipy). If you want to give the environment a different name while it is getting created, you can run:
 ```bash
 $ conda env create --name <env-name> --file environment.yml
 ```
-where you have to replace <env-name> with your desired package name.
+where you have to replace `<env-name>` with your desired package name.
 
 ### `hcipy`
 PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
@@ -240,7 +240,7 @@ also lose the changes you made to the parameters. This is why `config.ini` is in
 
 In order to make it work for you, copy `config.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
 you can set all your parameters, and it will override the `config.ini` at runtime. Whichever configfile is used in the 
-code, the version controlled one or the local one, a copy of it is always saved together with the output data. In the 
+code, the version-controlled one or the local one, a copy of it is always saved together with the PASTIS matrix output. In the 
 case you want to version control the configfile you use, we recommend that you **fork** the repository and simply use the 
 `config.ini` file directly.
 
@@ -249,8 +249,8 @@ directory you want to have the output data saved to:
 ```ini
 [local]
 ...
-local_data_path = /Users/user-name/Documents/data_from_repos/pastis_data
-local_repo_path = /Users/user-name/Documents/Git/PASTIS
+local_data_path = /Users/<user-name>/data_from_repos/pastis_data
+local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
 In the next section, you make a selection of the telescope you want to run the analysis on. Currently, only LUVOIR-A is
