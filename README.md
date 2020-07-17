@@ -167,11 +167,11 @@ We are currently refactoring our code to be compatible with the improved, curren
 readme accordingly when this change has successfully happened.
 
 ### Plotting
-There are certain things that the code is not controlling that are connected to plotting settings with `maplotlib`. Initially,
+There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
 the plotting should work as expected but the results might be slightly different from what is presented in the paper 
 Laginja et al. (2020, in prep), for example where `matplotlib` puts the image origin. If you want to use the lower left
-as your origin, this adjustable in the plots directly by setting `origin=lower`, although I recommend adjustint your global
-plotting parameters in the `matplotlib rc` file so that you don't have to edit each plot manually.
+as your origin, this is adjustable in the plots directly by setting `origin=lower`, although I recommend adjusting your global
+plotting parameters in the `matplotlibrc` file so that you don't have to edit each plot manually.
 
 In short, you can find the location of your rc file on disk by running:
 ```python
@@ -180,7 +180,7 @@ In short, you can find the location of your rc file on disk by running:
 '/home/<some-path>/.config/matplotlib/matplotlibrc'
 ```
 Opening up this file will show you a template rc file like described in the [matplotlib documentation for these settings](https://matplotlib.org/3.1.1/tutorials/introductory/customizing.html#the-matplotlibrc-file).
-To set your image origin permanently to the lower left for whenever you plot anything with `maplotlib`, search for `image.origin`
+To set your image origin permanently to the lower left for whenever you plot anything with `matplotlib`, search for `image.origin`
 within that file, delete the `#` which is commenting it out and set it to `lower`:
 ```bash
 image.origin : lower
@@ -188,7 +188,7 @@ image.origin : lower
 then save and close.
 
 While writing code for the repository, we ran into a couple of other issues with the plotting that were dependent on the
-OS and its version that we were using. If you run into the same issues, here how we solved them:
+OS and its version that we were using. If you run into the same issues, here is how we solved them:
 
 #### On MacOS Catalina 10.15.5 - PDF font types
 It does not support Type 3 PostScript fonts in PDF documents, while `matplotlib` uses Type 3 fonts by default.
@@ -196,15 +196,15 @@ We got the error message:
 ```bash
 The PDF backend does not currently support the selected font.
 ```
-To  mitigate this, go to your matplotlib rc file and make sure to uncomment and set:
+To  mitigate this, go to your `matplotlibrc` file and make sure to uncomment and set:
 ```bash
 pdf.fonttype       : 42
 ```
 This will make it use Type 42 fonts instead.
 
 #### On MacOS Mojave 10.14.6 - backend
-The tkagg backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you
-encounter this issue you can change the default backend in the matplorlib rc file under `backend` at almost the very top of the file/
+The `tkagg` backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you
+encounter this issue you can change the default backend in the `matplotlibrc` file under `backend` at almost the very top of the file.
 
 ## Configuration file
 
