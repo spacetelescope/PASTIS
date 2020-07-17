@@ -10,6 +10,26 @@ In this repo though, PASTIS is an algorithm for analytical contrast predictions 
 
 This release was specifically made to accompany the Laginja et al. (in prep) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
+## Table of Contents
+
+* [Quickstart from template](#quickstart-from-template)
+  * [Clone the repo and create conda environment](#clone-the-repo-and-create-conda-environment)
+  * [Set up local configfile](#set-up-local-configfile)
+  * [Create a PASTIS matrix and run the analysis](#create-a-pastis-matrix-and-run-the-analysis)
+  * [Changing the input parameters](#changing-the-input-parameters)
+* [Requirements](#requirements)
+  * [Conda environment](#conda-environment)
+  * [hcipy](#hcipy)
+  * [Plotting](#plotting)
+* [Configuration file](#configuration-file)
+* [Output directory](#output-directory)
+* [Jupyter notebooks](#jupyter-notebooks)
+* [About this repository](#about-this-repository)
+  * [Contributing and code of conduct](#contributing-and-code-of-conduct)
+  * [Citing](#citing)
+  * [License](#license)
+
+
 ## Quickstart from template
 
 *This section will you give all the necessary terminal commands to go from opening our GitHub page in the browser to having 
@@ -331,6 +351,8 @@ code is in the scripts within `pastis`.
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, and the process for submitting issues and pull requests to us.
 Please also see our [CODE OF CONDUCT.md](CODE_OF_CONDUCT.md).
+
+### Citing
 
 If you use this code in your work, please find citation snippets to give us credit with in [CITATION.txt](CITATION.txt).
 
