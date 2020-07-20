@@ -16,7 +16,7 @@ from modal_analysis import apply_mode_to_sm
 cmap_brev = cm.get_cmap('Blues_r')
 
 
-def plot_pastis_matrix(pastis_matrix, wvln, out_dir, design):
+def plot_pastis_matrix(pastis_matrix, wvln, out_dir, design, save=False):
 
     plt.figure(figsize=(10, 10))
     plt.imshow(pastis_matrix / wvln)
@@ -30,10 +30,11 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, design):
     plt.ylabel('Segments', size=30)
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'matrix_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'pastis_matrix_{design}.pdf'))
 
 
-def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, design, xlim=None, ylim=None):
+def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, design, xlim=None, ylim=None, save=False):
     plt.figure(figsize=(12, 8))
     plt.title("Semi-analytical PASTIS vs. E2E", size=30)
     plt.plot(rms_range / wvln, pastis_matrix_contrasts, label="SA PASTIS", linewidth=4)
@@ -50,10 +51,11 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
     plt.legend(prop={'size': 30})
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'hockeystick_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'hockeystick_{design}.pdf'))
 
 
-def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, design):
+def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, design, save=False):
     plt.figure(figsize=(12, 8))
     plt.plot(np.arange(1, nseg + 1), eigenvalues / wvln, linewidth=3, color='red')
     plt.semilogy()
@@ -63,10 +65,11 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, design):
     plt.ylabel('Eigenvalues $\lambda_p$ (c/wave$^{2})$', size=30)
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'eigenvalues_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'eigenvalues_{design}.pdf'))
 
 
-def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None):
+def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
 
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
@@ -93,10 +96,11 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None):
     plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
-    plt.savefig(os.path.join(out_dir, 'sigmas.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, 'sigmas.pdf'))
 
 
-def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None):
+def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None, save=False):
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
         sets = len(sigmas)
@@ -143,12 +147,13 @@ def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, 
         ax_nm.set_xlabel('Mode index', size=30)
         plt.tight_layout()
 
-        plt.savefig(os.path.join(out_dir, f'sigmas_{c_target}.pdf'))
+        if save:
+            plt.savefig(os.path.join(out_dir, f'sigmas_{c_target}.pdf'))
 
     make_plot()
 
 
-def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, design):
+def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, design, save=False):
     plt.figure(figsize=(12, 8))
     ax = plt.gca()
     plt.plot(cumulative_c_pastis, label='SA PASTIS', linewidth=4)
@@ -165,10 +170,11 @@ def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, des
     ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
 
-    plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
 
 
-def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=True):
+def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=True, save=False):
     seg_or_mode = 'c_a' if segment_space else 'c_b'
 
     plt.figure(figsize=(10, 10))
@@ -185,10 +191,11 @@ def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=Tru
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
     cbar.ax.tick_params(labelsize=15)
 
-    plt.savefig(os.path.join(out_dir, f'{seg_or_mode}_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'{seg_or_mode}_{design}.pdf'))
 
 
-def plot_segment_weights(mus, out_dir, labels=None):
+def plot_segment_weights(mus, out_dir, labels=None, save=False):
 
     # Figure out how many sets of sigmas we have
     if isinstance(mus, tuple):
@@ -207,7 +214,8 @@ def plot_segment_weights(mus, out_dir, labels=None):
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
 
-    plt.savefig(os.path.join(out_dir, 'segment_requierements.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, 'segment_requierements.pdf'))
 
 
 def create_luvoir_and_wf_at_mirror(design, wvln):
@@ -229,7 +237,7 @@ def create_luvoir_and_wf_at_mirror(design, wvln):
     return luvoir, wf_aper
 
 
-def plot_mu_map(mus, wvln, out_dir, design, limits=None):
+def plot_mu_map(mus, wvln, out_dir, design, limits=None, save=False):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
     wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
@@ -252,10 +260,11 @@ def plot_mu_map(mus, wvln, out_dir, design, limits=None):
     plt.axis('off')
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'segment_tolerances_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'segment_tolerances_{design}.pdf'))
 
 
-def plot_all_modes(pastis_modes, wvln, out_dir, design):
+def plot_all_modes(pastis_modes, wvln, out_dir, design, save=False):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
@@ -272,10 +281,11 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design):
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'all_modes_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'all_modes_{design}.pdf'))
 
 
-def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize):
+def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, save=False):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
@@ -289,10 +299,11 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize):
     cbar.ax.tick_params(labelsize=40)  # this changes the numbers on the colorbar
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'mode_{mode_nr}_{design}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'mode_{mode_nr}_{design}.pdf'))
 
 
-def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None):
+def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, save=False):
     mc_name = 'segments' if segments else 'modes'
     base_color = 'blue' if segments else 'sandybrown'
     lines_color = 'darkorange' if segments else 'brown'
@@ -312,10 +323,11 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
         plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
 
-    plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}.pdf'))
 
 
-def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir):
+def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir, save=False):
     fig, ax = plt.figure(figsize=(10.5, 8))
     plt.plot(contrasts_per_mode - coro_floor, linewidth=3)  # SUBTRACTING THE BASELINE CONTRAST!!
     plt.title(f'Contrast per mode, $c_t = {c_target}$', size=29)
@@ -329,4 +341,5 @@ def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out
     plt.gca().yaxis.offsetText.set_fontsize(30)
     plt.tight_layout()
 
-    plt.savefig(os.path.join(out_dir, f'per-mode_contrast_plot_{c_target}.pdf'))
+    if save:
+        plt.savefig(os.path.join(out_dir, f'per-mode_contrast_plot_{c_target}.pdf'))
