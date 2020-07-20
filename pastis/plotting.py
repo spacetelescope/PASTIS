@@ -2,12 +2,14 @@
 Plotting functions for the PASTIS code.
 """
 import os
+import hcipy as hc
 import matplotlib
 from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
+from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 from modal_analysis import apply_mode_to_sm
 
@@ -64,7 +66,7 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, design):
     plt.savefig(os.path.join(out_dir, f'eigenvalues_{design}.pdf'))
 
 
-def plot_mode_weights(sigmas, wvln, out_dir, labels=None):
+def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None):
 
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
@@ -79,7 +81,7 @@ def plot_mode_weights(sigmas, wvln, out_dir, labels=None):
         for i in range(sets):
             plt.plot(sigmas[i] / wvln, linewidth=3, label=labels[i])
     plt.semilogy()
-    plt.title('Uniform contrast allocation across modes', size=30)
+    plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
     plt.ylabel('Mode weights $\widetilde{b_p}$ (waves)', size=30)
@@ -91,7 +93,59 @@ def plot_mode_weights(sigmas, wvln, out_dir, labels=None):
     plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
-    plt.savefig(os.path.join(out_dir, 'sigmas_flat_error_budget.pdf'))
+    plt.savefig(os.path.join(out_dir, 'sigmas.pdf'))
+
+
+def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None):
+    # Figure out how many sets of sigmas we have
+    if isinstance(sigmas, tuple):
+        sets = len(sigmas)
+    elif isinstance(sigmas, np.array) and sigmas.ndim == 1:
+        sets = 1
+
+    # Adapted from https://matplotlib.org/gallery/subplots_axes_and_figures/fahrenheit_celsius_scales.html
+    def nm2wave(wfe, wvln):
+        """
+        Returns WFE in waves given the wavelength.
+        """
+        return wfe / wvln
+
+    def make_plot():
+        # Define a closure function to register as a callback
+        def convert_ax_wave_to_wave(ax_nm):
+            """
+            Update second axis according with first axis.
+            """
+            y1, y2 = ax_nm.get_ylim()
+            ax_wave.set_ylim(nm2wave(y1, wvln), nm2wave(y2, wvln))
+            ax_wave.figure.canvas.draw()
+
+        fig, ax_nm = plt.subplots(figsize=(13, 8))
+        ax_wave = ax_nm.twinx()
+
+        # automatically update ylim of ax2 when ylim of ax1 changes.
+        ax_nm.callbacks.connect("ylim_changed", convert_ax_wave_to_wave)
+
+        if sets == 1:
+            ax_nm.plot(sigmas / wvln, linewidth=3, c='r', label=labels)
+        else:
+            for i in range(sets):
+                ax_nm.plot(sigmas[i] / wvln, linewidth=3, label=labels[i], alpa=alphas[i], ls=linestyles[i])
+
+        ax_nm.semilogy()
+        ax_wave.semilogy()
+        ax_nm.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+        ax_wave.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+
+        ax_nm.set_title(f'Constraints per mode for $c_t = {c_target}$', size=30)
+        ax_nm.set_ylabel('Mode weight $\sigma_p$ (nm)', size=30)
+        ax_wave.set_ylabel('Mode weight $\sigma_p$ (waves)', size=30)
+        ax_nm.set_xlabel('Mode index', size=30)
+        plt.tight_layout()
+
+        plt.savefig(os.path.join(out_dir, f'sigmas_{c_target}.pdf'))
+
+    make_plot()
 
 
 def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, design):
@@ -132,3 +186,147 @@ def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=Tru
     cbar.ax.tick_params(labelsize=15)
 
     plt.savefig(os.path.join(out_dir, f'{seg_or_mode}_{design}.pdf'))
+
+
+def plot_segment_weights(mus, out_dir, labels=None):
+
+    # Figure out how many sets of sigmas we have
+    if isinstance(mus, tuple):
+        sets = len(mus)
+    elif isinstance(mus, np.array) and mus.ndim == 1:
+        sets = 1
+
+    plt.figure(figsize=(12, 8))
+    if sets == 1:
+        plt.plot(mus * 1e3, lw=3, label=labels)   # 1e3 to convert from nm to pm
+    else:
+        for i in range(sets):
+            plt.plot(mus[i] * 1e3, lw=3, label=labels[i])
+    plt.xlabel('Segment number', size=30)
+    plt.ylabel('WFE requirements (pm)', size=30)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+
+    plt.savefig(os.path.join(out_dir, 'segment_requierements.pdf'))
+
+
+def create_luvoir_and_wf_at_mirror(design, wvln):
+    # Create wavefront in aperture plane
+    optics_path = CONFIG_INI.get('LUVOIR', 'optics_path')
+
+    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
+    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
+    aper_read = hc.read_fits(os.path.join(optics_path, aper_path))
+    aper_ind_read = hc.read_fits(os.path.join(optics_path, aper_ind_path))
+
+    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
+    aper = hc.Field(aper_read.ravel(), pupil_grid)
+    wf_aper = hc.Wavefront(aper, wvln * 1e-9)
+
+    # Create LUVOIR instance and wavefront in the segmented mirror plane
+    luvoir = LuvoirAPLC(optics_path, design, samp=4)
+
+    return luvoir, wf_aper
+
+
+def plot_mu_map(mus, wvln, out_dir, design, limits=None):
+    # Create wavefront in aperture plane and luvoir instance
+    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
+
+    plt.figure(figsize=(10, 10))
+
+    map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
+    map_small = np.ma.masked_where(map_small == 0, map_small)
+    cmap_brev.set_bad(color='black')
+
+    plt.imshow(map_small, cmap=cmap_brev)
+    cbar = plt.colorbar(fraction=0.046,
+                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+    cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
+    cbar.ax.yaxis.offsetText.set(size=25)  # this changes the base of ten on the colorbar
+    # cbar.set_label('meters', size=30)
+    if limits is not None:
+        plt.clim(limits[0] * 1e3, limits[1] * 1e3)  # in pm
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=20)
+    plt.axis('off')
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(out_dir, f'segment_tolerances_{design}.pdf'))
+
+
+def plot_all_modes(pastis_modes, wvln, out_dir, design):
+    # Create wavefront in aperture plane and luvoir instance
+    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+
+    # Calculate phases of all modes
+    all_modes = []
+    for mode in range(len(pastis_modes)):
+        all_modes.append(apply_mode_to_sm(pastis_modes[:, mode], luvoir.sm, wf_aper).phase)
+
+    # Plot them
+    fig, axs = plt.subplots(12, 10, figsize=(20, 24))
+    for i, ax in enumerate(axs.flat):
+        im = hc.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
+        ax.axis('off')
+        ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
+    fig.tight_layout()
+
+    plt.savefig(os.path.join(out_dir, f'all_modes_{design}.pdf'))
+
+
+def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize):
+    # Create wavefront in aperture plane and luvoir instance
+    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+
+    plt.figure(figsize=figsize, constrained_layout=False)
+    one_mode = apply_mode_to_sm(pastis_modes[:, mode_nr - 1], luvoir.sm, wf_aper)
+    hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=-0.002, vmax=0.002)
+    plt.axis('off')
+    plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
+    cbar = plt.colorbar(fraction=0.046,
+                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+    cbar.ax.tick_params(labelsize=40)  # this changes the numbers on the colorbar
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(out_dir, f'mode_{mode_nr}_{design}.pdf'))
+
+
+def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None):
+    mc_name = 'segments' if segments else 'modes'
+    base_color = 'blue' if segments else 'sandybrown'
+    lines_color = 'darkorange' if segments else 'brown'
+
+    fig = plt.figure(figsize=(12, 10))
+    ax1 = fig.subplots()
+
+    n, bins, patches = plt.hist(random_contrasts, int(len(random_contrasts)/100), color=base_color)
+    plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
+    plt.xlabel('Mean contrast in dark hole', size=30)
+    plt.ylabel('Frequency', size=30)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set x-axis formatter to x10^{-10}
+    ax1.xaxis.offsetText.set_fontsize(30)  # set x-axis formatter font size
+    plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
+    if segments:
+        plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
+        plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
+
+    plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}.pdf'))
+
+
+def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir):
+    fig, ax = plt.figure(figsize=(10.5, 8))
+    plt.plot(contrasts_per_mode - coro_floor, linewidth=3)  # SUBTRACTING THE BASELINE CONTRAST!!
+    plt.title(f'Contrast per mode, $c_t = {c_target}$', size=29)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    plt.xlabel('Mode index', size=30)
+    plt.ylabel('Contrast', size=30)
+    plt.axhline((c_target - coro_floor) / nmodes, ls='dashed', lw=3, c='dimgrey')
+    plt.text(0.005, 0.55, 'Uniform error budget', transform=ax.transAxes, fontsize=30, c='dimgrey')
+    plt.text(0.89, 0.85, 'Segment-based\nerror budget', transform=ax.transAxes, fontsize=30, c='C0', ha='right')
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
+    plt.gca().yaxis.offsetText.set_fontsize(30)
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(out_dir, f'per-mode_contrast_plot_{c_target}.pdf'))
