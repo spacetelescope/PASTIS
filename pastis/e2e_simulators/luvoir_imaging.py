@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from astropy.io import fits
 import hcipy as hc
-from hcipy.optics.segmented_mirror import SegmentedMirror
 
 
 class SegmentedTelescopeAPLC:
@@ -248,12 +247,31 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
 
         # Focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
-        focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
-                                            num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=self.wvln)
+        #focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=self.wvln)
+        focal_grid_fpm = hc.make_focal_grid(
+            samp_foc,
+            self.apod_dict[apod_design]['fpm_rad'],
+            spatial_resolution=None,
+            pupil_diameter=None,
+            focal_length=None,
+            f_number=None,
+            reference_wavelength=None,
+        )
+
         self.fpm = 1 - hc.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
 
         # Final focal plane grid (detector)
-        self.focal_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
+        #self.focal_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
+        self.focal_det = hc.make_focal_grid(
+            self.sampling,
+            self.imlamD,
+            spatial_resolution=None,
+            pupil_diameter=None,
+            focal_length=None,
+            f_number=None,
+            reference_wavelength=None,
+        )
+
 
         luvoir_params = {'wavelength': self.wvln, 'diameter': self.diam, 'imlamD': self.imlamD,
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
