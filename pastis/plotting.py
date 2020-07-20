@@ -74,8 +74,12 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
         sets = len(sigmas)
-    elif isinstance(sigmas, np.array) and sigmas.ndim == 1:
+        if labels is None:
+            raise AttributeError('A tuple of labels needs to be defined when more than one set of sigmas is provided.')
+    elif isinstance(sigmas, np.ndarray) and sigmas.ndim == 1:
         sets = 1
+    else:
+        raise AttributeError('sigmas must be an array of values, or a tuple of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
@@ -88,7 +92,8 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
     plt.ylabel('Mode weights $\widetilde{b_p}$ (waves)', size=30)
-    plt.legend()
+    if labels is not None:
+        plt.legend(prop={'size': 20})
     plt.tight_layout()
 
     plt.annotate(s='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
@@ -100,12 +105,22 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
         plt.savefig(os.path.join(out_dir, 'sigmas.pdf'))
 
 
-def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None, save=False):
+def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None, colors=None, save=False):
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
         sets = len(sigmas)
-    elif isinstance(sigmas, np.array) and sigmas.ndim == 1:
+        if labels is None:
+            raise AttributeError('A tuple of labels needs to be defined when more than one set of sigmas is provided.')
+        if alphas is None:
+            alphas = [1] * sets
+        if linestyles is None:
+            linestyles = ['-'] * sets
+        if colors is None:
+            colors = [None] * sets
+    elif isinstance(sigmas, np.ndarray) and sigmas.ndim == 1:
         sets = 1
+    else:
+        raise AttributeError('sigmas must be an array of values, or a tuple of such arrays.')
 
     # Adapted from https://matplotlib.org/gallery/subplots_axes_and_figures/fahrenheit_celsius_scales.html
     def nm2wave(wfe, wvln):
@@ -134,7 +149,7 @@ def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, 
             ax_nm.plot(sigmas / wvln, linewidth=3, c='r', label=labels)
         else:
             for i in range(sets):
-                ax_nm.plot(sigmas[i] / wvln, linewidth=3, label=labels[i], alpa=alphas[i], ls=linestyles[i])
+                ax_nm.plot(sigmas[i] / wvln, linewidth=3, label=labels[i], alpha=alphas[i], ls=linestyles[i], c=colors[i])
 
         ax_nm.semilogy()
         ax_wave.semilogy()
@@ -145,6 +160,8 @@ def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, 
         ax_nm.set_ylabel('Mode weight $\sigma_p$ (nm)', size=30)
         ax_wave.set_ylabel('Mode weight $\sigma_p$ (waves)', size=30)
         ax_nm.set_xlabel('Mode index', size=30)
+        if labels is not None:
+            ax_nm.legend(prop={'size': 20})
         plt.tight_layout()
 
         if save:
@@ -153,7 +170,7 @@ def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, 
     make_plot()
 
 
-def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, design, save=False):
+def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, design, save=False):
     plt.figure(figsize=(12, 8))
     ax = plt.gca()
     plt.plot(cumulative_c_pastis, label='SA PASTIS', linewidth=4)
@@ -174,6 +191,23 @@ def plot_cumulative_contrast(cumulative_c_pastis, cumulative_c_e2e, out_dir, des
         plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
 
 
+def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, design, c_target, save=False):
+    fig, ax = plt.subplots(figsize=(12, 8))
+    plt.plot(segment_based_cumulative_c, label='Segment-driven error budget', linewidth=4)
+    plt.plot(uniform_cumulative_c_e2e, label='Uniform', linewidth=4, linestyle='--', c='k', alpha=0.5)
+    plt.title(f'Cumulative contrast, $c_t = {c_target}$', size=29)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    plt.xlabel('Mode index', size=30)
+    plt.ylabel('Contrast', size=30)
+    plt.text(0.2, 0.13, 'Uniform error budget', transform=ax.transAxes, fontsize=30, rotation=33, c='dimgrey')
+    plt.text(0.06, 0.14, 'Segment-based error budget', transform=ax.transAxes, fontsize=30, rotation=40, c='C0')
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
+    plt.gca().yaxis.offsetText.set_fontsize(30)
+
+    if save:
+        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
+
+
 def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=True, save=False):
     seg_or_mode = 'c_a' if segment_space else 'c_b'
 
@@ -181,8 +215,8 @@ def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=Tru
     plt.imshow(covariance_matrix)
     if segment_space:
         plt.title('Segment-space covariance matrix $C_a$', size=25)
-        plt.xlabel('segments', size=25)
-        plt.ylabel('segments', size=25)
+        plt.xlabel('Segments', size=25)
+        plt.ylabel('Segments', size=25)
     else:
         plt.title('Mode-space covariance matrix $C_b$', size=25)
         plt.xlabel('Modes', size=25)
@@ -200,8 +234,12 @@ def plot_segment_weights(mus, out_dir, labels=None, save=False):
     # Figure out how many sets of sigmas we have
     if isinstance(mus, tuple):
         sets = len(mus)
-    elif isinstance(mus, np.array) and mus.ndim == 1:
+        if labels is None:
+            raise AttributeError('A tuple of labels needs to be defined when more than one set of mus is provided.')
+    elif isinstance(mus, np.ndarray) and mus.ndim == 1:
         sets = 1
+    else:
+        raise AttributeError('sigmas must be an array of values, or a tuple of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
@@ -212,7 +250,8 @@ def plot_segment_weights(mus, out_dir, labels=None, save=False):
     plt.xlabel('Segment number', size=30)
     plt.ylabel('WFE requirements (pm)', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
-    plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+    if labels is not None:
+        plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
 
     if save:
         plt.savefig(os.path.join(out_dir, 'segment_requierements.pdf'))
@@ -220,7 +259,7 @@ def plot_segment_weights(mus, out_dir, labels=None, save=False):
 
 def create_luvoir_and_wf_at_mirror(design, wvln):
     # Create wavefront in aperture plane
-    optics_path = CONFIG_INI.get('LUVOIR', 'optics_path')
+    optics_path = '/Users/ilaginja/Documents/MakidonLabWork/ultra/LUVOIR_delivery_May2019/'
 
     aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
     aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
@@ -253,7 +292,7 @@ def plot_mu_map(mus, wvln, out_dir, design, limits=None, save=False):
                         pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
     cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
     cbar.ax.yaxis.offsetText.set(size=25)  # this changes the base of ten on the colorbar
-    # cbar.set_label('meters', size=30)
+    cbar.set_label('picometers', size=30)
     if limits is not None:
         plt.clim(limits[0] * 1e3, limits[1] * 1e3)  # in pm
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=20)
@@ -264,7 +303,7 @@ def plot_mu_map(mus, wvln, out_dir, design, limits=None, save=False):
         plt.savefig(os.path.join(out_dir, f'segment_tolerances_{design}.pdf'))
 
 
-def plot_all_modes(pastis_modes, wvln, out_dir, design, save=False):
+def calculate_mode_phases(pastis_modes, wvln, design):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
@@ -272,6 +311,13 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, save=False):
     all_modes = []
     for mode in range(len(pastis_modes)):
         all_modes.append(apply_mode_to_sm(pastis_modes[:, mode], luvoir.sm, wf_aper).phase)
+
+    return all_modes
+
+
+def plot_all_modes(pastis_modes, wvln, out_dir, design, save=False):
+    # Calculate phases of all modes
+    all_modes = calculate_mode_phases(pastis_modes, wvln, design)
 
     # Plot them
     fig, axs = plt.subplots(12, 10, figsize=(20, 24))
@@ -285,13 +331,13 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, save=False):
         plt.savefig(os.path.join(out_dir, f'all_modes_{design}.pdf'))
 
 
-def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, save=False):
+def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, vmin, vmax, save=False):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
     plt.figure(figsize=figsize, constrained_layout=False)
     one_mode = apply_mode_to_sm(pastis_modes[:, mode_nr - 1], luvoir.sm, wf_aper)
-    hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=-0.002, vmax=0.002)
+    hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
     cbar = plt.colorbar(fraction=0.046,
@@ -305,10 +351,10 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, save
 
 def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, save=False):
     mc_name = 'segments' if segments else 'modes'
-    base_color = 'blue' if segments else 'sandybrown'
+    base_color = '#1f77b4' if segments else 'sandybrown'
     lines_color = 'darkorange' if segments else 'brown'
 
-    fig = plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(10, 10))
     ax1 = fig.subplots()
 
     n, bins, patches = plt.hist(random_contrasts, int(len(random_contrasts)/100), color=base_color)
@@ -328,7 +374,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
 
 
 def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir, save=False):
-    fig, ax = plt.figure(figsize=(10.5, 8))
+    fig, ax = plt.subplots(figsize=(10.5, 8))
     plt.plot(contrasts_per_mode - coro_floor, linewidth=3)  # SUBTRACTING THE BASELINE CONTRAST!!
     plt.title(f'Contrast per mode, $c_t = {c_target}$', size=29)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
