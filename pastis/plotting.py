@@ -75,7 +75,7 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
         plt.xlim(xlim[0], xlim[1])
     if ylim is not None:
         plt.ylim(ylim[0], ylim[1])
-    plt.xlabel("OPD RMS (waves)", size=30)
+    plt.xlabel("WFE RMS (waves)", size=30)
     plt.ylabel("Contrast", size=30)
     plt.legend(prop={'size': 30})
     plt.tight_layout()

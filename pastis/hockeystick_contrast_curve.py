@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 
 from config import CONFIG_INI
 import contrast_calculation_simple as consim
+import plotting as ppl
 
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
@@ -253,15 +254,11 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     # Plot
     plt.clf()
-    plt.title("Contrast calculation with " + str(no_realizations) + " realizations each")
-    plt.plot(rms_range, e2e_contrasts, label="E2E")
-    plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
-    plt.semilogx()
-    plt.semilogy()
-    plt.xlabel("WFE RMS in " + str(u.nm))
-    plt.ylabel("Contrast")
-    plt.legend()
-    plt.savefig(os.path.join(resultdir, 'hockeystick_contrasts.pdf'))
+    ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
+                                wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                                out_dir=resultdir,
+                                fname_suffix=f'{no_realizations}_realizations_each',
+                                save=True)
 
     end_time = time.time()
     runtime = end_time - start_time
