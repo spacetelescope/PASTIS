@@ -430,25 +430,20 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
     norm = ref.max()
 
-    # Make dark hole mask
-    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_mask = (dh_outer - dh_inner).astype('bool')
-
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.title("Dark hole mask")
-    hc.imshow_field(dh_mask)
+    hc.imshow_field(luvoir.dh_mask)
     plt.subplot(1, 3, 2)
     plt.title("Unaberrated PSF")
-    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=dh_mask)
+    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=luvoir.dh_mask)
     plt.subplot(1, 3, 3)
     plt.title("Unaberrated PSF (masked)")
     hc.imshow_field(psf_unaber, norm=LogNorm())
     plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Calculate coronagraph floor
-    coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
+    coro_floor = util.dh_mean(psf_unaber/norm, luvoir.dh_mask)
     print('Coronagraph floor: {}'.format(coro_floor))
     with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
         file.write(f'{coro_floor}')
@@ -495,7 +490,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_random_weight_sets = []
         for rep in range(n_repeat):
             print('Mode realization {}/{}'.format(rep + 1, n_repeat))
-            random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask)
+            random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, luvoir.dh_mask)
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
@@ -517,7 +512,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         print('Calculating cumulative contrast plot, uniform contrast across all modes')
-        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask)
+        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, luvoir.dh_mask)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_target)), cumulative_e2e)
@@ -555,7 +550,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_random_maps = []
         for rep in range(n_repeat):
             print('Segment realization {}/{}'.format(rep + 1, n_repeat))
-            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, dh_mask)
+            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, luvoir.dh_mask)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
@@ -585,7 +580,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     for seg, mu in enumerate(mus):
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    contrast_mu = util.dh_mean(psf/ref.max(), dh_mask)
+    contrast_mu = util.dh_mean(psf/ref.max(), luvoir.dh_mask)
     print('Contrast with mu-map: {}'.format(contrast_mu))
 
     ###
