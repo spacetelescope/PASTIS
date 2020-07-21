@@ -69,7 +69,7 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, design, save=False):
         plt.savefig(os.path.join(out_dir, f'eigenvalues_{design}.pdf'))
 
 
-def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
+def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, labels=None, save=False):
 
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
@@ -102,10 +102,10 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, labels=None, save=False):
                  fontweight='bold', size=25)
 
     if save:
-        plt.savefig(os.path.join(out_dir, 'sigmas.pdf'))
+        plt.savefig(os.path.join(out_dir, f'mode_requirements_{c_target}.pdf'))
 
 
-def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, alphas=None, linestyles=None, colors=None, save=False):
+def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, labels=None, alphas=None, linestyles=None, colors=None, save=False):
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
         sets = len(sigmas)
@@ -165,12 +165,12 @@ def plot_mode_weights_double_axis(sigmas, wvln, c_target, out_dir, labels=None, 
         plt.tight_layout()
 
         if save:
-            plt.savefig(os.path.join(out_dir, f'sigmas_{c_target}.pdf'))
+            plt.savefig(os.path.join(out_dir, f'mode_requirements_double_axis_{c_target}.pdf'))
 
     make_plot()
 
 
-def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, design, save=False):
+def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, design, c_target, save=False):
     plt.figure(figsize=(12, 8))
     ax = plt.gca()
     plt.plot(cumulative_c_pastis, label='SA PASTIS', linewidth=4)
@@ -188,7 +188,7 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_accuracy_{c_target}_{design}.pdf'))
 
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, design, c_target, save=False):
@@ -205,11 +205,11 @@ def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, unif
     plt.gca().yaxis.offsetText.set_fontsize(30)
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_{design}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'cumulative_contrast_segment-based_{c_target}_{design}.pdf'))
 
 
-def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=True, save=False):
-    seg_or_mode = 'c_a' if segment_space else 'c_b'
+def plot_covariance_matrix(covariance_matrix, out_dir, design, c_target, segment_space=True, save=False):
+    seg_or_mode = 'segments_Ca' if segment_space else 'modes_Cb'
 
     plt.figure(figsize=(10, 10))
     plt.imshow(covariance_matrix)
@@ -226,10 +226,10 @@ def plot_covariance_matrix(covariance_matrix, out_dir, design, segment_space=Tru
     cbar.ax.tick_params(labelsize=15)
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'{seg_or_mode}_{design}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'cov_matrix_{seg_or_mode}_{c_target}_{design}.pdf'))
 
 
-def plot_segment_weights(mus, out_dir, labels=None, save=False):
+def plot_segment_weights(mus, out_dir, c_target, labels=None, save=False):
 
     # Figure out how many sets of sigmas we have
     if isinstance(mus, tuple):
@@ -254,7 +254,7 @@ def plot_segment_weights(mus, out_dir, labels=None, save=False):
         plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
 
     if save:
-        plt.savefig(os.path.join(out_dir, 'segment_requierements.pdf'))
+        plt.savefig(os.path.join(out_dir, f'segment_requirements_{c_target}.pdf'))
 
 
 def create_luvoir_and_wf_at_mirror(design, wvln):
@@ -276,7 +276,7 @@ def create_luvoir_and_wf_at_mirror(design, wvln):
     return luvoir, wf_aper
 
 
-def plot_mu_map(mus, wvln, out_dir, design, limits=None, save=False):
+def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, save=False):
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
     wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
@@ -300,7 +300,7 @@ def plot_mu_map(mus, wvln, out_dir, design, limits=None, save=False):
     plt.tight_layout()
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'segment_tolerances_{design}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'segment_tolerance_map_{c_target}_{design}.pdf'))
 
 
 def calculate_mode_phases(pastis_modes, wvln, design):
@@ -349,7 +349,7 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, vmin
         plt.savefig(os.path.join(out_dir, f'mode_{mode_nr}_{design}.pdf'))
 
 
-def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, save=False):
+def plot_monte_carlo_simulation(random_contrasts, out_dir, design, c_target, segments=True, stddev=None, save=False):
     mc_name = 'segments' if segments else 'modes'
     base_color = '#1f77b4' if segments else 'sandybrown'
     lines_color = 'darkorange' if segments else 'brown'
@@ -370,11 +370,11 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}_{design}.pdf'))
 
 
-def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir, save=False):
-    fig, ax = plt.subplots(figsize=(10.5, 8))
+def plot_contrast_per_mode(contrasts_per_mode, coro_floor, design, c_target, nmodes, out_dir, save=False):
+    fig, ax = plt.subplots(figsize=(11, 8))
     plt.plot(contrasts_per_mode - coro_floor, linewidth=3)  # SUBTRACTING THE BASELINE CONTRAST!!
     plt.title(f'Contrast per mode, $c_t = {c_target}$', size=29)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
@@ -388,4 +388,4 @@ def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out
     plt.tight_layout()
 
     if save:
-        plt.savefig(os.path.join(out_dir, f'per-mode_contrast_plot_{c_target}.pdf'))
+        plt.savefig(os.path.join(out_dir, f'contrast_per_mode_{c_target}_{design}.pdf'))
