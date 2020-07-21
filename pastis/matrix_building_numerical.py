@@ -287,7 +287,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
             # Normalize PSF by reference image
             psf = image / norm
-            all_psfs.append(psf)
+            all_psfs.append(psf.shaped)
 
             # Save image to disk
             if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
