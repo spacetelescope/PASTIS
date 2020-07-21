@@ -31,7 +31,7 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
         fname += f'_{fname_suffix}'
 
     plt.figure(figsize=(10, 10))
-    plt.imshow(pastis_matrix / wvln)
+    plt.imshow(pastis_matrix / wvln**2)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
