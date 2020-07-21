@@ -137,6 +137,29 @@ def pastis_contrast(aber, matrix_pastis):
     return result.value
 
 
+def calc_statistical_mean_contrast(pastismatrix, cov_segments, coro_floor):
+    """
+    Analytically calculate the *statistical* mean contrast for a set of segment requirements.
+    :param pastismatrix: array, PASTIS matrix [segs, modes]
+    :param cov_segments: array, segment-space covariance matrix Ca
+    :param coro_floor: float, coronagrpah contrast in absence of aberrations
+    :return: mean_c_stat, float
+    """
+    mean_c_stat = np.trace(np.matmul(cov_segments, pastismatrix)) + coro_floor
+    return mean_c_stat
+
+
+def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
+    """
+    Analytically calculate the variance of the *statistical* mean contrast for a set of segment requirements.
+    :param pastismatrix: array, PASTIS matrix [segs, modes]
+    :param cov_segments: array, segment-space covariance matrix Ca
+    :return: var, float
+    """
+    var = 2 * np.trace(np.matmul(pastismatrix, np.matmul(cov_segments, (np.matmul(pastismatrix, cov_segments)))))
+    return var
+
+
 def rms(ar):
     """
     Manual root-mean-square calculation, assuming a zero-mean

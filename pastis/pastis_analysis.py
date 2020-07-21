@@ -364,7 +364,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     5. calculating the segment constraints mu under assumption of uniform statistical contrast contribution across segments
     6. running an E2E Monte Carlo simulation on the segments with their weights mu
     7. calculating the segment- and mode-space covariance matrices Ca and Cb
-    8. calculting segment-based error budget
+    8. analytically calculating the statistical mean contrast and its variance
+    9. calculting segment-based error budget
 
     :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
     :param run_choice: str, path to data and where outputs will be saved
@@ -380,6 +381,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     calculate_mus = True
     run_monte_carlo_segments = True
     calculate_covariance_matrices = True
+    analytical_statistics = True
     calculate_segment_based = True
 
     # Data directory
@@ -598,6 +600,15 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         print('Loading covariance matrices from disk.')
         Ca = fits.getdata(os.path.join(workdir, 'results', f'Ca_{c_target}.fits'))
         Cb = fits.getdata(os.path.join(workdir, 'results', f'Cb_{c_target}.fits'))
+
+    ### Analytically calculate statistical mean contrast and its variance
+    if analytical_statistics:
+        mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
+        var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
+
+        with open(os.path.join(workdir, f'statistical_contrast_analytical{c_target}.txt'), 'w') as file:
+            file.write(f'Statistical mean: {mean_stat_c}')
+            file.write(f'Variance: {var_c}')
 
     ### Calculate segment-based error budget
     if calculate_segment_based:
