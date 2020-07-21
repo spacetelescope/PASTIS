@@ -17,6 +17,15 @@ cmap_brev = cm.get_cmap('Blues_r')
 
 
 def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
+    """
+    Plot a PASTIS matrix.
+    :param pastis_matrix: array, PASTIS matrix
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'pastis_matrix'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -38,6 +47,19 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
 
 
 def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
+    """
+    Plot a hockeystick curve comparting the optical propagation between semi-analytical PASTIS and end-to-end simulator.
+    :param rms_range: array or list of RMS values
+    :param pastis_matrix_contrasts: array or list, contrast values from SA PASTIS
+    :param e2e_contrasts: array or list, contrast values from E2E simulator
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param xlim: tuple, limits of x-axis, default None
+    :param ylim:tuple, limits of y-axis, default None
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'hockeystick'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -63,6 +85,16 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
 
 
 def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
+    """
+    Plot PASTIS eigenvalues as function of PASTIS mode index.
+    :param eigenvalues: array or list of eigenvalues of the PASTIS matrix
+    :param nseg: int, number of segments/modes
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'eigenvalues'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -81,6 +113,17 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=Fal
 
 
 def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, save=False):
+    """
+    Plot mode weights against mode index, with mode weights in units of waves.
+    :param sigmas: array or list, or tuple of arrays or lists of mode weights
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param labels: tuple, optional, labels for the different lists of sigmas provided
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'mode_requirements_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -120,6 +163,20 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
 
 
 def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, alphas=None, linestyles=None, colors=None, save=False):
+    """
+    Plot mode weights against mode index, both in units of nm and waves, on a double y-axis.
+    :param sigmas: array or list, or tuple of arrays or lists of mode weights
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param labels: tuple, optional, labels for the different lists of sigmas provided
+    :param alphas: tuple, optional, transparency factors for the different lists of sigmas provided
+    :param linestyles: tuple, optional, matplotlib linestyles for the different lists of sigmas provided
+    :param colors: tuple, optional, colors for the different lists of sigmas provided
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'mode_requirements_double_axis_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -189,6 +246,16 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
 
 
 def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
+    """
+    Plot cumulative contrast plot to verify accuracy between SA PASTIS propagation and E2E propagation.
+    :param cumulative_c_pastis: array or list, contrast values from SA PASTIS
+    :param cumulative_c_e2e: array or list, contrast values from E2E simulator
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'cumulative_contrast_accuracy_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -214,6 +281,16 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
 
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
+    """
+    Plot cumulative contrast plot, comparing segment-based and uniform error budget.
+    :param segment_based_cumulative_c: array or list, contrast values from segment-based error budget
+    :param uniform_cumulative_c_e2e: array or list, contrast values from uniform error budget
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'cumulative_contrast_segment-based_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -235,6 +312,16 @@ def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, unif
 
 
 def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=True, fname_suffix='', save=False):
+    """
+    Plot covariance matrix of a particular error budget and for a particular target contrast.
+    :param covariance_matrix: array, covariance matrix
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the covariance matrix has been calculated
+    :param segment_space: bool, is this a segment-space covariance matrix or not, default is True
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     seg_or_mode = 'segments_Ca' if segment_space else 'modes_Cb'
 
     fname = f'cov_matrix_{seg_or_mode}_{c_target}'
@@ -263,6 +350,16 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
 
 
 def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', save=False):
+    """
+    Plot segment weights against segment index, in units of picometers.
+    :param mus: array or list, segment requirements in nanometers
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param labels: tuple, optional, labels for the different lists of sigmas provided
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'segment_requirements_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -294,6 +391,12 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
 
 
 def create_luvoir_and_wf_at_mirror(design, wvln):
+    """
+    Instantiate a LuvoirAPLC simulator and create the wavefront at the segmented primary mirror plane.
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :param wvln: float, wavelength at which to instantiate the simulator with
+    :return: luvoir (LuvoirAPLC), wf_aper (hcipy.wavefront)
+    """
     # Create wavefront in aperture plane
     optics_path = '/Users/ilaginja/Documents/MakidonLabWork/ultra/LUVOIR_delivery_May2019/'
 
@@ -313,6 +416,18 @@ def create_luvoir_and_wf_at_mirror(design, wvln):
 
 
 def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
+    """
+    Plot the segment requirement map for a specific target contrast.
+    :param mus: array or list, segment requirements (standard deviations)
+    :param wvln: float, operating wavelength
+    :param out_dir: str, output path to save the figure to if save=True
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design for which the mus have been calculated
+    :param c_target: float, target contrast for which the segment requirements have been calculated
+    :param limits: tuple, colorbar limirs, deault is None
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'segment_tolerance_map_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -344,6 +459,13 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
 
 
 def calculate_mode_phases(pastis_modes, wvln, design):
+    """
+    Calculate the phase maps in radians of a set of PASTIS modes.
+    :param pastis_modes: array, PASTIS modes [seg, mode]
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :return: all_modes, array of phase pupil images
+    """
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
@@ -356,6 +478,16 @@ def calculate_mode_phases(pastis_modes, wvln, design):
 
 
 def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=False):
+    """
+    Plot all PATIS modes onto a grid.
+    :param pastis_modes: array, PASTIS modes [seg, mode]
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'all_modes'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -375,7 +507,21 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=Fa
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, vmin, vmax, fname_suffix='', save=False):
+def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+    """
+    Plot a single PASTIS mode.
+    :param mode_nr: int, mode index
+    :param pastis_modes: array, PASTIS modes [seg, mode]
+    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param out_dir: str, output path to save the figure to if save=True
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :param figsize: tuple, size of figure, default=(8.5,8.5)
+    :param vmin: matplotlib min extent of image, default is None
+    :param vmax: matplotlib max extent of image, default is None
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'mode_{mode_nr}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
@@ -398,6 +544,17 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize, vmin
 
 
 def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, fname_suffix='', save=False):
+    """
+    Plot histogram of Monte Carlo simulation for contrasts.
+    :param random_contrasts: array or list, contrasts calculated by random WFE realizations
+    :param out_dir: str, output path to save the figure to if save=True
+    :param c_target: float, target contrast for which the Monte Carlo simulation was run
+    :param segments: bool, whether run with segment or mode requirements, default is True
+    :param stddev: float, standard deviation on the histogram distribution
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     mc_name = 'segments' if segments else 'modes'
     base_color = '#1f77b4' if segments else 'sandybrown'
     lines_color = 'darkorange' if segments else 'brown'
@@ -427,6 +584,17 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
 
 
 def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir, fname_suffix='', save=False):
+    """
+    Plot contrast per mode, without the coronagraph floor.
+    :param contrasts_per_mode: array or list, contrast contribution per mode from optical propagation
+    :param coro_floor: float, contrast floor in absence of aberrations
+    :param c_target: float, target contrast for which the mode weights have been calculated
+    :param nmodes: int, number of modes/segments
+    :param out_dir: str, output path to save the figure to if save=True
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
     fname = f'contrast_per_mode_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
