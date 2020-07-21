@@ -4,7 +4,7 @@ Run different cases, free combination of matrices and analysis scripts.
 import os
 from hockeystick_contrast_curve import hockeystick_luvoir
 from matrix_building_numerical import num_matrix_luvoir
-from modal_analysis import run_full_pastis_analysis_luvoir
+from pastis_analysis import run_full_pastis_analysis_luvoir
 from config import CONFIG_INI
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ This script calculates the sigmas and cumulative contrast plot of different mode
 The "single-mode error budget" is where one mode alone accounts for the entire contrast contribution on top on the
 coronagraph floor to reach the target contrast.
 
-The flat error budget gets calculated as a standard part of the main PASTIS analysis in "modal_analysis.py".
+The flat error budget gets calculated as a standard part of the main PASTIS analysis in "pastis_analysis.py".
 """
 
 import os
@@ -13,7 +13,7 @@ import numpy as np
 
 from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from modal_analysis import modes_from_file
+from pastis_analysis import modes_from_file
 
 
 def single_mode_sigma(c_target, c_floor, evalue):
