@@ -2,21 +2,21 @@
 This script calculates the sigmas and cumulative contrast plot of different mode-based error budgets.
 The "single-mode error budget" is where one mode alone accounts for the entire contrast contribution on top on the
 coronagraph floor to reach the target contrast.
-The "optimized error" budget comes form the mu map and we also save the segment-space and mode-space covariance matrices.
+The "segment-based" error budget comes form the mu map and we also save the segment-space and mode-space covariance matrices.
 
 The flat error budget gets calculated as a standard part of the main PASTIS analysis in "modal_analysis.py".
 """
 
 import os
 import astropy.units as u
-import numpy as np
 import hcipy as hc
 import matplotlib.pyplot as plt
+import numpy as np
 
 from config import CONFIG_INI
-import util_pastis as util
-from modal_analysis import modes_from_file, cumulative_contrast_e2e
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+from modal_analysis import modes_from_file, cumulative_contrast_e2e
+import plotting as ppl
 
 
 def single_mode_sigma(c_target, c_floor, evalue):
@@ -61,12 +61,12 @@ def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
     return contrast
 
 
-def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budget='optimized', single_mode=None):
+def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budget='segment-based', single_mode=None):
     """
-    Calculate and plot optimized error budget, optimized for all PASTIS modes from the segment tolerances; or for a single mode.
+    Calculate and plot segment-based error budget, for all PASTIS modes from the segment tolerances; or for a single mode.
 
-    If error_budget='optimized', calculate mode-space covariance matrix Cb from the mu map, extract mode weights
-    (sigmas) and plot them, the contrast per mode, as well as an optimized cumulative contrast plot.
+    If error_budget='segment-based', calculate mode-space covariance matrix Cb from the mu map, extract mode weights
+    (sigmas) and plot them, the contrast per mode, as well as an segment-based cumulative contrast plot.
 
     If error_budget='single_mode', calculate the mode weight and consecutive contrast for a range of target contrasts
     and plot the recovered contrasts against the target contrasts.
@@ -74,7 +74,7 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
     :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
     :param run_choice: str, path to data
     :param c_target: float, target contrast
-    :param error_budget: str, default is "optimized" across all PASTIS modes from segment tolerances, or "single_mode"
+    :param error_budget: str, default is "segment-based" across all PASTIS modes from segment tolerances, or "single_mode"
     :param single_mode: int, optional, mode index for single mode error budget
     :return:
     """
@@ -137,8 +137,8 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
         plt.ylabel('Recovered contrast')
         plt.savefig(os.path.join(workdir, 'results', 'single_mode_scaled_mode{}.pdf'.format(single_mode)))
 
-    if error_budget == 'optimized':
-        print('Optimized error budget')
+    if error_budget == 'segment-based':
+        print('Segment-based error budget')
 
         # Load the mu map
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)))
@@ -151,7 +151,7 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
         Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
         hc.write_fits(Cb, os.path.join(workdir, 'results', 'Cb_{}.fits'.format(c_target)))
 
-        # Extract optimized mode weights
+        # Extract segment-based mode weights
         sigmas_opt = np.sqrt(np.diag(Cb))
         np.savetxt(os.path.join(workdir, 'results', 'sigmas_opt_{}.txt'.format(c_target)), sigmas_opt)
 
@@ -160,52 +160,30 @@ def build_mode_based_error_budget(design, run_choice, c_target=1e-10, error_budg
         np.savetxt(os.path.join(workdir, 'results', 'per-mode_contrast_optimized_e2e_{}.txt'.format(c_target)),
                    per_mode_opt_e2e)
 
-        # Calculate optimized cumulative contrast plot
+        # Calculate segment-based cumulative contrast plot
         cumulative_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask)
         np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_optimized_e2e_{}.txt'.format(c_target)),
                    cumulative_opt_e2e)
 
         ### Plotting
 
-        # Optimized mode weights
-        plt.figure()
-        plt.plot(sigmas_opt)
-        plt.semilogy()
-        plt.title('Optimized constraints per mode', size=15)
-        plt.xlabel('Mode index', size=15)
-        plt.ylabel('Mode weight $\sigma_p$ (nm)', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'sigmas_opt_{}.pdf'.format(c_target)))
+        # Segment-based mode weights
+        ppl.plot_mode_weights_simple(sigmas_opt, wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                                     out_dir=os.path.join(workdir, 'results'), c_target=c_target,
+                                     fname_suffix='segment-based', save=True)
 
-        # Segment-space covariance matrix
-        plt.figure(figsize=(10, 10))
-        plt.imshow(Ca)
-        plt.title('Segment-space covariance matrix $C_a$', size=20)
-        plt.xlabel('Segments', size=20)
-        plt.ylabel('Segments', size=20)
-        plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'Ca_{}.pdf'.format(c_target)))
+        # Covariance matrices
+        ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True, save=True)
+        ppl.plot_covariance_matrix(Cb, os.path.join(workdir, 'results'), c_target, segment_space=False, save=True)
 
-        # Mode-space covariance matrix
-        plt.figure(figsize=(10, 10))
-        plt.imshow(Cb)
-        plt.title('Mode-space covariance matrix $C_b$', size=20)
-        plt.xlabel('Modes', size=20)
-        plt.ylabel('Modes', size=20)
-        plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'Cb_{}.pdf'.format(c_target)))
+        # Contrast per mode from E2E simulator for segment-based error budget
+        ppl.plot_contrast_per_mode(cumulative_opt_e2e, coronagraph_floor, c_target, pmodes.shape[0],
+                                   os.path.join(workdir, 'results'), save=True)
 
-        # Contrast per mode from E2E simulator for optimized error budget
-        plt.figure(figsize=(16, 10))
-        plt.plot(per_mode_opt_e2e - coronagraph_floor)
-        plt.title('Optimized E2E contrast per mode for target $c$ = {}'.format(c_target), size=15)
-        plt.xlabel('Mode index', size=15)
-        plt.ylabel('Contrast', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'per-mode_contrast_plot_optimized_{}.pdf'.format(c_target)))
-
-        # Cumulative contrast from E2E simulator for optimized error budget
+        # Cumulative contrast from E2E simulator for segment-based error budget
         plt.figure(figsize=(16, 10))
         plt.plot(cumulative_opt_e2e)
-        plt.title('Optimized E2E cumulative contrast for target $c$ = {}'.format(c_target), size=15)
+        plt.title('Segment-based E2E cumulative contrast for target $c$ = {}'.format(c_target), size=15)
         plt.xlabel('Mode index', size=15)
         plt.ylabel('Contrast', size=15)
         plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_optimized_{}.pdf'.format(c_target)))
@@ -218,4 +196,4 @@ if __name__ == '__main__':
     c_stat = 1e-10
 
     #build_mode_based_error_budget(coro_design, run, c_stat, error_budget='single_mode', single_mode=69)
-    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='optimized')
+    build_mode_based_error_budget(coro_design, run, c_stat, error_budget='segment-based')

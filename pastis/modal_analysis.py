@@ -14,8 +14,9 @@ import hcipy as hc
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
-import util_pastis as util
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+import plotting as ppl
+import util_pastis as util
 
 
 def modes_from_matrix(datadir, saving=True):
@@ -45,13 +46,8 @@ def modes_from_matrix(datadir, saving=True):
 
     # Plot singular values and save
     if saving:
-        plt.figure()
-        plt.plot(svals)
-        plt.title('PASTIS singular values')
-        plt.semilogy()
-        plt.xlabel('Mode')
-        plt.ylabel('Log singluar value')
-        plt.savefig(os.path.join(datadir, 'results', 'singular_values.pdf'))
+        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                             out_dir=os.path.join(datadir, 'results'), save=True)
 
     return pmodes, svals
 
@@ -478,14 +474,12 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_target)), sigmas)
 
-        # Plot stastic mode constraints
-        plt.figure()
-        plt.plot(sigmas)
-        plt.semilogy()
-        plt.title('Mode weights', size=15)
-        plt.xlabel('Mode index', size=15)
-        plt.ylabel('Mode weight $\sigma_p$ (nm)', size=15)
-        plt.savefig(os.path.join(workdir, 'results', 'sigmas_{}.pdf'.format(c_target)))
+        # Plot static mode constraints
+        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                                     out_dir=os.path.join(workdir, 'results'),
+                                     c_target=c_target,
+                                     fname_suffix='uniform',
+                                     save=True)
 
     else:
         print('Reading sigmas from {}'.format(workdir))
@@ -506,21 +500,19 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
             all_contr_rand_modes.append(one_contrast_mode)
 
         # Empirical mean and standard deviation of the distribution
-        print('Mean of the Monte Carlo result modes: {}'.format(np.mean(all_contr_rand_modes)))
-        print('Standard deviation of the Monte Carlo result modes: {}'.format(np.std(all_contr_rand_modes)))
+        mean_modes = np.mean(all_contr_rand_modes)
+        stddev_modes = np.std(all_contr_rand_modes)
+        print(f'Mean of the Monte Carlo result modes: {mean_modes}')
+        print(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
         end_monte_carlo_modes = time.time()
 
         # Save Monte Carlo simulation
         np.savetxt(os.path.join(workdir, 'results', 'random_weights_{}.txt'.format(c_target)), all_random_weight_sets)
         np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_modes_{}.txt'.format(c_target)), all_contr_rand_modes)
 
-        plt.figure(figsize=(16, 10))
-        n, bins, patches = plt.hist(all_contr_rand_modes, int(n_repeat/10))
-        plt.title('E2E raw contrast', size=20)
-        plt.xlabel('Mean contrast in DH', size=20)
-        plt.ylabel('Frequency', size=20)
-        plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_sigma_distribution_{}.pdf'.format(c_target)))
+        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=False, stddev=stddev_modes,
+                                        save=True)
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
@@ -532,14 +524,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_target)), cumulative_pastis)
 
         # Plot the cumulative contrast from E2E simulator and matrix
-        plt.figure(figsize=(16, 10))
-        plt.plot(cumulative_e2e, label='E2E simulator')
-        plt.plot(cumulative_pastis, label='PASTIS')
-        plt.title('E2E cumulative contrast for target $c$ = {}'.format(c_target), size=15)
-        plt.xlabel('Mode index', size=15)
-        plt.ylabel('Contrast', size=15)
-        plt.legend()
-        plt.savefig(os.path.join(workdir, 'results', 'cumulative_contrast_plot_{}.pdf'.format(c_target)))
+        ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,
+                                                      out_dir=os.path.join(workdir, 'results'),
+                                                      c_target=c_target,
+                                                      save=True)
 
     ### Calculate segment-based static constraints
     if calculate_mus:
@@ -550,12 +538,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
-        plt.figure()
-        hc.imshow_field(wf_constraints.phase / wf_constraints.wavenumber, cmap='Blues')  # in meters
-        plt.title('Segment constraints $\mu_p$ for $c_t$ = {}'.format(c_target), size=20)
-        plt.colorbar()
-        plt.savefig(os.path.join(workdir, 'results', 'static_constraints_{}.pdf'.format(c_target)))
-
+        ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
+        ppl.plot_mu_map(mus, wvln=CONFIG_INI.get('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
+                        design=design, c_target=c_target, save=True)
     else:
         print('Reading mus from {}'.format(workdir))
         mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)))
@@ -575,8 +560,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
             all_contr_rand_seg.append(one_contrast_seg)
 
         # Empirical mean and standard deviation of the distribution
-        print('Mean of the Monte Carlo result segments: {}'.format(np.mean(all_contr_rand_seg)))
-        print('Standard deviation of the Monte Carlo result segments: {}'.format(np.std(all_contr_rand_seg)))
+        mean_segments = np.mean(all_contr_rand_seg)
+        stddev_segments = np.std(all_contr_rand_seg)
+        print(f'Mean of the Monte Carlo result segments: {mean_segments}')
+        print(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
         end_monte_carlo_seg = time.time()
 
         print('\nRuntimes:')
@@ -588,14 +575,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_target)), all_random_maps)   # in m
         np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_segments_{}.txt'.format(c_target)), all_contr_rand_seg)
 
-        # Plot histogram
-        plt.figure(figsize=(16, 10))
-        n, bins, patches = plt.hist(all_contr_rand_seg, int(n_repeat/10))
-        plt.title('E2E raw contrast, {} iterations'.format(n_repeat), size=20)
-        plt.xlabel('Mean contrast in DH', size=20)
-        plt.ylabel('Frequency', size=20)
-        plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
-        plt.savefig(os.path.join(workdir, 'results', 'random_mu_distribution_{}.pdf'.format(c_target)))
+        ppl.plot_monte_carlo_simulation(all_contr_rand_seg, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=True, stddev=stddev_segments,
+                                        save=True)
 
     ### Apply mu map and run through E2E simulator
     mus *= u.nm
