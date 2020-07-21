@@ -21,9 +21,9 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, design, save=False):
     plt.figure(figsize=(10, 10))
     plt.imshow(pastis_matrix / wvln)
     plt.title('Semi-analytical PASTIS matrix', size=30)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
     cbar.ax.tick_params(labelsize=20)
-    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar.ax.yaxis.offsetText.set(size=15)   # this changes the base of ten size on the colorbar
     cbar.set_label('contrast/wave$^2$', size=30)
     plt.xlabel('Segments', size=30)
@@ -223,7 +223,10 @@ def plot_covariance_matrix(covariance_matrix, out_dir, design, c_target, segment
         plt.ylabel('Modes', size=25)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
+    cbar.ax.tick_params(labelsize=20)
+    cbar.set_label('contrast/nm$^2$', size=30)
     cbar.ax.tick_params(labelsize=15)
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, f'cov_matrix_{seg_or_mode}_{c_target}_{design}.pdf'))
@@ -368,6 +371,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, design, c_target, seg
     if segments:
         plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, f'monte_carlo_{mc_name}_{c_target}_{design}.pdf'))
