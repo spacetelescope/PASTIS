@@ -83,7 +83,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
     for thismode in range(nseg):
-        print('Working on mode {}/{}.'.format(thismode + 1, nseg))
+        print(f'Working on mode {thismode + 1}/{nseg}.')
 
         wf_sm = apply_mode_to_sm(pmodes[:, thismode], sm, wf_aper)
         all_modes.append(wf_sm.phase / wf_sm.wavenumber)    # wf.phase is in rad, so this converts it to meters
@@ -106,7 +106,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
             plt.subplot(12, 10, thismode + 1)
             hc.imshow_field(all_modes[thismode], cmap='RdBu')
             plt.axis('off')
-            plt.title('Mode {}'.format(thismode + 1))
+            plt.title(f'Mode {thismode + 1}')
         plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
 
     ### Plot them individually and save as fits and pdf
@@ -117,9 +117,9 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
         plt.clf()
         hc.imshow_field(all_modes[thismode], cmap='RdBu')
         plt.axis('off')
-        plt.title('Mode {}'.format(thismode + 1), size=30)
+        plt.title(f'Mode {thismode + 1}', size=30)
         if saving:
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', 'mode{}.pdf'.format(thismode+1)))
+            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode{thismode+1}.pdf'))
 
         # for the fits cube
         mode_cube.append(all_modes[thismode].shaped)
@@ -394,8 +394,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
 
     print('Setting up optics...')
-    print('Data folder: {}'.format(workdir))
-    print('Coronagraph: {}'.format(design))
+    print(f'Data folder: {workdir}')
+    print(f'Coronagraph: {design}')
 
     # Create SM
     # Read pupil and indexed pupil
@@ -450,7 +450,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, luvoir.dh_mask)
-    print('Coronagraph floor: {}'.format(coro_floor))
+    print(f'Coronagraph floor: {coro_floor}')
     with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
         file.write(f'{coro_floor}')
 
@@ -466,14 +466,14 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, sm, wf_aper, saving=True)
 
     else:
-        print('Reading PASTIS modes from {}'.format(workdir))
+        print(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
     ### Calculate mode-based static constraints
     if calculate_sigmas:
         print('Calculating static sigmas')
         sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
-        np.savetxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_target)), sigmas)
+        np.savetxt(os.path.join(workdir, 'results', f'sigmas_{c_target}.txt'), sigmas)
 
         # Plot static mode constraints
         ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
@@ -483,8 +483,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                      save=True)
 
     else:
-        print('Reading sigmas from {}'.format(workdir))
-        sigmas = np.loadtxt(os.path.join(workdir, 'results', 'sigmas_{}.txt'.format(c_target)))
+        print(f'Reading sigmas from {workdir}')
+        sigmas = np.loadtxt(os.path.join(workdir, 'results', f'sigmas_{c_target}.txt'))
 
     ### Calculate Monte Carlo simulation for sigmas, with E2E
     if run_monte_carlo_modes:
@@ -495,7 +495,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_contr_rand_modes = []
         all_random_weight_sets = []
         for rep in range(n_repeat):
-            print('Mode realization {}/{}'.format(rep + 1, n_repeat))
+            print(f'Mode realization {rep + 1}/{n_repeat}')
             random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, luvoir.dh_mask)
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
@@ -508,8 +508,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         end_monte_carlo_modes = time.time()
 
         # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', 'random_weights_{}.txt'.format(c_target)), all_random_weight_sets)
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_modes_{}.txt'.format(c_target)), all_contr_rand_modes)
+        np.savetxt(os.path.join(workdir, 'results', f'random_weights_{c_target}.txt'), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', f'random_contrasts_modes_{c_target}.txt'), all_contr_rand_modes)
 
         ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
                                         c_target=c_target, segments=False, stddev=stddev_modes,
@@ -521,8 +521,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, luvoir.dh_mask)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_e2e_{}.txt'.format(c_target)), cumulative_e2e)
-        np.savetxt(os.path.join(workdir, 'results', 'cumulative_contrast_pastis_{}.txt'.format(c_target)), cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', f'cumulative_contrast_e2e_{c_target}.txt'), cumulative_e2e)
+        np.savetxt(os.path.join(workdir, 'results', f'cumulative_contrast_pastis_{c_target}.txt'), cumulative_pastis)
 
         # Plot the cumulative contrast from E2E simulator and matrix
         ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,
@@ -538,7 +538,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     if calculate_mus:
         print('Calculating segment-based constraints')
         mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
-        np.savetxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)), mus)
+        np.savetxt(os.path.join(workdir, 'results', f'mus_{c_target}.txt'), mus)
 
         # Put mus on SM and plot
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
@@ -547,8 +547,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         ppl.plot_mu_map(mus, wvln=CONFIG_INI.get('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
                         design=design, c_target=c_target, save=True)
     else:
-        print('Reading mus from {}'.format(workdir))
-        mus = np.loadtxt(os.path.join(workdir, 'results', 'mus_{}.txt'.format(c_target)))
+        print(f'Reading mus from {workdir}')
+        mus = np.loadtxt(os.path.join(workdir, 'results', f'mus_{c_target}.txt'))
 
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
@@ -559,7 +559,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_contr_rand_seg = []
         all_random_maps = []
         for rep in range(n_repeat):
-            print('Segment realization {}/{}'.format(rep + 1, n_repeat))
+            print(f'Segment realization {rep + 1}/{n_repeat}')
             random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, luvoir.dh_mask)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
@@ -577,8 +577,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                                                                           (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
 
         # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', 'random_maps_{}.txt'.format(c_target)), all_random_maps)   # in m
-        np.savetxt(os.path.join(workdir, 'results', 'random_contrasts_segments_{}.txt'.format(c_target)), all_contr_rand_seg)
+        np.savetxt(os.path.join(workdir, 'results', f'random_maps_{c_target}.txt'), all_random_maps)   # in m
+        np.savetxt(os.path.join(workdir, 'results', f'random_contrasts_segments_{c_target}.txt'), all_contr_rand_seg)
 
         ppl.plot_monte_carlo_simulation(all_contr_rand_seg, out_dir=os.path.join(workdir, 'results'),
                                         c_target=c_target, segments=True, stddev=stddev_segments,
@@ -649,10 +649,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
     contrast_mu = util.dh_mean(psf/ref.max(), luvoir.dh_mask)
-    print('Contrast with mu-map: {}'.format(contrast_mu))
+    print(f'Contrast with mu-map: {contrast_mu}')
 
     ###
-    print('All saved in {}'.format(os.path.join(workdir, 'results')))
+    print(f"All saved in {os.path.join(workdir, 'results')}")
     print('\nGood job')
 
 

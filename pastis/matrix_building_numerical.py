@@ -91,12 +91,12 @@ def num_matrix_jwst():
     all_dhs = []
     all_contrasts = []
 
-    print('nm_aber: {}'.format(nm_aber))
+    print(f'nm_aber: {nm_aber}')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('\nSTEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            print(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Get names of segments, they're being addressed by their names in the ote functions.
             seg_i = wss_segs[i].split('-')[0]
@@ -166,7 +166,7 @@ def num_matrix_jwst():
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                print(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration
     matrix_pastis /= np.square(nm_aber.value)
@@ -183,8 +183,8 @@ def num_matrix_jwst():
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(resDir))
+    print(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    print(f'Data saved to {resDir}')
 
     # -- Runtime notes: --
     #
@@ -231,14 +231,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Print some of the defined parameters
-    print('LUVOIR apodizer design: {}'.format(design))
+    print(f'LUVOIR apodizer design: {design}')
     print()
-    print('Wavelength: {} m'.format(wvln))
-    print('Telescope diameter: {} m'.format(diam))
-    print('Number of segments: {}'.format(nb_seg))
+    print(f'Wavelength: {wvln} m')
+    print(f'Telescope diameter: {diam} m')
+    print(f'Number of segments: {nb_seg}')
     print()
-    print('Image size: {} lambda/D'.format(im_lamD))
-    print('Sampling: {} px per lambda/D'.format(sampling))
+    print(f'Image size: {im_lamD} lambda/D')
+    print(f'Sampling: {sampling} px per lambda/D')
 
     # Create necessary directories if they don't exist yet
     os.makedirs(resDir, exist_ok=True)
@@ -263,19 +263,19 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
     contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
-    print('contrast floor: {}'.format(contrast_floor))
+    print(f'contrast floor: {contrast_floor}')
 
     ### Generating the PASTIS matrix and a list for all contrasts
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_contrasts = []
 
-    print('wfe_aber: {} m'.format(wfe_aber))
+    print(f'wfe_aber: {wfe_aber} m')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('\nSTEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            print(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Put aberration on correct segments. If i=j, apply only once!
             luvoir.flatten()
@@ -305,7 +305,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             print('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
             contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
-            print('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
+            print(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast
@@ -328,7 +328,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                print(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
@@ -342,8 +342,8 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(resDir))
+    print(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    print(f'Data saved to {resDir}')
     
     return overall_dir
 

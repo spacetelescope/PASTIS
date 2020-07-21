@@ -76,7 +76,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Info
-    print('Working on {} coronagraph design.'.format(design))
+    print(f'Working on {design} coronagraph design.')
 
     # Instantiate LUVOIR-A
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
@@ -89,7 +89,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     norm = ref.max()
     dh_intensity = psf_unaber / norm * luvoir.dh_mask
     coronagraph_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-    print('coronagraph_floor: {}'.format(coronagraph_floor))
+    print(f'coronagraph_floor: {coronagraph_floor}')
 
     # Load PASTIS modes and eigenvalues
     pmodes, svals = modes_from_file(workdir)
@@ -98,11 +98,11 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
     # Calculate the mode weight
     single_sigma = single_mode_sigma(c_target, coronagraph_floor, svals[single_mode-1])
-    print('Eigenvalue: {}'.format(svals[single_mode-1]))
-    print('single_sigma: {}'.format(single_sigma))
+    print(f'Eigenvalue: {svals[single_mode-1]}')
+    print(f'single_sigma: {single_sigma}')
 
     single_contrast = single_mode_contrasts(single_sigma, pmodes, single_mode, luvoir)
-    print('contrast: {}'.format(single_contrast))
+    print(f'contrast: {single_contrast}')
 
     # Make array of target contrasts
     c_list = [5e-11, 8e-11, 1e-10, 5e-10, 1e-9, 5e-9, 1e-8]
@@ -117,9 +117,9 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     for i, sig in enumerate(sigma_list):
         c_recov.append(single_mode_contrasts(sig, pmodes, single_mode, luvoir))
 
-    print('c_recov: {}'.format(c_recov))
+    print(f'c_recov: {c_recov}')
     np.savetxt(os.path.join(workdir, 'results', 'single_mode_targets.txt'), c_list)
-    np.savetxt(os.path.join(workdir, 'results', 'single_mode_recovered_mode{}.txt'.format(single_mode)), c_recov)
+    np.savetxt(os.path.join(workdir, 'results', f'single_mode_recovered_mode{single_mode}.txt'), c_recov)
 
     plt.plot(c_list, c_recov)
     plt.title('Single-mode scaling')
@@ -127,7 +127,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     plt.semilogx()
     plt.xlabel('Target contrast $c_{target}$')
     plt.ylabel('Recovered contrast')
-    plt.savefig(os.path.join(workdir, 'results', 'single_mode_scaled_mode{}.pdf'.format(single_mode)))
+    plt.savefig(os.path.join(workdir, 'results', f'single_mode_scaled_mode{single_mode}.pdf'))
 
 
 if __name__ == '__main__':
