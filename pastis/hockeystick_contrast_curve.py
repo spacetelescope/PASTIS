@@ -255,7 +255,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     # Plot
     plt.clf()
     ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
-                                wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                                wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
                                 out_dir=resultdir,
                                 fname_suffix=f'{no_realizations}_realizations_each',
                                 save=True)

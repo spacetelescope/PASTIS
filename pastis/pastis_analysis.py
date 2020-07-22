@@ -46,7 +46,7 @@ def modes_from_matrix(datadir, saving=True):
 
     # Plot singular values and save
     if saving:
-        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
                              out_dir=os.path.join(datadir, 'results'), save=True)
 
     return pmodes, svals
@@ -476,7 +476,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', f'sigmas_{c_target}.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
                                      out_dir=os.path.join(workdir, 'results'),
                                      c_target=c_target,
                                      fname_suffix='uniform',
@@ -544,7 +544,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
-        ppl.plot_mu_map(mus, wvln=CONFIG_INI.get('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
+        ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
                         design=design, c_target=c_target, save=True)
     else:
         print(f'Reading mus from {workdir}')
