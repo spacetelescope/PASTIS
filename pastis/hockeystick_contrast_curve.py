@@ -59,7 +59,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
     print("RMS range: {}".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    print(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -72,9 +72,9 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
         for j in range(realiz):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            print(f"RMS {i + 1}/{len(rms_range)}")
+            print(f"Random realization: {j+1}/{realiz}")
+            print(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_am, c_matrix = consim.contrast_jwst_ana_num(matdir=WORKDIRECTORY, matrix_mode=matrix_mode, rms=rms,
                                                                  im_pastis=True, plotting=True)
@@ -111,7 +111,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'Runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3):
@@ -144,7 +144,7 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
     print("RMS range: {}".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    print(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -156,9 +156,9 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         for j in range(realiz):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            print(f"RMS {i + 1}/{len(rms_range)}")
+            print(f"Random realization: {j+1}/{realiz}")
+            print(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir=matrixdir, rms=rms,)
 
@@ -187,7 +187,7 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3, no_realizations=3):
@@ -223,7 +223,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
     print("RMS range: {} nm".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(no_realizations))
+    print(f"Random realizations: {no_realizations}")
 
     for i, rms in enumerate(rms_range):
 
@@ -235,9 +235,9 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         for j in range(no_realizations):
             print("\n#####################################")
             print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("WFE RMS number {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, no_realizations))
-            print("Total: {}/{}\n".format((i*no_realizations)+(j+1), len(rms_range)*no_realizations))
+            print(f"WFE RMS number {i + 1}/{len(rms_range)}")
+            print(f"Random realization: {j+1}/{no_realizations}")
+            print(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}\n")
 
             c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
@@ -255,14 +255,14 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     # Plot
     plt.clf()
     ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
-                                wvln=CONFIG_INI.get('LUVOIR', 'lambda'),
+                                wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
                                 out_dir=resultdir,
                                 fname_suffix=f'{no_realizations}_realizations_each',
                                 save=True)
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 if __name__ == '__main__':

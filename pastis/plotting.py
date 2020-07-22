@@ -11,7 +11,7 @@ import numpy as np
 
 from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from modal_analysis import apply_mode_to_sm
+from pastis_analysis import apply_mode_to_sm
 
 cmap_brev = cm.get_cmap('Blues_r')
 
@@ -148,7 +148,7 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
     plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel('Mode weights $\widetilde{b_p}$ (waves)', size=30)
+    plt.ylabel('Mode weights $\sigma_p$ (waves)', size=30)
     if labels is not None:
         plt.legend(prop={'size': 20})
     plt.tight_layout()
@@ -236,7 +236,7 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
         ax_wave.set_ylabel('Mode weight $\sigma_p$ (waves)', size=30)
         ax_nm.set_xlabel('Mode index', size=30)
         if labels is not None:
-            ax_nm.legend(prop={'size': 20})
+            ax_nm.legend(prop={'size': 25})
         plt.tight_layout()
 
         if save:
@@ -275,6 +275,7 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     plt.text(15, cumulative_c_e2e[-1], "target contrast", size=30)
     ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
@@ -306,6 +307,7 @@ def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, unif
     plt.text(0.06, 0.14, 'Segment-based error budget', transform=ax.transAxes, fontsize=30, rotation=40, c='C0')
     plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     plt.gca().yaxis.offsetText.set_fontsize(30)
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
@@ -385,6 +387,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     if labels is not None:
         plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
@@ -566,7 +569,10 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.subplots()
 
-    n, bins, patches = plt.hist(random_contrasts, int(len(random_contrasts)/100), color=base_color)
+    ans = np.ceil(np.log10(len(random_contrasts)))
+    binsize = np.power(10, ans-1) if ans <= 3 else np.power(10, ans-2)
+
+    n, bins, patches = plt.hist(random_contrasts, int(binsize), color=base_color)
     plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
     plt.xlabel('Mean contrast in dark hole', size=30)
     plt.ylabel('Frequency', size=30)
@@ -585,7 +591,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
 
 def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out_dir, fname_suffix='', save=False):
     """
-    Plot contrast per mode, without the coronagraph floor.
+    Plot contrast per mode, after subtracting the coronagraph floor.
     :param contrasts_per_mode: array or list, contrast contribution per mode from optical propagation
     :param coro_floor: float, contrast floor in absence of aberrations
     :param c_target: float, target contrast for which the mode weights have been calculated

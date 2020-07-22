@@ -146,7 +146,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     # Save the PSFs
     if im_pastis:
@@ -275,7 +275,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     return contrast_hicat, contrast_matrix
 
@@ -353,7 +353,7 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
     # Calculate coronagraph contrast floor
     baseline_dh = psf_coro * dh_mask
     coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
-    print('Baseline contrast: {}'.format(coro_floor))
+    print(f'Baseline contrast: {coro_floor}')
 
     ## MATRIX PASTIS
     print('Generating contrast from matrix-PASTIS')
@@ -373,7 +373,7 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    print(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     return contrast_luvoir, contrast_matrix
 

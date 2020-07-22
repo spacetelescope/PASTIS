@@ -4,8 +4,7 @@ Run different cases, free combination of matrices and analysis scripts.
 import os
 from hockeystick_contrast_curve import hockeystick_luvoir
 from matrix_building_numerical import num_matrix_luvoir
-from modal_analysis import run_full_pastis_analysis_luvoir
-from optimized_error_budget import build_mode_based_error_budget
+from pastis_analysis import run_full_pastis_analysis_luvoir
 from config import CONFIG_INI
 
 if __name__ == '__main__':
@@ -35,8 +34,3 @@ if __name__ == '__main__':
     run_full_pastis_analysis_luvoir(design='small', run_choice=dir_small)
     #run_full_pastis_analysis_luvoir(design='medium', run_choice=dir_medium)
     #run_full_pastis_analysis_luvoir(design='large', run_choice=dir_large)
-
-    # Calculate independent-segment error budget
-    build_mode_based_error_budget(design='small', run_choice=dir_small, error_budget='optimized')
-    #build_mode_based_error_budget(design='medium', run_choice=dir_medium, error_budget='optimized')
-    #build_mode_based_error_budget(design='large', run_choice=dir_large, error_budget='optimized')
