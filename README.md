@@ -355,7 +355,7 @@ Please also see our [CODE OF CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ### Citing
 
-If you use this code in your work, please find citation snippets to give us credit with in [CITATION.txt](CITATION.txt).
+If you use this code in your work, please find citation snippets to give us credit with in [CITING.md](CITING.md).
 
 ### License
 
