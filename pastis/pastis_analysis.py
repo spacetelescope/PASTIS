@@ -569,6 +569,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         stddev_segments = np.std(all_contr_rand_seg)
         print(f'Mean of the Monte Carlo result segments: {mean_segments}')
         print(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
+        with open(os.path.join(workdir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'w') as file:
+            file.write(f'Empirical, statistical mean: {mean_segments}')
+            file.write(f'\nEmpirical variance: {stddev_segments**2}')
         end_monte_carlo_seg = time.time()
 
         print('\nRuntimes:')
@@ -607,9 +610,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
         var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
 
-        with open(os.path.join(workdir, f'statistical_contrast_analytical{c_target}.txt'), 'w') as file:
-            file.write(f'Statistical mean: {mean_stat_c}')
-            file.write(f'Variance: {var_c}')
+        with open(os.path.join(workdir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'w') as file:
+            file.write(f'Analytical, statistical mean: {mean_stat_c}')
+            file.write(f'\nAnalytical variance: {var_c}')
 
     ### Calculate segment-based error budget
     if calculate_segment_based:
@@ -623,7 +626,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
                                           fname_suffix='segment-based-vs-uniform',
                                           labels=('Uniform error budget', 'Segment-based error budget'),
-                                          alphas=(0.5, 1.), linestyles=('-', '--'), colors=('k', 'r'), save=True)
+                                          alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
 
         # Calculate contrast per mode
         per_mode_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask, individual=True)

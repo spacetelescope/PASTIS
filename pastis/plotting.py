@@ -569,7 +569,10 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.subplots()
 
-    n, bins, patches = plt.hist(random_contrasts, int(len(random_contrasts)/100), color=base_color)
+    ans = np.ceil(np.log10(len(random_contrasts)))
+    binsize = np.power(10, ans-1) if ans <= 3 else np.power(10, ans-2)
+
+    n, bins, patches = plt.hist(random_contrasts, int(binsize), color=base_color)
     plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
     plt.xlabel('Mean contrast in dark hole', size=30)
     plt.ylabel('Frequency', size=30)
