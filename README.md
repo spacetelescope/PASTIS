@@ -7,9 +7,9 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al. (2020, in prep).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al. (2020, submitted).
 
-This release was specifically made to accompany the Laginja et al. (2020, in prep) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
+This release was specifically made to accompany the Laginja et al. (2020, submitted) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
@@ -195,7 +195,7 @@ readme accordingly when this change has successfully happened.
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
 the plotting should work as expected but the results might be slightly different from what is presented in the paper 
-Laginja et al. (2020, in prep), for example where `matplotlib` puts the image origin. If you want to use the lower left
+Laginja et al. (2020, submitted), for example where `matplotlib` puts the image origin. If you want to use the lower left
 as your origin, this is adjustable in the plots directly by setting `origin=lower`, although I recommend adjusting your global
 plotting parameters in the `matplotlibrc` file so that you don't have to edit each plot manually.
 

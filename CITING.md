@@ -1,21 +1,21 @@
-If you used PASTIS in your work, please cite the paper Laginja et al., in prep [1] and the software version you
+If you used PASTIS in your work, please cite the paper Laginja et al., submitted [1] and the software version you
 used in your work [2]. To cite the scientific method, please consider also citing Leboulleux et al., 2018 [3].
 
 We provide the following LaTeX/BibTeX acknowledgment if there is no specific place to cite the above:  
 ```
-"This research made use of PASTIS \citep{Laginja-in-prep, pastis-v1.3.0}, a modular, open-source Python package for
+"This research made use of PASTIS \citep{Laginja-submitted, pastis-v1.3.0}, a modular, open-source Python package for
 segment-level error budgeting of segmented telescopes."
 ```
 
-[1] Laginja et al., in prep
+[1] Laginja et al., submitted
 ```
-@unpublished{Laginja-in-prep,
+@unpublished{Laginja-submitted,
     author = "{Laginja}, Iva and {Soummer}, R{\'e}mi and {Mugnier}, Laurent M. and {Pueyo}, Laurent and 
               {Sauvage}, Jean-Fran{\c{c}}ois and {Leboulleux}, Lucie and {Coyle}, Laura and {Knight}, J. Scott",
     title = "Analytical tolerancing of segmented telescope co-phasing for exo-Earth high-contrast imaging",
     journal = {Journal of Astronomical Telescopes, Instruments, and Systems},
     year = 2020,
-    note = "In preparation",
+    note = "Submitted",
 }
 ```
 
