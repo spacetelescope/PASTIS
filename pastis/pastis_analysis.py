@@ -532,7 +532,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     else:
         print('Loading uniform cumulative contrast from disk.')
-        np.loadtxt(os.path.join(workdir, 'results', f'cumulative_contrast_e2e_{c_target}.txt'))
+        cumulative_e2e = np.loadtxt(os.path.join(workdir, 'results', f'cumulative_contrast_e2e_{c_target}.txt'))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
@@ -603,6 +603,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     ### Analytically calculate statistical mean contrast and its variance
     if analytical_statistics:
+        print('Calculating analytical statistics.')
         mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
         var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
 
@@ -619,24 +620,22 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', f'sigmas_opt_{c_target}.txt'), sigmas_opt)
         ppl.plot_mode_weights_simple(sigmas_opt, wvln, out_dir=os.path.join(workdir, 'results'), c_target=c_target,
                                      fname_suffix='segment-based', save=True)
-        ppl.plot_mode_weights_double_axis(sigmas, sigmas_opt, wvln, os.path.join(workdir, 'results'), c_target,
+        ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
                                           fname_suffix='segment-based-vs-uniform',
                                           labels=('Uniform error budget', 'Segment-based error budget'),
-                                          alphas=(1, 0.5), linestyles=('-', '--'), colors=('k', 'r'), save=True)
+                                          alphas=(0.5, 1.), linestyles=('-', '--'), colors=('k', 'r'), save=True)
 
         # Calculate contrast per mode
         per_mode_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask, individual=True)
         np.savetxt(os.path.join(workdir, 'results', f'per-mode_contrast_optimized_e2e_{c_target}.txt'),
                    per_mode_opt_e2e)
+        ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
+                                   os.path.join(workdir, 'results'), save=True)
 
         # Calculate segment-based cumulative contrast
         cumulative_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask)
         np.savetxt(os.path.join(workdir, 'results', f'cumulative_contrast_optimized_e2e_{c_target}.txt'),
                    cumulative_opt_e2e)
-
-        # Plot contrast per mode
-        ppl.plot_contrast_per_mode(cumulative_opt_e2e, coro_floor, c_target, pmodes.shape[0],
-                                   os.path.join(workdir, 'results'), save=True)
 
         # Plot cumulative contrast from E2E simulator, segment-based vs. uniform error budget
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
