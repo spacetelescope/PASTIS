@@ -51,10 +51,10 @@ def num_matrix_jwst():
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get(which_tel, 'filter_name')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
+    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
@@ -179,7 +179,7 @@ def num_matrix_jwst():
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
@@ -217,14 +217,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-'+design)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
     diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
-    wfe_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
+    wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
     im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
@@ -317,7 +317,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
     hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.

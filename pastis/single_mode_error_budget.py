@@ -118,8 +118,8 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
         c_recov.append(single_mode_contrasts(sig, pmodes, single_mode, luvoir))
 
     print(f'c_recov: {c_recov}')
-    np.savetxt(os.path.join(workdir, 'results', 'single_mode_targets.txt'), c_list)
-    np.savetxt(os.path.join(workdir, 'results', f'single_mode_recovered_mode{single_mode}.txt'), c_recov)
+    np.savetxt(os.path.join(workdir, 'results', 'single_mode_target_contrasts.txt'), c_list)
+    np.savetxt(os.path.join(workdir, 'results', f'single_mode_recovered_contrasts_mode{single_mode}.txt'), c_recov)
 
     plt.plot(c_list, c_recov)
     plt.title('Single-mode scaling')

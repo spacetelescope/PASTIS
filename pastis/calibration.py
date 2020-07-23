@@ -40,8 +40,8 @@ if __name__ == '__main__':
         # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
         os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm       # [nm] amplitude of aberration
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')               # Which (Noll) Zernike we are calibrating for
+    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm       # [nm] amplitude of aberration
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
     # If subfolder "calibration" doesn't exist yet, create it.

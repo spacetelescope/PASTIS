@@ -53,7 +53,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
