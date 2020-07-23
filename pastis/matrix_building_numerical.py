@@ -179,7 +179,7 @@ def num_matrix_jwst():
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
@@ -317,7 +317,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
     hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.

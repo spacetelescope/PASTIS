@@ -93,7 +93,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     # Save results to txt file
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
-    df.to_csv(os.path.join(outDir, "contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
+    df.to_csv(os.path.join(outDir, "hockey_contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
 
     # Plot
     plt.clf()
@@ -169,9 +169,9 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         matrix_contrasts.append(np.mean(matrix_rand))
 
     # Save contrasts and rms range
-    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
-    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
-    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'hockey_e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_matrix_contrasts.txt'), matrix_contrasts)
 
     # Plot
     plt.clf()
@@ -248,9 +248,9 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         matrix_contrasts.append(np.mean(matrix_rand))
 
     # Save contrasts and rms range
-    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
-    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
-    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'hockey_e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_matrix_contrasts.txt'), matrix_contrasts)
 
     # Plot
     plt.clf()

@@ -292,7 +292,7 @@ def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, unif
     :param save: bool, whether to save to disk or not, default is False
     :return:
     """
-    fname = f'cumulative_contrast_segment-based_{c_target}'
+    fname = f'cumulative_contrast_allocation_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
