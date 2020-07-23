@@ -26,8 +26,8 @@ def ana_matrix_jwst():
     which_tel = CONFIG_INI.get('telescope', 'name')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
+    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # If subfolder "matrix_analytical" doesn't exist yet, create it.
