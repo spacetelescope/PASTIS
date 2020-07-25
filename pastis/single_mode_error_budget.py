@@ -8,12 +8,15 @@ The flat error budget gets calculated as a standard part of the main PASTIS anal
 
 import os
 import astropy.units as u
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
 from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 from pastis_analysis import modes_from_file
+
+log = logging.getLogger(__name__)
 
 
 def single_mode_sigma(c_target, c_floor, evalue):
@@ -76,7 +79,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # Info
-    print(f'Working on {design} coronagraph design.')
+    log.info(f'Working on {design} coronagraph design.')
 
     # Instantiate LUVOIR-A
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
@@ -89,20 +92,20 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     norm = ref.max()
     dh_intensity = psf_unaber / norm * luvoir.dh_mask
     coronagraph_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-    print(f'coronagraph_floor: {coronagraph_floor}')
+    log.info(f'coronagraph_floor: {coronagraph_floor}')
 
     # Load PASTIS modes and eigenvalues
     pmodes, svals = modes_from_file(workdir)
 
-    print('Single mode error budget')
+    log.info('Single mode error budget')
 
     # Calculate the mode weight
     single_sigma = single_mode_sigma(c_target, coronagraph_floor, svals[single_mode-1])
-    print(f'Eigenvalue: {svals[single_mode-1]}')
-    print(f'single_sigma: {single_sigma}')
+    log.info(f'Eigenvalue: {svals[single_mode-1]}')
+    log.info(f'single_sigma: {single_sigma}')
 
     single_contrast = single_mode_contrasts(single_sigma, pmodes, single_mode, luvoir)
-    print(f'contrast: {single_contrast}')
+    log.info(f'contrast: {single_contrast}')
 
     # Make array of target contrasts
     c_list = [5e-11, 8e-11, 1e-10, 5e-10, 1e-9, 5e-9, 1e-8]
@@ -117,7 +120,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     for i, sig in enumerate(sigma_list):
         c_recov.append(single_mode_contrasts(sig, pmodes, single_mode, luvoir))
 
-    print(f'c_recov: {c_recov}')
+    log.info(f'c_recov: {c_recov}')
     np.savetxt(os.path.join(workdir, 'results', 'single_mode_target_contrasts.txt'), c_list)
     np.savetxt(os.path.join(workdir, 'results', f'single_mode_recovered_contrasts_mode{single_mode}.txt'), c_recov)
 

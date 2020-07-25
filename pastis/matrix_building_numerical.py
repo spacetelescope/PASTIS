@@ -12,15 +12,18 @@ import os
 import time
 import functools
 from shutil import copy
-import numpy as np
-import matplotlib.pyplot as plt
 from astropy.io import fits
 import astropy.units as u
+import logging
+import matplotlib.pyplot as plt
+import numpy as np
 import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+
+log = logging.getLogger()
 
 
 def num_matrix_jwst():
@@ -37,7 +40,7 @@ def num_matrix_jwst():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
-    print('Building numerical matrix for JWST\n')
+    log.info('Building numerical matrix for JWST\n')
 
     # Parameters
     overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='jwst')
@@ -91,12 +94,12 @@ def num_matrix_jwst():
     all_dhs = []
     all_contrasts = []
 
-    print(f'nm_aber: {nm_aber}')
+    log.info(f'nm_aber: {nm_aber}')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
+            log.info(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Get names of segments, they're being addressed by their names in the ote functions.
             seg_i = wss_segs[i].split('-')[0]
@@ -129,7 +132,7 @@ def num_matrix_jwst():
             ote_coro.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-            print('Calculating WebbPSF image')
+            log.info('Calculating WebbPSF image')
             image = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
             psf = image[0].data / normp
 
@@ -138,10 +141,10 @@ def num_matrix_jwst():
             util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
             all_psfs.append(psf)
 
-            print('Calculating mean contrast in dark hole')
+            log.info('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_area
             contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-            print('contrast:', contrast)
+            log.info(f'contrast: {contrast}')
 
             # Save DH image to disk and put current contrast in list
             filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
@@ -166,7 +169,7 @@ def num_matrix_jwst():
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
+                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration
     matrix_pastis /= np.square(nm_aber.value)
@@ -174,7 +177,7 @@ def num_matrix_jwst():
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
-    print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
@@ -183,8 +186,8 @@ def num_matrix_jwst():
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
-    print(f'Data saved to {resDir}')
+    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info(f'Data saved to {resDir}')
 
     # -- Runtime notes: --
     #
@@ -209,7 +212,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Keep track of time
     start_time = time.time()
-    print('Building numerical matrix for LUVOIR\n')
+    log.info('Building numerical matrix for LUVOIR\n')
 
     ### Parameters
 
@@ -230,15 +233,13 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
-    # Print some of the defined parameters
-    print(f'LUVOIR apodizer design: {design}')
-    print()
-    print(f'Wavelength: {wvln} m')
-    print(f'Telescope diameter: {diam} m')
-    print(f'Number of segments: {nb_seg}')
-    print()
-    print(f'Image size: {im_lamD} lambda/D')
-    print(f'Sampling: {sampling} px per lambda/D')
+    # Record some of the defined parameters
+    log.info(f'LUVOIR apodizer design: {design}')
+    log.info(f'Wavelength: {wvln} m')
+    log.info(f'Telescope diameter: {diam} m')
+    log.info(f'Number of segments: {nb_seg}')
+    log.info(f'Image size: {im_lamD} lambda/D')
+    log.info(f'Sampling: {sampling} px per lambda/D')
 
     # Create necessary directories if they don't exist yet
     os.makedirs(resDir, exist_ok=True)
@@ -263,19 +264,19 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
     contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
-    print(f'contrast floor: {contrast_floor}')
+    log.info(f'contrast floor: {contrast_floor}')
 
     ### Generating the PASTIS matrix and a list for all contrasts
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_contrasts = []
 
-    print(f'wfe_aber: {wfe_aber} m')
+    log.info(f'wfe_aber: {wfe_aber} m')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
+            log.info(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Put aberration on correct segments. If i=j, apply only once!
             luvoir.flatten()
@@ -283,7 +284,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             if i != j:
                 luvoir.set_segment(j+1, wfe_aber/2, 0, 0)
 
-            print('Calculating coro image...')
+            log.info('Calculating coro image...')
             image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
             # Normalize PSF by reference image
             psf = image / norm
@@ -302,10 +303,10 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
                 hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
                 plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-            print('Calculating mean contrast in dark hole')
+            log.info('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
             contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
-            print(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
+            log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast
@@ -328,7 +329,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
+                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
@@ -338,12 +339,12 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
-    print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
-    print(f'Data saved to {resDir}')
+    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info(f'Data saved to {resDir}')
     
     return overall_dir
 
