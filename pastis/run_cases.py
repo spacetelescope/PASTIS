@@ -6,6 +6,7 @@ from hockeystick_contrast_curve import hockeystick_luvoir
 from matrix_building_numerical import num_matrix_luvoir
 from pastis_analysis import run_full_pastis_analysis_luvoir
 from config import CONFIG_INI
+import util_pastis as util
 
 
 if __name__ == '__main__':
@@ -15,10 +16,15 @@ if __name__ == '__main__':
     #dir_medium = num_matrix_luvoir(design='medium')
     #dir_large = num_matrix_luvoir(design='large')
 
-    # Alternativley, pick data locations to run PASTIS analysis on
+    # Alternatively, pick data locations to run PASTIS analysis on
     #dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_small')
     #dir_medium = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
     #dir_large = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
+
+    # Set up loggers for all cases
+    util.setup_pastis_logging(dir_small, 'pastis_analysis')
+    #util.setup_pastis_logging(dir_medium, 'pastis_analysis')
+    #util.setup_pastis_logging(dir_large, 'pastis_analysis')
     
     # Then generate all hockeystick curves
     result_dir_small = os.path.join(dir_small, 'results')
