@@ -7,10 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import webbpsf
+import logging
 
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
+
+log = logging.getLogger()
 
 
 if __name__ == '__main__':
@@ -56,7 +59,7 @@ if __name__ == '__main__':
     zern_mode = util.ZernikeMode(zern_number)
 
     # Create NIRCam objects, one for perfect PSF and one with coronagraph
-    print('Setting up the E2E simulation.')
+    log.info('Setting up the E2E simulation.')
     nc = webbpsf.NIRCam()
     # Set filter
     nc.filter = filter
@@ -78,12 +81,12 @@ if __name__ == '__main__':
     nc_coro.include_si_wfe = False    # set SI internal WFE to zero
 
     # Generate the E2E PSFs with and without coronagraph
-    print('Calculating perfect PSF without coronograph...')
+    log.info('Calculating perfect PSF without coronograph...')
     psf_start_time = time.time()
     psf_default_hdu = nc.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
     psf_end_time = time.time()
-    print('Calculating this PSF with WebbPSF took', psf_end_time-psf_start_time, 'sec =', (psf_end_time-psf_start_time)/60, 'min')
-    print('Calculating perfect PSF with coronagraph...\n')
+    log.info(f'Calculating this PSF with WebbPSF took {psf_end_time-psf_start_time}sec = {(psf_end_time-psf_start_time)/60}min')
+    log.info('Calculating perfect PSF with coronagraph...\n')
     psf_coro_hdu = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
 
     # Extract the PSFs to image arrays - the [1] extension gives me detector resolution
@@ -122,8 +125,8 @@ if __name__ == '__main__':
         # Create the name of the segment the loop is currently at
         seg = wss_segs[i].split('-')[0]
 
-        print('')
-        print('Working on segment ' + str(i+1) + '/' + str(nb_seg) + ': ' + seg)
+        log.info('')
+        log.info(f'Working on segment  {i+1}/{nb_seg}: {seg}')
         # We have to make sure here that we aberrate the segments in their order of numbering as it was set
         # in the script that generates the aperture (here: function_baselinify.py)!
         # Currently there is a bug in WebbPSF though that numbers the segments wrong when used in the exit pupil
@@ -148,8 +151,8 @@ if __name__ == '__main__':
         # why we made sure it gets filled with values in units of meters already a couple of lines above this.
 
         #-# Crate OPD with aberrated segment(s)
-        print('Applying aberration to OTE.')
-        print('nm_aber: {}'.format(nm_aber))
+        log.info('Applying aberration to OTE.')
+        log.info('nm_aber: {}'.format(nm_aber))
         ote_coro.reset()   # Making sure there are no previous movements on the segments.
         ote_coro.zero()    # For now, ignore internal WFE.
         ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
@@ -159,7 +162,7 @@ if __name__ == '__main__':
         #plt.show()
 
         #-# Generate the coronagraphic PSF
-        print('Calculating coronagraphic PSF.')
+        log.info('Calculating coronagraphic PSF.')
         psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
         psf_end = psf_endsim[0].data
 
@@ -174,8 +177,8 @@ if __name__ == '__main__':
         dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:, zern_number-1], cali=False)
         contrast_pastis[i] = np.mean(dh_im_am[np.where(dh_im_am != 0)])
 
-        print('Contrast WebbPSF:', contrast_e2e[i])
-        print('Contrast image-PASTIS, uncalibrated:', contrast_pastis[i])
+        log.info(f'Contrast WebbPSF: {contrast_e2e[i]}')
+        log.info(f'Contrast image-PASTIS, uncalibrated: {contrast_pastis[i]}')
 
         # Save images for testing
         im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
@@ -191,9 +194,9 @@ if __name__ == '__main__':
         plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
 
         iter_end = time.time()
-        print('Iteration', i+1, 'runtime:', iter_end-iter_start, 'sec =', (iter_end-iter_start)/60, 'min')
+        log.info(f'Iteration {i+1} runtime: {iter_end-iter_start}sec = {(iter_end-iter_start)/60}min')
 
-    print('\n--- All PSFs calculated. ---\n')
+    log.info('\n--- All PSFs calculated. ---\n')
     # Calculate calibration vector
     calibration = np.zeros_like(contrast_e2e)
 
@@ -246,8 +249,8 @@ if __name__ == '__main__':
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for calibration.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(outDir))
+    log.info(f'Runtime for calibration.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info(f'Data saved to {outDir}')
 
     # Extra comments from Lucie:
     ### Your calibration factor for each segment will be the ratio between the contrast from end-to-end simulation

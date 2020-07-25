@@ -11,6 +11,7 @@ from astropy.io import fits
 import astropy.units as u
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import logging
 import poppy.zernike as zern
 import poppy.matrixDFT as mft
 import poppy
@@ -18,6 +19,8 @@ import hcipy
 
 from config import CONFIG_INI
 import util_pastis as util
+
+log = logging.getLogger()
 
 
 @u.quantity_input(coef=u.nm)
@@ -262,12 +265,12 @@ if __name__ == '__main__':
     # Define the (Noll) zernike number
     zernike_pol = zern_number
 
-    print('coef: {}'.format(coef))
-    print('Aberration: {}'.format(nm_aber))
-    print('On segment: {}'.format(i+1))
-    print('Zernike (Noll): {}'.format(util.zernike_name(zern_number, framework='Noll')))
-    print('Zernike (WSS): {}'.format(util.zernike_name(wss_zern_nb, framework='WSS')))
-    print('Zernike number (Noll): {}'.format(zernike_pol))
+    log.info('coef: {}'.format(coef))
+    log.info('Aberration: {}'.format(nm_aber))
+    log.info('On segment: {}'.format(i+1))
+    log.info('Zernike (Noll): {}'.format(util.zernike_name(zern_number, framework='Noll')))
+    log.info('Zernike (WSS): {}'.format(util.zernike_name(wss_zern_nb, framework='WSS')))
+    log.info('Zernike number (Noll): {}'.format(zernike_pol))
 
     ### Run the analytical model without calibration
     dh_psf, int = analytical_model(zernike_pol, coef, cali=cali)
