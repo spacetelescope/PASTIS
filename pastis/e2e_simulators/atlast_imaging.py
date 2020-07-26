@@ -5,12 +5,14 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
+import logging
 import hcipy
 import poppy
 
 from config import CONFIG_INI
 import util_pastis as util
 
+log = logging.getLogger()
 
 # Configfile imports
 which_tel = CONFIG_INI.get('telescope', 'name')
@@ -268,8 +270,8 @@ def seg_mirror_test():
     # --------------------------------- #
     #aber_rad = 6.2
     aber_array = np.linspace(0, 2*np.pi, 50, True)
-    print('Aber in rad: \n{}'.format(aber_array))
-    print('Aber in m: \n{}'.format(util.aber_to_opd(aber_array, wvln)))
+    log.info('Aber in rad: \n{}'.format(aber_array))
+    log.info('Aber in m: \n{}'.format(util.aber_to_opd(aber_array, wvln)))
     # --------------------------------- #
 
     ### HCIPy SM

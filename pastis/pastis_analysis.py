@@ -8,6 +8,7 @@ import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import hcipy as hc
@@ -17,6 +18,8 @@ from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 import plotting as ppl
 import util_pastis as util
+
+log = logging.getLogger(__name__)
 
 
 def modes_from_matrix(datadir, saving=True):
@@ -83,7 +86,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
     for thismode in range(nseg):
-        print(f'Working on mode {thismode + 1}/{nseg}.')
+        log.info(f'Working on mode {thismode + 1}/{nseg}.')
 
         wf_sm = apply_mode_to_sm(pmodes[:, thismode], sm, wf_aper)
         all_modes.append(wf_sm.phase / wf_sm.wavenumber)    # wf.phase is in rad, so this converts it to meters
@@ -100,7 +103,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
 
     ### Plot all modes together and save
     if saving:
-        print('Saving all PASTIS modes...')
+        log.info('Saving all PASTIS modes...')
         plt.figure(figsize=(36, 30))
         for thismode in range(nseg):
             plt.subplot(12, 10, thismode + 1)
@@ -393,9 +396,9 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
 
-    print('Setting up optics...')
-    print(f'Data folder: {workdir}')
-    print(f'Coronagraph: {design}')
+    log.info('Setting up optics...')
+    log.info(f'Data folder: {workdir}')
+    log.info(f'Coronagraph: {design}')
 
     # Create SM
     # Read pupil and indexed pupil
@@ -450,7 +453,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     # Calculate coronagraph floor
     coro_floor = util.dh_mean(psf_unaber/norm, luvoir.dh_mask)
-    print(f'Coronagraph floor: {coro_floor}')
+    log.info(f'Coronagraph floor: {coro_floor}')
     with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
         file.write(f'{coro_floor}')
 
@@ -459,19 +462,19 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:
-        print('Calculating all PASTIS modes')
+        log.info('Calculating all PASTIS modes')
         pmodes, svals = modes_from_matrix(workdir)
 
         ### Get full 2D modes and save them
         all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, sm, wf_aper, saving=True)
 
     else:
-        print(f'Reading PASTIS modes from {workdir}')
+        log.info(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
     ### Calculate mode-based static constraints
     if calculate_sigmas:
-        print('Calculating static sigmas')
+        log.info('Calculating static sigmas')
         sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
@@ -483,19 +486,19 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                      save=True)
 
     else:
-        print(f'Reading sigmas from {workdir}')
+        log.info(f'Reading sigmas from {workdir}')
         sigmas = np.loadtxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'))
 
     ### Calculate Monte Carlo simulation for sigmas, with E2E
     if run_monte_carlo_modes:
-        print('\nRunning Monte Carlo simulation for modes')
+        log.info('\nRunning Monte Carlo simulation for modes')
         # Keep track of time
         start_monte_carlo_modes = time.time()
 
         all_contr_rand_modes = []
         all_random_weight_sets = []
         for rep in range(n_repeat):
-            print(f'Mode realization {rep + 1}/{n_repeat}')
+            log.info(f'Mode realization {rep + 1}/{n_repeat}')
             random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, luvoir.dh_mask)
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
@@ -503,8 +506,8 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         # Empirical mean and standard deviation of the distribution
         mean_modes = np.mean(all_contr_rand_modes)
         stddev_modes = np.std(all_contr_rand_modes)
-        print(f'Mean of the Monte Carlo result modes: {mean_modes}')
-        print(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
+        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
+        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
         end_monte_carlo_modes = time.time()
 
         # Save Monte Carlo simulation
@@ -517,7 +520,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
-        print('Calculating cumulative contrast plot, uniform contrast across all modes')
+        log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
         cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, luvoir.dh_mask)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
@@ -531,12 +534,12 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                                       save=True)
 
     else:
-        print('Loading uniform cumulative contrast from disk.')
+        log.info('Loading uniform cumulative contrast from disk.')
         cumulative_e2e = np.loadtxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
-        print('Calculating segment-based constraints')
+        log.info('Calculating segment-based constraints')
         mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
@@ -547,19 +550,19 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
                         design=design, c_target=c_target, save=True)
     else:
-        print(f'Reading mus from {workdir}')
+        log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
 
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
-        print('\nRunning Monte Carlo simulation for segments')
+        log.info('\nRunning Monte Carlo simulation for segments')
         # Keep track of time
         start_monte_carlo_seg = time.time()
 
         all_contr_rand_seg = []
         all_random_maps = []
         for rep in range(n_repeat):
-            print(f'Segment realization {rep + 1}/{n_repeat}')
+            log.info(f'Segment realization {rep + 1}/{n_repeat}')
             random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, luvoir.dh_mask)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
@@ -567,15 +570,15 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         # Empirical mean and standard deviation of the distribution
         mean_segments = np.mean(all_contr_rand_seg)
         stddev_segments = np.std(all_contr_rand_seg)
-        print(f'Mean of the Monte Carlo result segments: {mean_segments}')
-        print(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
+        log.info(f'Mean of the Monte Carlo result segments: {mean_segments}')
+        log.info(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
         with open(os.path.join(workdir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'w') as file:
             file.write(f'Empirical, statistical mean: {mean_segments}')
             file.write(f'\nEmpirical variance: {stddev_segments**2}')
         end_monte_carlo_seg = time.time()
 
-        print('\nRuntimes:')
-        print('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
+        log.info('\nRuntimes:')
+        log.info('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
                                                                                           (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
                                                                                           (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
 
@@ -589,7 +592,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     ### Calculate covariance matrices
     if calculate_covariance_matrices:
-        print('Calculating covariance matrices')
+        log.info('Calculating covariance matrices')
         Ca = np.diag(np.square(mus))
         hc.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
 
@@ -602,13 +605,13 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                    fname_suffix='segment-based', save=True)
 
     else:
-        print('Loading covariance matrices from disk.')
+        log.info('Loading covariance matrices from disk.')
         Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}.fits'))
         Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}.fits'))
 
     ### Analytically calculate statistical mean contrast and its variance
     if analytical_statistics:
-        print('Calculating analytical statistics.')
+        log.info('Calculating analytical statistics.')
         mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
         var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
 
@@ -618,7 +621,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     ### Calculate segment-based error budget
     if calculate_segment_based:
-        print('Calculating segment-based error budget.')
+        log.info('Calculating segment-based error budget.')
 
         # Extract segment-based mode weights
         sigmas_opt = np.sqrt(np.diag(Cb))
@@ -653,11 +656,11 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
     psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
     contrast_mu = util.dh_mean(psf/ref.max(), luvoir.dh_mask)
-    print(f'Contrast with mu-map: {contrast_mu}')
+    log.info(f'Contrast with mu-map: {contrast_mu}')
 
     ###
-    print(f"All saved in {os.path.join(workdir, 'results')}")
-    print('\nGood job')
+    log.info(f"All saved in {os.path.join(workdir, 'results')}")
+    log.info('\nGood job')
 
 
 if __name__ == '__main__':

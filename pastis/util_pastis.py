@@ -3,12 +3,17 @@ Helper functions for PASTIS.
 """
 
 import os
-import time
 import datetime
-from shutil  import copy
-import numpy as np
+import time
+from shutil import copy
+import sys
 from astropy.io import fits
 import astropy.units as u
+import logging
+import logging.handlers
+import numpy as np
+
+log = logging.getLogger()
 
 
 def write_fits(data, filepath, header=None, metadata=None):
@@ -313,3 +318,36 @@ def copy_config(outdir):
         copy('config_local.ini', outdir)
     except IOError:
         copy('config.ini', outdir)
+
+
+def setup_pastis_logging(experiment_path, name):
+    ### General logger
+    log = logging.getLogger()
+
+    log.setLevel(logging.NOTSET)    # set logger to pass all messages, then filter in handlers
+    suffix = ".log"
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    ### Set up the console log to stdout (not stderr since some messages are info)
+    consoleHandler = logging.StreamHandler(sys.stdout)
+
+    # add formatter, set logging level and add the handler
+    consoleHandler.setFormatter(formatter)
+    console_level = logging.INFO
+    consoleHandler.setLevel(console_level)
+
+    log.addHandler(consoleHandler)
+    log.info("LOG SETUP: Console will display messages of {} or higher".format(logging.getLevelName(consoleHandler.level)))
+
+    ### Set up the experiment log
+    experiment_logfile_path = os.path.join(experiment_path, name + suffix)
+    experiment_hander = logging.handlers.WatchedFileHandler(experiment_logfile_path)
+
+    # add formatter, set logging level and add the handler
+    experiment_hander.setFormatter(formatter)
+    experiment_level = logging.INFO
+    experiment_hander.setLevel(experiment_level)
+
+    log.addHandler(experiment_hander)
+    log.info("LOG SETUP: Experiment log will save messages of {} or higher to {}".format(logging.getLevelName(experiment_hander.level),
+                                                                                         experiment_logfile_path))

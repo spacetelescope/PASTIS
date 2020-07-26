@@ -6,11 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import astropy.units as u
+import logging
 import poppy
 import webbpsf
 
 from config import CONFIG_INI
 import util_pastis as util
+
+log = logging.getLogger()
 
 # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
 # webbpsf.utils.get_webbpsf_data_path()
@@ -36,7 +39,7 @@ def get_jwst_coords(outDir):
     #-# Generate the pupil with segments and spiders
 
     # Use poppy to create JWST aperture without spiders
-    print('Creating and saving aperture')
+    log.info('Creating and saving aperture')
     jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=flat_to_flat)   # Create JWST pupil without spiders
     jwst_pup.display(colorbar=False)   # Show pupil (will be saved to file)
     plt.title('JWST telescope pupil')

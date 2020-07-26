@@ -12,14 +12,17 @@ HiCAT and LUVOIR only have an E2E vs numerical PASTIS comparison (1 + 3).
 
 import os
 import time
+import astropy.units as u
+import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import astropy.units as u
-import matplotlib.pyplot as plt
 
 from config import CONFIG_INI
 import contrast_calculation_simple as consim
 import plotting as ppl
+
+log = logging.getLogger()
 
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
@@ -58,8 +61,8 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     am_contrasts = []         # contrasts from image PASTIS
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {}".format(rms_range, fmt="%e"))
-    print(f"Random realizations: {realiz}")
+    log.info("RMS range: {}".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -70,11 +73,11 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
         matrix_rand = []
 
         for j in range(realiz):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print(f"RMS {i + 1}/{len(rms_range)}")
-            print(f"Random realization: {j+1}/{realiz}")
-            print(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"RMS {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{realiz}")
+            log.info(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_am, c_matrix = consim.contrast_jwst_ana_num(matdir=WORKDIRECTORY, matrix_mode=matrix_mode, rms=rms,
                                                                  im_pastis=True, plotting=True)
@@ -111,7 +114,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     end_time = time.time()
     runtime = end_time - start_time
-    print(f'Runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
+    log.info(f'Runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3):
@@ -143,8 +146,8 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {}".format(rms_range, fmt="%e"))
-    print(f"Random realizations: {realiz}")
+    log.info("RMS range: {}".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -154,11 +157,11 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         matrix_rand = []
 
         for j in range(realiz):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print(f"RMS {i + 1}/{len(rms_range)}")
-            print(f"Random realization: {j+1}/{realiz}")
-            print(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"RMS {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{realiz}")
+            log.info(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir=matrixdir, rms=rms,)
 
@@ -187,7 +190,7 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
 
     end_time = time.time()
     runtime = end_time - start_time
-    print(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
+    log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3, no_realizations=3):
@@ -222,8 +225,8 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {} nm".format(rms_range, fmt="%e"))
-    print(f"Random realizations: {no_realizations}")
+    log.info("RMS range: {} nm".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {no_realizations}")
 
     for i, rms in enumerate(rms_range):
 
@@ -233,11 +236,11 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         matrix_rand = []
 
         for j in range(no_realizations):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print(f"WFE RMS number {i + 1}/{len(rms_range)}")
-            print(f"Random realization: {j+1}/{no_realizations}")
-            print(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}\n")
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"WFE RMS number {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{no_realizations}")
+            log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}\n")
 
             c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
@@ -262,7 +265,7 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
 
     end_time = time.time()
     runtime = end_time - start_time
-    print(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
+    log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 if __name__ == '__main__':
