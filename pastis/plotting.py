@@ -401,7 +401,7 @@ def create_luvoir_and_wf_at_mirror(design, wvln):
     :return: luvoir (LuvoirAPLC), wf_aper (hcipy.wavefront)
     """
     # Create wavefront in aperture plane
-    optics_path = '/Users/ilaginja/Documents/MakidonLabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_path = CONFIG_INI.get('LUVOIR', 'optics_path')
 
     aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
     aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
