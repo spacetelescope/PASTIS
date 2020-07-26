@@ -10,7 +10,7 @@ import util_pastis as util
 
 
 if __name__ == '__main__':
-    
+
     # First generate a couple of matrices
     dir_small = num_matrix_luvoir(design='small')
     #dir_medium = num_matrix_luvoir(design='medium')
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     #dir_medium = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
     #dir_large = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
 
-    # Set up loggers for all cases
+    # Set up loggers for data analysis in all cases
     util.setup_pastis_logging(dir_small, 'pastis_analysis')
     #util.setup_pastis_logging(dir_medium, 'pastis_analysis')
     #util.setup_pastis_logging(dir_large, 'pastis_analysis')

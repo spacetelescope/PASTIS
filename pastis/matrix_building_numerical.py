@@ -212,7 +212,6 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Keep track of time
     start_time = time.time()
-    log.info('Building numerical matrix for LUVOIR\n')
 
     ### Parameters
 
@@ -220,6 +219,17 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-'+design)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
+
+    # Create necessary directories if they don't exist yet
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+
+    # Set up logger
+    util.setup_pastis_logging(resDir, f'pastis_matrix_{design}')
+    log.info('Building numerical matrix for LUVOIR\n')
+
+    # Read calibration aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
@@ -240,11 +250,6 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     log.info(f'Number of segments: {nb_seg}')
     log.info(f'Image size: {im_lamD} lambda/D')
     log.info(f'Sampling: {sampling} px per lambda/D')
-
-    # Create necessary directories if they don't exist yet
-    os.makedirs(resDir, exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
 
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
