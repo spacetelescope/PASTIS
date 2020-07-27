@@ -11,11 +11,13 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 import os
 import time
 import functools
+from itertools import product
 from shutil import copy
 from astropy.io import fits
 import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
+import multiprocessing
 import numpy as np
 import hcipy as hc
 
@@ -392,8 +394,6 @@ def num_matrix_luvoir_multiprocess(design):
     Multiprocessed version of num_matrix_luvoir(). Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
     """
-    import multiprocessing
-    from itertools import product
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 150 minutes
