@@ -450,7 +450,6 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     # General telescope parameters
     nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
     wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
-    diam = CONFIG_INI.getfloat(instrument, 'diameter')  # m
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
@@ -460,7 +459,6 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
-    log.info(f'Telescope diameter: {diam} m')
     log.info(f'Number of segments: {nb_seg}')
     log.info(f'Image size: {im_lamD} lambda/D')
     log.info(f'Sampling: {sampling} px per lambda/D')
