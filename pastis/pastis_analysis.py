@@ -665,7 +665,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
 if __name__ == '__main__':
 
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_target = 1e-10
     mc_repeat = 100
