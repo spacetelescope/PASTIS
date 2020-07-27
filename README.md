@@ -7,7 +7,7 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux at al. (2018) and Laginja et al. (2020, submitted).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
 
 This release was specifically made to accompany the Laginja et al. (2020, submitted) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
 
@@ -18,12 +18,17 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
   * [Set up local configfile](#set-up-local-configfile)
   * [Create a PASTIS matrix and run the analysis](#create-a-pastis-matrix-and-run-the-analysis)
   * [Changing the input parameters](#changing-the-input-parameters)
-* [Requirements](#requirements)
+* [Full Requirements](#full-requirements)
+  * [Git](#git)
   * [Conda environment](#conda-environment)
-  * [hcipy](#hcipy)
+  * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
+  * [Known `maplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
 * [Output directory](#output-directory)
+* [PASTIS analysis](#pastis-analysis)
+  * [Rerunning just the analysis](#rerunning-just-the-analysis)
+  * [Other LUVOIR-A coronagraphs](#other-luvoir-a-coronagraphs)
 * [Jupyter notebooks](#jupyter-notebooks)
 * [About this repository](#about-this-repository)
   * [Contributing and code of conduct](#contributing-and-code-of-conduct)
@@ -49,10 +54,6 @@ $ cd /User/<YourUser>/repos/
 ```bash
 $ git clone https://github.com/spacetelescope/PASTIS.git
 ```
-or use SSH if that is your preferred way of cloning repositories:
-```bash
-$ git clone git@github.com:spacetelescope/PASTIS.git
-```
 
 - Navigate into the cloned `PASTIS` repository:  
 ```bash
@@ -69,32 +70,6 @@ $ conda env create --file environment.yml
 $ conda activate pastis
 ```
 
-- Go back into your repositories directory and clone `hcipy`:
-```bash
-$ cd ..
-$ git clone https://github.com/ehpor/hcipy.git
-```
-or
-```bash
-$ git clone git@github.com:ehpor/hcipy.git
-```
-
-- Navigate into the cloned `hcipy` repository:  
-```bash
-$ cd hcipy
-```
-
-- Check out commit `980f39c`:
-```bash
-$ git checkout 980f39c
-```
-
-- Install `hcipy` from this commit:
-```bash
-$ python setup.py install
-```
-*Note: This will create a "build" directory that you can delete.*
-
 ### Set up local configfile
 
 - Go into the code directory:
@@ -104,33 +79,37 @@ $ cd pastis
 
 - Copy the file `config.ini` and name the copy `config_local.ini`.
 
-- Open your local configfile `config_local.ini` and edit the entry `[local][local_repo_path]` to point to your local repo clone that you just created, e.g.:
+- Open your local configfile `config_local.ini` and find the section `[local]`. In that section, edit the key 
+`local_repo_path` to point to your local repo clone that you just created, e.g. (for more about the configfile, see 
+[Configuration file](#configuration-file)):
 ```ini
 [local]
 ...
 local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
-- In the same file, define with `[local][local_data_path]` where your output data should be saved to, e.g.:  
+- In the same file and section, define where all the output data will be saved to by adjusting the key 
+`local_data_path`, e.g.:  
 ```ini
 [local]
 ...
 local_data_path = /Users/<user-name>/<path-to-data>
 ```
+**Save `config_local.ini` after these edits.**
 
 ### Create a PASTIS matrix and run the analysis
 
-- If not already activated, activate the `pastis` conda environment:
-```bash
-$ conda activate pastis
-```
+- If not already activated, activate the `pastis` conda environment with `$ conda activate pastis` and get into the 
+`PASTIS/pastis` subfolder.
 
-- Create a PASTIS matrix and analysis for the narrow-angle LUVOIR-A APLC design:
+- Create a PASTIS matrix and run the PASTIS analysis for the narrow-angle LUVOIR-A APLC design from the default template:
 ```bash
 $ python run_cases.py
 ```
-This will run for a couple of hours as the first thing that is generated is the PASTIS matrix.
-When it is done, you can inspect your results in the path you  specified under `[local][local_data_path]` in your `config_local.ini`!
+**This will run for a couple of hours** as the first thing that is generated is the PASTIS matrix. On a 13-in MacBook 
+Pro 2020, the matrix gets calculated in about 160min, and the analysis runs in about 15 minutes.
+When it is done, you can inspect your results and log files in the path you specified under `local_data_path` in the section `[local]`
+of your `config_local.ini`!
 
 ### Changing the input parameters
 
@@ -143,54 +122,77 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 
 If you want to change any of these, please refer to the section about the [configfile](#configuration-file). 
 
-## Requirements
+## Full Requirements
+
+### Git
+
+You will need `git` to clone this repository. Already a `git` user? Jump ahead. If not, please don't be *that* person 
+who downloads the code and doesn't use version control. If you need a primer on `git`, 
+[see here](https://swcarpentry.github.io/git-novice/). For the fastest ways to install `git`:
+- To install it on a Mac, type `git` in your terminal and follow the instructions to install the Apple Xcode command tools.
+- To make it easy on Windows, [install Git Bash](https://gitforwindows.org/). **Note**: If 
+you will use Git Bash with Miniconda (see below), you will have to add Miniconda to your PATH during setup, even if it 
+is marked as not recommended. Otherwise Git Bash can't access it.
+- For Linux, [follow this link](https://gist.github.com/derhuerst/1b15ff4652a867391f03#file-linux-md).
 
 ### Conda environment
-We provide an `environement.yml` file that can be taken advantage of with the conda package management system. By creating 
-a conda environment from this file, you will be set up to run all the code in this package. The only other thing you 
-will need is to install `hcipy` correctly, see below.
+We provide an `environment.yml` file that can be taken advantage of with the conda package management system. By creating 
+a conda environment from this file, you will be set up to run all the code in this package. This includes the 
+ installation of the `hcipy` package from a specific commit of the repository, see below.
 
 If you don't know how to start with conda, you can [download miniconda here](https://docs.conda.io/en/latest/miniconda.html). 
 After a successful installation, you can create the `pastis` conda environment by navigating with the terminal into the 
-`PASTIS` repository, where the `environement.yml` is located, and run:
+`PASTIS` repository, where the `environment.yml` is located, and run:
 ```bash
 $ conda env create --file environment.yml
 ```
-This will create a conda environment called `pastis` that contains all the needed packages at the correct versions 
-(except hcipy). If you want to give the environment a different name while it is getting created, you can run:
+This will create a conda environment called `pastis` that contains all the needed packages at the correct versions. If 
+you want to give the environment a different name while it is getting created, you can run:
 ```bash
 $ conda env create --name <env-name> --file environment.yml
 ```
 where you have to replace `<env-name>` with your desired package name.
 
-### `hcipy`
+If you ever need to update your conda environment from the file `environment.yml`, you can do that with 
+(where "pastis" is the environment name):
+```bash
+conda env update -n pastis -f environment.yml
+```
+
+You can also remove a conda environment with:
+```bash
+conda remove --name pastis --all
+```
+
+### The package `hcipy`
 PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
 PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
-this reason, you will need to clone the `hcipy` repository manually instead of installing the package from pip, then 
-checkout the commit with the correct version and install this version into your `pastis` conda environment. To do that,
-navigate to the location on disk that contains your repos and clone the `hcipy` repository per http *or* ssh:
+this reason, the installation with `environment.yml` installs `hcipy` from the commit hash `980f39c`.
+
+If you want to install the package manually from this commit, you can do so by following tehse steps:
+1. Navigate to the location on disk that contains your repos and clone the `hcipy` repository:
 ```bash
 $ git clone https://github.com/ehpor/hcipy.git
-$ git clone git@github.com:ehpor/hcipy.git
 ```
-Make sure to activate you `pastis` conda environment since this is where we want to install `hcipy` into:
+2. Make sure to activate you conda environment that you want to install `hcipy` into:
 ```bash
 $ conda activate pastis
 ```
-Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
+3. Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
 ```bash
 $ git checkout 980f39c
 ```
-Then install the package:
+4. Then install the package:
 ```bash
 $ python setup.py install
 ```
-This is a static installation of the `hcipy` package into the conda environment `pastis` only. If you now check out a 
-different commit or branch in your local `hcipy` repository, this will not influence this environment. Note how the installation
-process will create a "build" directory inside the `hcipy` repository that you are free to delete if you like.
+This is a static installation of the `hcipy` package into the conda environment `pastis` only, at the version of the 
+given commit. If you now check out a different commit or branch in your local `hcipy` repository, this will not 
+influence the environment you did this installation in. Note how the installation process will create a "build" 
+directory inside the `hcipy` repository that you are free to delete if you like.
 
-We are currently refactoring our code to be compatible with the improved, current version of `hcipy` and will update our
-readme accordingly when this change has successfully happened.
+We are currently refactoring our code to be compatible with the improved, current version of `hcipy` that is installable
+via pip, and will update your README accordingly when this change has successfully happened.
 
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
@@ -212,6 +214,8 @@ within that file, delete the `#` which is commenting it out and set it to `lower
 image.origin : lower
 ```
 then save and close.
+
+### Known `matplotlib` issues on MacOS
 
 While writing code for the repository, we ran into a couple of other issues with the plotting that were dependent on the
 OS and its version that we were using. If you run into the same issues, here is how we solved them:
@@ -240,10 +244,10 @@ is version controlled, and the paths to local directories will get messed up if 
 also lose the changes you made to the parameters. This is why `config.ini` is initially supposed to be used as a **template**.
 
 In order to make it work for you, copy `config.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
-you can set all your parameters, and it will override the `config.ini` at runtime. Whichever configfile is used in the 
-code, the version-controlled one or the local one, a copy of it is always saved together with the PASTIS matrix output. In the 
-case you want to version control the configfile you use, we recommend that you **fork** the repository and simply use the 
-`config.ini` file directly.
+you can set all your parameters, and it will override the `config.ini` at runtime. This means that if there is a `config_local.ini`,
+it will be used, if not, the code will fall back on `config.ini`. A copy of the used configfile is always saved together 
+with the PASTIS matrix output when a matrix is generated. In the case you want to version control the configfile you use, 
+we recommend that you **fork** the repository and simply use the `config.ini` file directly.
 
 The first section deals with local paths. Here, you need to point the file to the local clone of your repo and the 
 directory you want to have the output data saved to:
@@ -279,7 +283,7 @@ lambda = 500.
 ```
 The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path`  specifies
 the data location of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC designs. The path goes into 
-the local repo path from `[local] -> [local_path]` and into the right location. There are three APLC designs available, 
+the local repo path from `[local] -> local_path` and into the right location. There are three APLC designs available, 
 with a small, medium and large FPM, and the key `coronagraph_size` lets you switch between them. Finally, `lambda` sets
 the wavelength in nanometers.
 
@@ -294,48 +298,73 @@ im_size_lamD_hcipy = 30
 ; this is not used automatically in the functions, it is always defined (or read from here) manually
 current_analysis = 2020-01-13T21-34-29_luvoir-small
 ```
-`sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
-the dark hole images in units of lambda/D. `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
-but lets you define a matrix directory for repeating an analysis with some of the other scripts and the pastis functions.
+The key `sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
+the dark hole images in units of lambda/D. The key `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
+but lets you define a matrix directory for repeating an analysis with the main function in the modules `hockeystick_contrast_curve.py`, 
+`pastis_analysis.py` and `single_mode_error_budger.py`.
 
 Finally, the calibration section defines the local aberration used on each segment and the amplitude of the calibration
 aberration for the generation of the PASTIS matrix.
 ```ini
 [calibration]
 ;! Noll convention!  --- units are NANOMETERS
-single_aberration = 1.
-zernike = 1
+calibration_aberration = 1.
+local_zernike = 1
 ```
-`zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
-`1` means piston. `single_aberration` is the amplitude of the calibration aberration of the matrix in nanometers.
+The key `local_zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
+`local_zernike = 1` means piston. The key `calibration_aberration` is the amplitude of the calibration aberration of the matrix, in nanometers.
 
 
 ## Output directory
 
-Each time a new PASTIS matrix is generated, this will create a new data folder in the directory you specified under
-`[local]` --> `[local_data_path]`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
+Each time a new PASTIS matrix is generated, this will create a new data folder in the directory you specified in the
+section `[local]` with the key `local_data_path`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
 date and time of the start of the matrix generation, the telescope name, and for LUVOIR the APLC choice.
 
-The code will copy the used configfile into this data folder, among other things. The data directory structure is as
-follows:
+The code will copy the used configfile into this data folder, together with all results and log files. The data 
+directory structure is as follows:
 
 ```bash
 |-- 2020-01-13T21-34-29_example
-|   |-- coronagraph_floor.txt: E2E DH average contrast for unaberrated pupil
-|   |--matrix_numerical
-|      |-- config_local.ini: copy of the configfile used for matrix generation
-|      |-- contrasts.txt: list of E2E DH average contrasts per aberrated segment pair
+|   |-- coronagraph_floor.txt                    # E2E DH average contrast for unaberrated pupil
+|   |-- matrix_numerical
+|      |-- config_local.ini                      # copy of the configfile used for matrix generation
 |      |-- OTE_images
-|          |-- PDF images of each segment pair aberration in the pupil
+|          |-- opd[...].pdf                      # PDF images of each segment pair aberration in the pupil
 |          |-- ...
-|      |-- PASTISmatrix_num_piston_Noll1.fits: the PASTIS matrix
+|      |-- pair-wise_contrasts.txt:              # list of E2E DH average contrasts per aberrated segment pair
+|      |-- pastis_matrix.log                     # logging output of matrix calculation
+|      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
 |      |-- psfs
-|          |-- psf_cube.fits: an image cube of the PSF from each segment pair aberration
+|          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
+|   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
 |   |--results
-|      |-- all results form the PASTIS analysis
+|      |-- [...].pdf/.txt                        # all results form the PASTIS analysis
 |      |-- ...
-|   |-- unaberrated_dh.pdf: image of unaberrated DH from E2E simulator
+|   |-- unaberrated_dh.pdf                       # image of unaberrated DH from E2E simulator
 ```
+
+
+## PASTIS analysis
+
+### Rerunning just the analysis
+Calculating the PASTIS matrix takes some time, but once this is over the PASTIS analysis can be redone on it without 
+having to regenerate the matrix. To do this, open the script `run_cases.py` and comment out the line that calls 
+the matrix calculation function:
+```py
+    #dir_small = num_matrix_luvoir(design='small')
+```
+and instead uncomment the line where you can pre-define the data directory, and drop in the correct folder directory 
+within your output destination:
+```py
+    dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), '<your-data-directory_small>')
+```
+
+If you now run `run_cases.py`, it will only rerun the analysis.
+
+### Other LUVOIR-A coronagraphs
+The script `run_cases.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
+to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
 
 ## Jupyter notebooks
@@ -360,6 +389,11 @@ If you use this code in your work, please find citation snippets to give us cred
 ### License
 
 This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](LICENSE.md) file for details.
+
+### Acknowledgments
+
+Big thanks to Robel Geda ([@robelgeda](https://github.com/robelgeda)) for testing, checking and providing suggestions for the 
+repo setup, quickstart and README.
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
