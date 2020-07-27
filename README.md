@@ -18,7 +18,8 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
   * [Set up local configfile](#set-up-local-configfile)
   * [Create a PASTIS matrix and run the analysis](#create-a-pastis-matrix-and-run-the-analysis)
   * [Changing the input parameters](#changing-the-input-parameters)
-* [Requirements](#requirements)
+* [Full Requirements](#full-requirements)
+  * [Git](#git)
   * [Conda environment](#conda-environment)
   * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
@@ -117,7 +118,18 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 
 If you want to change any of these, please refer to the section about the [configfile](#configuration-file). 
 
-## Requirements
+## Full Requirements
+
+### Git
+
+You will need `git` to clone this repository. Already a `git` user? Jump ahead. If not, please don't be *that* person 
+who downloads the code and doesn't use version control. If you need a primer on `git`, 
+[see here](https://swcarpentry.github.io/git-novice/). For the fastest ways to install `git`:
+- To install it on a Mac, type `git` in your terminal and follow the instructions to install the Apple Xcode command tools.
+- To make it easy on Windows, [follow these instructions to install Git Bash](https://gitforwindows.org/). **Note**: If 
+you will use Git Bash with Miniconda (see below), you will have to add Miniconda to your PATH during setup, even if it 
+is marked as not recommended. Otherwise Git Bash can't access it.
+- For Linux, [follow this link](https://gist.github.com/derhuerst/1b15ff4652a867391f03#file-linux-md).
 
 ### Conda environment
 We provide an `environment.yml` file that can be taken advantage of with the conda package management system. By creating 
