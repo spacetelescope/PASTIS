@@ -424,13 +424,15 @@ def _luvoir_matrix_one_pair(norm, wfe_aber, zern_mode, resDir, savepsfs, saveopd
     return float(contrast), segment_pair
 
 
-def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
+def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
     """
     Generate a numerical/semi-analytical PASTIS matrix.
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param instrument: string, what instrument (LUVOIR, HiCAT) to generate the PASTIS matrix for
+    :param instrument: str, what instrument (LUVOIR, HiCAT) to generate the PASTIS matrix for
+    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
+                   to use - 'small', 'medium' or 'large'
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
     :return: overall_dir: string, experiment directory
@@ -444,7 +446,8 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     # Create directory names
     tel_suffix = f'{instrument.lower()}'
     if instrument == 'LUVOIR':
-        design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+        if design is None:
+            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
         tel_suffix += f'-{design}'
     overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope=tel_suffix)
     os.makedirs(overall_dir, exist_ok=True)
@@ -567,5 +570,6 @@ if __name__ == '__main__':
         #num_matrix_jwst()
 
         tel = CONFIG_INI.get('telescope', 'name')
+        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
         #num_matrix_luvoir(design=coro_design)
-        num_matrix_multiprocess(instrument=tel)
+        num_matrix_multiprocess(instrument=tel, design=coro_design)
