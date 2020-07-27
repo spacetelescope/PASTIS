@@ -49,7 +49,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
     px_sq_to_rad = (size_px_tel * np.pi / tel_size_m) * u.rad
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    sz = CONFIG_INI.getint('numerical', 'im_size_lamD_hcipy')
+    sz = CONFIG_INI.getint('ATLAST', 'im_size_lamD_hcipy')              # image size in lam/D, only used in ATLAST case
 
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zernike_pol)
