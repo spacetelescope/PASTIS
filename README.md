@@ -26,6 +26,9 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
   * [Known `maplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
 * [Output directory](#output-directory)
+* [PASTIS analysis](#pastis-analysis)
+  * [Rerunning just the analysis](#rerunning-just-the-analysis)
+  * [Other LUVOIR-A coronagraphs](#other-luvoir-a-coronagraphs)
 * [Jupyter notebooks](#jupyter-notebooks)
 * [About this repository](#about-this-repository)
   * [Contributing and code of conduct](#contributing-and-code-of-conduct)
@@ -340,6 +343,28 @@ directory structure is as follows:
 |      |-- ...
 |   |-- unaberrated_dh.pdf                       # image of unaberrated DH from E2E simulator
 ```
+
+
+## PASTIS analysis
+
+### Rerunning just the analysis
+Calculating the PASTIS matrix takes some time, but once this is over the PASTIS analysis can be redone on it without 
+having to regenerate the matrix. To do this, open the script `run_cases.py` and comment out the line that calls 
+the matrix calculation function:
+```py
+    #dir_small = num_matrix_luvoir(design='small')
+```
+and instead uncomment the line where you can pre-define the data directory, and drop in the correct folder directory 
+within your output destination:
+```py
+    dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), '<your-data-directory_small>')
+```
+
+If you now run `run_cases.py`, it will only rerun the analysis.
+
+### Other LUVOIR-A coronagraphs
+The script `run_cases.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. YOu just need
+to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
 
 ## Jupyter notebooks
