@@ -408,13 +408,13 @@ def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_a
     return float(contrast), segment_pair
 
 
-def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
+def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     """
-    Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
+    Generate a numerical/semi-analytical PASTIS matrix.
 
-    Multiprocessed version of num_matrix_luvoir(). Implementation adapted from
+    Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param design: string, what coronagraph design to use - 'small', 'medium' or 'large'
+    :param instrument: string, what instrument (LUVOIR, HiCAT) to generate the PASTIS matrix for
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
     :return: overall_dir: string, experiment directory
@@ -425,8 +425,12 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
 
     ### Parameters
 
-    # System parameters
-    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-' + design)
+    # Create directory names
+    tel_suffix = f'{instrument.lower()}'
+    if instrument == 'LUVOIR':
+        design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+        tel_suffix += f'-{design}'
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope=tel_suffix)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
@@ -436,17 +440,17 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
     os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
 
     # Set up logger
-    util.setup_pastis_logging(resDir, f'pastis_matrix_{design}')
-    log.info('Building numerical matrix for LUVOIR\n')
+    util.setup_pastis_logging(resDir, f'pastis_matrix_{tel_suffix}')
+    log.info(f'Building numerical matrix for {instrument}\n')
 
     # Read calibration aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
-    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
-    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
+    nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
+    diam = CONFIG_INI.getfloat(instrument, 'diameter')  # m
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
@@ -454,7 +458,7 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Record some of the defined parameters
-    log.info(f'LUVOIR apodizer design: {design}')
+    log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Telescope diameter: {diam} m')
     log.info(f'Number of segments: {nb_seg}')
@@ -465,6 +469,8 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
 
+
+    ################ HERE #################
     ### Instantiate Luvoir telescope with chosen apodizer design
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
@@ -476,6 +482,8 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
     dh_intensity = (unaberrated_coro_psf / norm) * luvoir.dh_mask
     contrast_floor = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
     log.info('contrast floor: {}'.format(contrast_floor))
+    ################ TO HERE #################
+
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
@@ -496,18 +504,18 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
 
     num_core_per_process = 1   # NOTE: this was changed by Scott Will in HiCAT and makes more sense, somehow
     num_processes = int(num_cpu // num_core_per_process)
-    log.info("Multiprocess PASTIS matrix for LUVOIR will use {} processes (with {} threads per process)".format(num_processes, num_core_per_process))
+    log.info(f"Multiprocess PASTIS matrix for {instrument} will use {num_processes} processes (with {num_core_per_process} threads per process)")
 
     contrast_matrix = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
-    luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, luvoir.dh_mask,
+    calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, luvoir.dh_mask,
                                            wfe_aber, zern_mode, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
     t_start = time.time()
-    results = mypool.map(luvoir_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
+    results = mypool.map(calculate_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
     t_stop = time.time()
 
     log.info(f"Multiprocess calculation complete in {t_stop-t_start}sec = {(t_stop-t_start)/60}min")
@@ -562,6 +570,6 @@ if __name__ == '__main__':
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
 
-        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+        tel = CONFIG_INI.get('telescope', 'name')
         #num_matrix_luvoir(design=coro_design)
-        num_matrix_luvoir_multiprocess(design=coro_design)
+        num_matrix_multiprocess(instrument=tel)
