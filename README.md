@@ -20,7 +20,7 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
   * [Changing the input parameters](#changing-the-input-parameters)
 * [Requirements](#requirements)
   * [Conda environment](#conda-environment)
-  * [hcipy](#hcipy)
+  * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
 * [Configuration file](#configuration-file)
 * [Output directory](#output-directory)
@@ -49,10 +49,6 @@ $ cd /User/<YourUser>/repos/
 ```bash
 $ git clone https://github.com/spacetelescope/PASTIS.git
 ```
-or use SSH if that is your preferred way of cloning repositories:
-```bash
-$ git clone git@github.com:spacetelescope/PASTIS.git
-```
 
 - Navigate into the cloned `PASTIS` repository:  
 ```bash
@@ -69,32 +65,6 @@ $ conda env create --file environment.yml
 $ conda activate pastis
 ```
 
-- Go back into your repositories directory and clone `hcipy`:
-```bash
-$ cd ..
-$ git clone https://github.com/ehpor/hcipy.git
-```
-or
-```bash
-$ git clone git@github.com:ehpor/hcipy.git
-```
-
-- Navigate into the cloned `hcipy` repository:  
-```bash
-$ cd hcipy
-```
-
-- Check out commit `980f39c`:
-```bash
-$ git checkout 980f39c
-```
-
-- Install `hcipy` from this commit:
-```bash
-$ python setup.py install
-```
-*Note: This will create a "build" directory that you can delete.*
-
 ### Set up local configfile
 
 - Go into the code directory:
@@ -104,33 +74,37 @@ $ cd pastis
 
 - Copy the file `config.ini` and name the copy `config_local.ini`.
 
-- Open your local configfile `config_local.ini` and edit the entry `[local][local_repo_path]` to point to your local repo clone that you just created, e.g.:
+- Open your local configfile `config_local.ini` and find the section `[local]`. In that section, edit the key 
+`local_repo_path` to point to your local repo clone that you just created, e.g. (for more about the configfile, see 
+[Configuration file](#configuration-file)):
 ```ini
 [local]
 ...
 local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
-- In the same file, define with `[local][local_data_path]` where your output data should be saved to, e.g.:  
+- In the same file and section, define where all the output data will be saved to by adjusting the key 
+`local_data_path`, e.g.:  
 ```ini
 [local]
 ...
 local_data_path = /Users/<user-name>/<path-to-data>
 ```
+**Save `config_local.ini` after these edits.**
 
 ### Create a PASTIS matrix and run the analysis
 
-- If not already activated, activate the `pastis` conda environment:
-```bash
-$ conda activate pastis
-```
+- If not already activated, activate the `pastis` conda environment with `$ conda activate pastis` and get into the 
+`PASTIS/pastis` subfolder.
 
-- Create a PASTIS matrix and analysis for the narrow-angle LUVOIR-A APLC design:
+- Create a PASTIS matrix and run the PASTIS analysis for the narrow-angle LUVOIR-A APLC design from the default template:
 ```bash
 $ python run_cases.py
 ```
-This will run for a couple of hours as the first thing that is generated is the PASTIS matrix.
-When it is done, you can inspect your results in the path you  specified under `[local][local_data_path]` in your `config_local.ini`!
+**This will run for a couple of hours** as the first thing that is generated is the PASTIS matrix. On a 13-in MacBook 
+Pro 2020, the matrix gets calculated in about 160min, and the analysis runs in about 15 minutes.
+When it is done, you can inspect your results in the path you specified under `local_data_path` in the section `[local]`
+of your `config_local.ini`!
 
 ### Changing the input parameters
 
@@ -146,51 +120,63 @@ If you want to change any of these, please refer to the section about the [confi
 ## Requirements
 
 ### Conda environment
-We provide an `environement.yml` file that can be taken advantage of with the conda package management system. By creating 
-a conda environment from this file, you will be set up to run all the code in this package. The only other thing you 
-will need is to install `hcipy` correctly, see below.
+We provide an `environment.yml` file that can be taken advantage of with the conda package management system. By creating 
+a conda environment from this file, you will be set up to run all the code in this package. This includes the 
+ installation of the `hcipy` package from a specific commit of the repository, see below.
 
 If you don't know how to start with conda, you can [download miniconda here](https://docs.conda.io/en/latest/miniconda.html). 
 After a successful installation, you can create the `pastis` conda environment by navigating with the terminal into the 
-`PASTIS` repository, where the `environement.yml` is located, and run:
+`PASTIS` repository, where the `environment.yml` is located, and run:
 ```bash
 $ conda env create --file environment.yml
 ```
-This will create a conda environment called `pastis` that contains all the needed packages at the correct versions 
-(except hcipy). If you want to give the environment a different name while it is getting created, you can run:
+This will create a conda environment called `pastis` that contains all the needed packages at the correct versions. If 
+you want to give the environment a different name while it is getting created, you can run:
 ```bash
 $ conda env create --name <env-name> --file environment.yml
 ```
 where you have to replace `<env-name>` with your desired package name.
 
-### `hcipy`
+If you ever need to update your conda environment from the file `environment.yml`, you can do that with 
+(where "pastis" is the environment name):
+```bash
+conda env update -n pastis -f environment.yml
+```
+
+You can also remove a conda environment with:
+```bash
+conda remove --name pastis --all
+```
+
+### The package `hcipy`
 PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
 PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
-this reason, you will need to clone the `hcipy` repository manually instead of installing the package from pip, then 
-checkout the commit with the correct version and install this version into your `pastis` conda environment. To do that,
-navigate to the location on disk that contains your repos and clone the `hcipy` repository per http *or* ssh:
+this reason, the installation with `environment.yml` installs `hcipy` from the commit hash `980f39c`.
+
+If you want to install the package manually from this commit, you can do so by following tehse steps:
+1. Navigate to the location on disk that contains your repos and clone the `hcipy` repository:
 ```bash
 $ git clone https://github.com/ehpor/hcipy.git
-$ git clone git@github.com:ehpor/hcipy.git
 ```
-Make sure to activate you `pastis` conda environment since this is where we want to install `hcipy` into:
+2. Make sure to activate you conda environment that you want to install `hcipy` into:
 ```bash
 $ conda activate pastis
 ```
-Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
+3. Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
 ```bash
 $ git checkout 980f39c
 ```
-Then install the package:
+4. Then install the package:
 ```bash
 $ python setup.py install
 ```
-This is a static installation of the `hcipy` package into the conda environment `pastis` only. If you now check out a 
-different commit or branch in your local `hcipy` repository, this will not influence this environment. Note how the installation
-process will create a "build" directory inside the `hcipy` repository that you are free to delete if you like.
+This is a static installation of the `hcipy` package into the conda environment `pastis` only, at the version of the 
+given commit. If you now check out a different commit or branch in your local `hcipy` repository, this will not 
+influence the environment you did this installation in. Note how the installation process will create a "build" 
+directory inside the `hcipy` repository that you are free to delete if you like.
 
-We are currently refactoring our code to be compatible with the improved, current version of `hcipy` and will update our
-readme accordingly when this change has successfully happened.
+We are currently refactoring our code to be compatible with the improved, current version of `hcipy` that is installable
+via pip, and will update our README accordingly when this change has successfully happened.
 
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
