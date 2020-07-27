@@ -460,7 +460,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Set up logger
     util.setup_pastis_logging(resDir, f'pastis_matrix_{tel_suffix}')
-    log.info(f'Building numerical matrix for {instrument}\n')
+    log.info(f'Building numerical matrix for {tel_suffix}\n')
 
     # Read calibration aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
