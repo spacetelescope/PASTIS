@@ -103,7 +103,7 @@ $ python run_cases.py
 ```
 **This will run for a couple of hours** as the first thing that is generated is the PASTIS matrix. On a 13-in MacBook 
 Pro 2020, the matrix gets calculated in about 160min, and the analysis runs in about 15 minutes.
-When it is done, you can inspect your results in the path you specified under `local_data_path` in the section `[local]`
+When it is done, you can inspect your results and log files in the path you specified under `local_data_path` in the section `[local]`
 of your `config_local.ini`!
 
 ### Changing the input parameters
@@ -302,8 +302,8 @@ Each time a new PASTIS matrix is generated, this will create a new data folder i
 section `[local]` with the key `local_data_path`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
 date and time of the start of the matrix generation, the telescope name, and for LUVOIR the APLC choice.
 
-The code will copy the used configfile into this data folder, among other things. The data directory structure is as
-follows:
+The code will copy the used configfile into this data folder, together with all results and log files. The data 
+directory structure is as follows:
 
 ```bash
 |-- 2020-01-13T21-34-29_example
