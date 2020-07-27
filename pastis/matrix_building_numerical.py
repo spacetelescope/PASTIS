@@ -453,14 +453,12 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
-    log.info(f'Image size: {im_lamD} lambda/D')
     log.info(f'Sampling: {sampling} px per lambda/D')
     log.info('wfe_aber: {} m'.format(wfe_aber))
 
