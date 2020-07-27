@@ -298,8 +298,8 @@ local_zernike = 1
 
 ## Output directory
 
-Each time a new PASTIS matrix is generated, this will create a new data folder in the directory you specified under
-`[local]` --> `[local_data_path]`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
+Each time a new PASTIS matrix is generated, this will create a new data folder in the directory you specified in the
+section `[local]` with the key `local_data_path`. These data folders will be of the form `2020-01-13T21-34-29_luvoir-small`, capturing 
 date and time of the start of the matrix generation, the telescope name, and for LUVOIR the APLC choice.
 
 The code will copy the used configfile into this data folder, among other things. The data directory structure is as
@@ -307,20 +307,22 @@ follows:
 
 ```bash
 |-- 2020-01-13T21-34-29_example
-|   |-- coronagraph_floor.txt: E2E DH average contrast for unaberrated pupil
-|   |--matrix_numerical
-|      |-- config_local.ini: copy of the configfile used for matrix generation
-|      |-- contrasts.txt: list of E2E DH average contrasts per aberrated segment pair
+|   |-- coronagraph_floor.txt                    # E2E DH average contrast for unaberrated pupil
+|   |-- matrix_numerical
+|      |-- config_local.ini                      # copy of the configfile used for matrix generation
 |      |-- OTE_images
-|          |-- PDF images of each segment pair aberration in the pupil
+|          |-- opd[...].pdf                      # PDF images of each segment pair aberration in the pupil
 |          |-- ...
-|      |-- PASTISmatrix_num_piston_Noll1.fits: the PASTIS matrix
+|      |-- pair-wise_contrasts.txt:              # list of E2E DH average contrasts per aberrated segment pair
+|      |-- pastis_matrix.log                     # logging output of matrix calculation
+|      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
 |      |-- psfs
-|          |-- psf_cube.fits: an image cube of the PSF from each segment pair aberration
+|          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
+|   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
 |   |--results
-|      |-- all results form the PASTIS analysis
+|      |-- [...].pdf/.txt                        # all results form the PASTIS analysis
 |      |-- ...
-|   |-- unaberrated_dh.pdf: image of unaberrated DH from E2E simulator
+|   |-- unaberrated_dh.pdf                       # image of unaberrated DH from E2E simulator
 ```
 
 
