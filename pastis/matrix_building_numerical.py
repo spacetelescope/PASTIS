@@ -486,13 +486,15 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     # to account for hyperthreading, however empirical testing on telserv3 shows that
     # it is slightly more performant on telserv3 to use all logical cores
     num_cpu = multiprocessing.cpu_count()
-    try:
-        import mkl
-        num_core_per_process = mkl.get_max_threads()
-    except ImportError:
-        # typically this is 4, so use that as default
-        log.info("Couldn't import MKL; guessing default value of 4 cores per process")
-        num_core_per_process = 4
+    # try:
+    #     import mkl
+    #     num_core_per_process = mkl.get_max_threads()
+    # except ImportError:
+    #     # typically this is 4, so use that as default
+    #     log.info("Couldn't import MKL; guessing default value of 4 cores per process")
+    #     num_core_per_process = 4
+
+    num_core_per_process = 1   # NOTE: this was changed by Scott Will in HiCAT and makes more sense, somehow
     num_processes = int(num_cpu // num_core_per_process)
     log.info("Multiprocess PASTIS matrix for LUVOIR will use {} processes (with {} threads per process)".format(num_processes, num_core_per_process))
 
