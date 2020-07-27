@@ -363,7 +363,7 @@ within your output destination:
 If you now run `run_cases.py`, it will only rerun the analysis.
 
 ### Other LUVOIR-A coronagraphs
-The script `run_cases.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. YOu just need
+The script `run_cases.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
 
