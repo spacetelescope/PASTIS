@@ -260,17 +260,12 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-    ### Dark hole mask
-    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_mask = (dh_outer - dh_inner).astype('bool')
-
     ### Reference images for contrast normalization and coronagraph floor
     unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
     norm = np.max(ref)
 
-    dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
-    contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    dh_intensity = (unaberrated_coro_psf / norm) * luvoir.dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
     log.info(f'contrast floor: {contrast_floor}')
 
     ### Generating the PASTIS matrix and a list for all contrasts
@@ -311,8 +306,8 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
                 plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             log.info('Calculating mean contrast in dark hole')
-            dh_intensity = psf * dh_mask
-            contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+            dh_intensity = psf * luvoir.dh_mask
+            contrast = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
             log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
             all_contrasts.append(contrast)
 
