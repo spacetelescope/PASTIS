@@ -107,7 +107,7 @@ local_data_path = /Users/<user-name>/<path-to-data>
 $ python run_cases.py
 ```
 **This will run for a couple of hours** as the first thing that is generated is the PASTIS matrix. On a 13-in MacBook 
-Pro 2020, the matrix gets calculated in about 160min, and the analysis runs in about 15 minutes.
+Pro 2020, the matrix gets calculated in about 80min, and the analysis runs in about 15 minutes.
 When it is done, you can inspect your results and log files in the path you specified under `local_data_path` in the section `[local]`
 of your `config_local.ini`!
 
