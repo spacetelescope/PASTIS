@@ -35,7 +35,7 @@ if __name__ == '__main__':
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
     inner_wa = CONFIG_INI.getint(telescope, 'IWA')
     outer_wa = CONFIG_INI.getint(telescope, 'OWA')
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat(telescope, 'sampling')
 
     if telescope == 'JWST':
         # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
