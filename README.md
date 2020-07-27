@@ -390,6 +390,11 @@ If you use this code in your work, please find citation snippets to give us cred
 
 This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](LICENSE.md) file for details.
 
+### Acknowledgments
+
+Big thanks to Robel Geda ([@robelgeda](https://github.com/robelgeda)) for testing, checking and providing suggestions for the 
+repo setup, quickstart and README.
+
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [python-version-url]: https://img.shields.io/badge/Python-3.7-green.svg?style=flat
