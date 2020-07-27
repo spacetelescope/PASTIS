@@ -205,7 +205,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
     def __init__(self, input_dir, apod_design, samp):
         self.nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
         self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = CONFIG_INI.getflaot('LUVOIR', 'diameter')
+        self.diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
