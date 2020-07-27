@@ -289,11 +289,11 @@ aberration for the generation of the PASTIS matrix.
 ```ini
 [calibration]
 ;! Noll convention!  --- units are NANOMETERS
-single_aberration = 1.
-zernike = 1
+calibration_aberration = 1.
+local_zernike = 1
 ```
-`zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
-`1` means piston. `single_aberration` is the amplitude of the calibration aberration of the matrix in nanometers.
+`local_zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
+`local_zernike = 1` means piston. The key `calibration_aberration` is the amplitude of the calibration aberration of the matrix, in nanometers.
 
 
 ## Output directory
