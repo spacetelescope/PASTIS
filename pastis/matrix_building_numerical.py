@@ -297,7 +297,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
                 filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
                 hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
-            # Save OPD images for testing (are these actually surface images, not OPD?)
+            # Save OPD images for testing
             if saveopds:
                 opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
                     i + 1) + '-' + str(j + 1)
@@ -352,7 +352,23 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_aber, zern_mode, resDir, segment_pair):
+def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
+    :param optics_input: str, path to LUVOIR-A optics input files
+    :param design: str, what coronagraph LUVOIR-A design to use - 'small', 'medium' or 'large'
+    :param sampling: float, PSF sampling factor in pixels per lambda/D
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param dh_mask: hcipy.Field, DH mask (usually luvoir.dh_mask)
+    :param wfe_aber: calibration aberration per segment in nm
+    :param zern_mode: Zernike mode object, local Zernike aberration
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate. If same segment gets passed in both tuple entries, the
+                         segment will be aberrated only once.
+    :return: contrast as float, and segment pair as tuple
+    """
 
     # Instantiate LUVOIR object
     luv = LuvoirAPLC(optics_input, design, sampling)
