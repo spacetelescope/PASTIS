@@ -23,6 +23,7 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
   * [Conda environment](#conda-environment)
   * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
+  * [Known `maplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
 * [Output directory](#output-directory)
 * [Jupyter notebooks](#jupyter-notebooks)
@@ -210,6 +211,8 @@ within that file, delete the `#` which is commenting it out and set it to `lower
 image.origin : lower
 ```
 then save and close.
+
+### Known `matplotlib` issues on MacOS
 
 While writing code for the repository, we ran into a couple of other issues with the plotting that were dependent on the
 OS and its version that we were using. If you run into the same issues, here is how we solved them:
