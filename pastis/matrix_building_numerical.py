@@ -243,7 +243,6 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
     # Record some of the defined parameters
@@ -251,7 +250,6 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Telescope diameter: {diam} m')
     log.info(f'Number of segments: {nb_seg}')
-    log.info(f'Image size: {im_lamD} lambda/D')
     log.info(f'Sampling: {sampling} px per lambda/D')
     log.info(f'wfe_aber: {wfe_aber} m')
 
