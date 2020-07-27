@@ -350,14 +350,29 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
+def calculate_unaberrated_contrast_and_normalization(instrument):
+    if instrument == 'LUVOIR':
+        # Instantiate LuvoirAPLC class
+        sampling = CONFIG_INI.getfloat(instrument, 'sampling')
+        optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+        design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+        # Calculate reference images for contrast normalization and coronagraph floor
+        unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
+        norm = np.max(ref)
+
+        # Calculate coronagraph floor in dark hole
+        contrast_floor = util.dh_mean(unaberrated_coro_psf/norm, luvoir.dh_mask)
+
+    log.info(f'contrast floor: {contrast_floor}')
+    return contrast_floor, norm
+
+
+def _luvoir_matrix_one_pair(norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
-    :param optics_input: str, path to LUVOIR-A optics input files
-    :param design: str, what coronagraph LUVOIR-A design to use - 'small', 'medium' or 'large'
-    :param sampling: float, PSF sampling factor in pixels per lambda/D
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param dh_mask: hcipy.Field, DH mask (usually luvoir.dh_mask)
     :param wfe_aber: calibration aberration per segment in nm
     :param zern_mode: Zernike mode object, local Zernike aberration
     :param resDir: str, directory for matrix calculations
@@ -369,6 +384,9 @@ def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_a
     """
 
     # Instantiate LUVOIR object
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     luv = LuvoirAPLC(optics_input, design, sampling)
 
     log.info('PAIR: {}-{}'.format(segment_pair[0]+1, segment_pair[1]+1))
@@ -399,8 +417,8 @@ def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_a
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
-    dh_intensity = psf * dh_mask
-    contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    dh_intensity = psf * luv.dh_mask
+    contrast = np.mean(dh_intensity[np.where(luv.dh_mask != 0)])
     log.info('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
@@ -450,34 +468,17 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
-    # Image system parameters
-    sampling = CONFIG_INI.getfloat(instrument, 'sampling')
-
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
-    log.info(f'Sampling: {sampling} px per lambda/D')
     log.info('wfe_aber: {} m'.format(wfe_aber))
 
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
 
-
-    ################ HERE #################
-    ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
-
-    ### Reference images for contrast normalization and coronagraph floor
-    unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
-    norm = np.max(ref)
-
-    dh_intensity = (unaberrated_coro_psf / norm) * luvoir.dh_mask
-    contrast_floor = np.mean(dh_intensity[np.where(luvoir.dh_mask != 0)])
-    log.info('contrast floor: {}'.format(contrast_floor))
-    ################ TO HERE #################
-
+    # Calculate coronagraph floor, and normalization factor from direct image
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument)
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
@@ -503,8 +504,9 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     contrast_matrix = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
-    calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, luvoir.dh_mask,
-                                           wfe_aber, zern_mode, resDir, savepsfs, saveopds)
+    if instrument == 'LUVOIR':
+        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, norm, wfe_aber, zern_mode, resDir,
+                                                  savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
