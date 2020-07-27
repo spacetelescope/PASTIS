@@ -127,7 +127,7 @@ You will need `git` to clone this repository. Already a `git` user? Jump ahead. 
 who downloads the code and doesn't use version control. If you need a primer on `git`, 
 [see here](https://swcarpentry.github.io/git-novice/). For the fastest ways to install `git`:
 - To install it on a Mac, type `git` in your terminal and follow the instructions to install the Apple Xcode command tools.
-- To make it easy on Windows, [follow these instructions to install Git Bash](https://gitforwindows.org/). **Note**: If 
+- To make it easy on Windows, [install Git Bash](https://gitforwindows.org/). **Note**: If 
 you will use Git Bash with Miniconda (see below), you will have to add Miniconda to your PATH during setup, even if it 
 is marked as not recommended. Otherwise Git Bash can't access it.
 - For Linux, [follow this link](https://gist.github.com/derhuerst/1b15ff4652a867391f03#file-linux-md).
@@ -241,10 +241,10 @@ is version controlled, and the paths to local directories will get messed up if 
 also lose the changes you made to the parameters. This is why `config.ini` is initially supposed to be used as a **template**.
 
 In order to make it work for you, copy `config.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
-you can set all your parameters, and it will override the `config.ini` at runtime. Whichever configfile is used in the 
-code, the version-controlled one or the local one, a copy of it is always saved together with the PASTIS matrix output. In the 
-case you want to version control the configfile you use, we recommend that you **fork** the repository and simply use the 
-`config.ini` file directly.
+you can set all your parameters, and it will override the `config.ini` at runtime. This means that if there is a `config_local.ini`,
+it will be used, if not, the code will fall back on `config.ini`. A copy of the used configfile is always saved together 
+with the PASTIS matrix output when a matrix is generated. In the case you want to version control the configfile you use, 
+we recommend that you **fork** the repository and simply use the `config.ini` file directly.
 
 The first section deals with local paths. Here, you need to point the file to the local clone of your repo and the 
 directory you want to have the output data saved to:
@@ -280,7 +280,7 @@ lambda = 500.
 ```
 The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path`  specifies
 the data location of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC designs. The path goes into 
-the local repo path from `[local] -> [local_path]` and into the right location. There are three APLC designs available, 
+the local repo path from `[local] -> local_path` and into the right location. There are three APLC designs available, 
 with a small, medium and large FPM, and the key `coronagraph_size` lets you switch between them. Finally, `lambda` sets
 the wavelength in nanometers.
 
@@ -295,9 +295,10 @@ im_size_lamD_hcipy = 30
 ; this is not used automatically in the functions, it is always defined (or read from here) manually
 current_analysis = 2020-01-13T21-34-29_luvoir-small
 ```
-`sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
-the dark hole images in units of lambda/D. `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
-but lets you define a matrix directory for repeating an analysis with some of the other scripts and the pastis functions.
+The key `sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
+the dark hole images in units of lambda/D. The key `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
+but lets you define a matrix directory for repeating an analysis with the main function in the modules `hockeystick_contrast_curve.py`, 
+`pastis_analysis.py` and `single_mode_error_budger.py`.
 
 Finally, the calibration section defines the local aberration used on each segment and the amplitude of the calibration
 aberration for the generation of the PASTIS matrix.
@@ -307,7 +308,7 @@ aberration for the generation of the PASTIS matrix.
 calibration_aberration = 1.
 local_zernike = 1
 ```
-`local_zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
+The key `local_zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
 `local_zernike = 1` means piston. The key `calibration_aberration` is the amplitude of the calibration aberration of the matrix, in nanometers.
 
 
