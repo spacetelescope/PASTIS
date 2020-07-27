@@ -510,7 +510,7 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     results = mypool.map(luvoir_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
     t_stop = time.time()
 
-    log.info("\nMultiprocess calculation complete in {:.1f} s".format(t_stop-t_start))
+    log.info(f"Multiprocess calculation complete in {t_stop-t_start}sec = {(t_stop-t_start)/60}min")
 
     # Unscramble results
     all_contrasts = np.zeros_like(matrix_direct)
