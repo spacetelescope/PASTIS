@@ -122,11 +122,11 @@ def dh_mean(im, dh):
 
     Calculate the mean intensity in the dark hole area dh of the image im.
     im and dh have to have the same array size and shape.
-    :param im: array, image
+    :param im: array, normalized (by direct PSF peak pixel) image
     :param dh: array, dark hole mask
     """
     darkh = im * dh
-    con = np.mean(darkh[np.where(darkh != 0)])
+    con = np.mean(darkh[np.where(dh != 0)])
     return con
 
 
