@@ -371,16 +371,25 @@ def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_a
     psf = image / norm
 
     # Save PSF image to disk
-    filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-        segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
-    hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+    if savepsfs:
+        filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+        hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot all OPDs
+    if saveopds:
+        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+        plt.clf()
+        hc.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
     dh_intensity = psf * dh_mask
     contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
     log.info('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
 
-    return float(contrast), segment_pair, inter['seg_mirror'], psf
+    return float(contrast), segment_pair
 
 
 def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
@@ -390,10 +399,9 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     Multiprocessed version of num_matrix_luvoir(). Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
     :param design: string, what coronagraph design to use - 'small', 'medium' or 'large'
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files, additionally to the
-                     total PSF cube. If False, the total cube will still get saved at the very end of the script.
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :return overall_dir: string, experiment directory
+    :return: overall_dir: string, experiment directory
     """
 
     # Keep track of time
@@ -476,7 +484,7 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
     luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, luvoir.dh_mask,
-                                           wfe_aber, zern_mode, resDir)
+                                           wfe_aber, zern_mode, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
@@ -487,7 +495,6 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     log.info("\nMultiprocess calculation complete in {:.1f} s".format(t_stop-t_start))
 
     # Unscramble results
-    #all_psfs = np.zeros(nb_seg, nb_seg, pixels?)
     all_contrasts = np.zeros_like(matrix_direct)
     for i, res in enumerate(results):
 
@@ -495,20 +502,9 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
         all_contrasts[results[i][1][0], results[i][1][1]] = results[i][0]
         matrix_direct = all_contrasts - contrast_floor
 
-        # Plot all OPDs (or are these surfaces?)
-        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-            results[i][1][0]+1) + '-' + str(results[i][1][1]+1)
-        plt.clf()
-        hc.imshow_field(results[i][2], grid=luvoir.aperture.grid, mask=luvoir.aperture, cmap='RdBu')
-        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
-        # Collect all PSFs   #TODO: make this actually work, so we can save them as a cube later outside this loop
-        #all_psfs[results[i][1][0], results[i][1][1]] = results[i][3]
-
     mypool.close()
 
-    # Save the PSF image *cube* as well (as opposed to each one individually)
-    #hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    # Save all contrasts to disk
     all_contrasts = all_contrasts.ravel()
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
