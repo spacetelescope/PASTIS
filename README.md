@@ -192,7 +192,7 @@ influence the environment you did this installation in. Note how the installatio
 directory inside the `hcipy` repository that you are free to delete if you like.
 
 We are currently refactoring our code to be compatible with the improved, current version of `hcipy` that is installable
-via pip, and will update our README accordingly when this change has successfully happened.
+via pip, and will update your README accordingly when this change has successfully happened.
 
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
