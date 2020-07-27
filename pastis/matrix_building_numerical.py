@@ -408,7 +408,7 @@ def _luvoir_matrix_one_pair(optics_input, design, sampling, norm, dh_mask, wfe_a
     return float(contrast), segment_pair
 
 
-def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
+def num_matrix_luvoir_multiprocess(design, savepsfs=True, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
