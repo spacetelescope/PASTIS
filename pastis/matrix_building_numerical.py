@@ -52,7 +52,7 @@ def num_matrix_jwst():
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
     inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
     outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat(which_tel, 'sampling')
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get(which_tel, 'filter_name')
@@ -243,7 +243,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
 
     # Record some of the defined parameters
     log.info(f'LUVOIR apodizer design: {design}')
@@ -451,7 +451,7 @@ def num_matrix_multiprocess(instrument, savepsfs=True, saveopds=True):
     wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat(instrument, 'sampling')
 
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')

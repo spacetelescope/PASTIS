@@ -391,7 +391,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
     # LUVOIR coronagraph parameters
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
 
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
