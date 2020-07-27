@@ -135,7 +135,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
 if __name__ == '__main__':
 
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_stat = 1e-10
 

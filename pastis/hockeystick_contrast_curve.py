@@ -276,7 +276,7 @@ if __name__ == '__main__':
 
     # LUVOIR
     run_choice = CONFIG_INI.get('numerical', 'current_analysis')
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
     hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=10)
