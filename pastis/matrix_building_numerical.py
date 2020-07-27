@@ -91,7 +91,7 @@ def num_matrix_jwst():
     nc_coro.include_si_wfe = False                                  # set SI internal WFE to zero
 
     #-# Generating the PASTIS matrix and a list for all contrasts
-    matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    contrast_matrix = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_dhs = []
     all_contrasts = []
@@ -155,7 +155,7 @@ def num_matrix_jwst():
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix
-            matrix_direct[i,j] = contrast
+            contrast_matrix[i,j] = contrast
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
@@ -163,8 +163,8 @@ def num_matrix_jwst():
     all_contrasts = np.array(all_contrasts)
 
     # Filling the off-axis elements
-    matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(matrix_direct)     # This will be the final PASTIS matrix.
+    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -271,7 +271,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     log.info(f'contrast floor: {contrast_floor}')
 
     ### Generating the PASTIS matrix and a list for all contrasts
-    matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
+    contrast_matrix = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_contrasts = []
 
@@ -312,7 +312,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast
-            matrix_direct[i,j] = contrast - contrast_floor
+            contrast_matrix[i,j] = contrast - contrast_floor
 
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
@@ -324,8 +324,8 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Filling the off-axis elements
     log.info('\nCalculating off-axis matrix elements...')
-    matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(matrix_direct)     # This will be the final PASTIS matrix.
+    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
     for i in range(nb_seg):
         for j in range(nb_seg):
@@ -498,7 +498,7 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     num_processes = int(num_cpu // num_core_per_process)
     log.info("Multiprocess PASTIS matrix for LUVOIR will use {} processes (with {} threads per process)".format(num_processes, num_core_per_process))
 
-    matrix_direct = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
+    contrast_matrix = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
     luvoir_matrix_pair = functools.partial(_luvoir_matrix_one_pair, optics_input, design, sampling, norm, luvoir.dh_mask,
@@ -513,12 +513,13 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
     log.info(f"Multiprocess calculation complete in {t_stop-t_start}sec = {(t_stop-t_start)/60}min")
 
     # Unscramble results
-    all_contrasts = np.zeros_like(matrix_direct)
-    for i, res in enumerate(results):
+    # results is a list of tuples that contain the return from the partial function, in this case: result[i] = (c, (seg1, seg2))
+    all_contrasts = np.zeros_like(contrast_matrix)
+    for i in range(len(results)):
 
         # Fill according entry in the matrix and subtract baseline contrast
         all_contrasts[results[i][1][0], results[i][1][1]] = results[i][0]
-        matrix_direct = all_contrasts - contrast_floor
+        contrast_matrix = all_contrasts - contrast_floor
 
     mypool.close()
 
@@ -528,8 +529,8 @@ def num_matrix_luvoir_multiprocess(design, savepsfs=False, saveopds=True):
 
     # Filling the off-axis elements
     log.info('\nCalculating off-axis matrix elements...')
-    matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(matrix_direct)     # This will be the final PASTIS matrix.
+    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
     for i in range(nb_seg):
         for j in range(nb_seg):
