@@ -609,7 +609,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
                                                   savepsfs, saveopds)
 
     if instrument == 'HiCAT':
-        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds))
+        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
