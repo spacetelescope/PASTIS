@@ -19,7 +19,7 @@ import logging
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
-import hcipy as hc
+import hcipy
 import hicat.simulators
 
 from config import CONFIG_INI
@@ -294,14 +294,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
             # Save image to disk
             if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
                 filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
-                hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+                hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
             # Save OPD images for testing
             if saveopds:
                 opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
                     i + 1) + '-' + str(j + 1)
                 plt.clf()
-                hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
+                hcipy.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
                 plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             log.info('Calculating mean contrast in dark hole')
@@ -318,7 +318,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     all_contrasts = np.array(all_contrasts)
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
-    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    hcipy.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
@@ -340,7 +340,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
-    hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
@@ -444,14 +444,14 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     if savepsfs:
         filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
             segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
-        hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
         opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
             segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
         plt.clf()
-        hc.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
+        hcipy.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
@@ -502,7 +502,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     # Save PSF image to disk
     if savepsfs:
         filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
-        hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
@@ -653,7 +653,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
-    hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
