@@ -56,7 +56,7 @@ def num_matrix_jwst():
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get(which_tel, 'filter_name')
-    wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm
+    wfe_aber = CONFIG_INI.getfloat(which_tel, 'calibration_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
@@ -240,7 +240,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
     diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
-    wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
+    wfe_aber = CONFIG_INI.getfloat('LUVOIR', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
     sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
@@ -469,7 +469,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # General telescope parameters
     nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
     wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
-    wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
+    wfe_aber = CONFIG_INI.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
 
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')
