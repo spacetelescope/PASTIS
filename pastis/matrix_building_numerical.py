@@ -661,7 +661,6 @@ if __name__ == '__main__':
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
 
-        tel = CONFIG_INI.get('telescope', 'name')
-        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
-        #num_matrix_luvoir(design=coro_design)
-        num_matrix_multiprocess(instrument=tel, design=coro_design)
+        #num_matrix_luvoir(design='small')
+        #num_matrix_multiprocess(instrument='LUVOIR', design='small')
+        num_matrix_multiprocess(instrument='HiCAT')
