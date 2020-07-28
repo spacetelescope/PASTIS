@@ -5,7 +5,7 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
  Currently supported:
  JWST
  LUVOIR
- #TODO: HiCAT (already exists in notebook HiCAT/4)
+ HiCAT
  """
 
 import os
@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
 import hcipy as hc
+import hicat.simulators
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -366,6 +367,34 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
         # Calculate coronagraph floor in dark hole
         contrast_floor = util.dh_mean(unaberrated_coro_psf/norm, luvoir.dh_mask)
 
+    if instrument == 'HiCAT':
+        # Set up HiCAT simulator in correct state
+        hc = hicat.simulators.hicat_sim.HICAT_Sim()
+
+        hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+        hc.iris_ao = 'iris_ao'
+        hc.apodizer = 'no_apodizer'
+        hc.lyot_stop = 'circular'
+        hc.detector = 'imager'
+
+        # TODO: load DM map (optionally?)
+
+        # Calculate direct reference images for contrast normalization
+        hc.include_fpm = False
+        direct = hc.calc_psf()
+        norm = direct[0].data.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        hc.include_fpm = True
+        coro_image = hc.calc_psf()
+        coro_psf = coro_image[0].data / norm
+
+        iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling)
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+
     log.info(f'contrast floor: {contrast_floor}')
     return contrast_floor, norm
 
@@ -423,6 +452,65 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     log.info('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
+
+
+def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: calibration aberration per segment in nm
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate. If same segment gets passed in both tuple entries, the
+                         segment will be aberrated only once.
+                         Note how HiCAT segments start numbering at 0, with 0 being the center segment.
+    :return: contrast as float, and segment pair as tuple
+    """
+
+    # Set up HiCAT simulator in correct state
+    hc = hicat.simulators.hicat_sim.HICAT_Sim()
+
+    hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+    hc.iris_ao = 'iris_ao'
+    hc.apodizer = 'no_apodizer'
+    hc.lyot_stop = 'circular'
+    hc.detector = 'imager'
+
+    # TODO: load DM map (optionally?)
+
+    log.info('PAIR: {}-{}'.format(segment_pair[0], segment_pair[1]))
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    hc.iris_dm.flatten()
+    hc.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    if segment_pair[0] != segment_pair[1]:
+        hc.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+
+    log.info('Calculating coro image...')
+    image, inter = hc.calc_psf(display=False, return_intermediates=True)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot segmented mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.imshow(inter[1].phase)
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf/norm, dh_mask)
+
+    return contrast, segment_pair
 
 
 def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
@@ -511,6 +599,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     if instrument == 'LUVOIR':
         calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, zern_mode, resDir,
                                                   savepsfs, saveopds)
+
+    if instrument == 'HiCAT':
+        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds))
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
