@@ -203,9 +203,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = 120   # FIXME: this should not be hard-coded
+        self.nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
         self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = 15.  # m   # FIXME: this should not be hard-coded
+        self.diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
@@ -214,7 +214,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                                      'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
                           'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
-        self.imlamD = 1.2*self.apod_dict[apod_design]['owa']
+        self.imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
         # Pupil plane optics
         aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'

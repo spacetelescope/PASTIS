@@ -45,11 +45,11 @@ def analytical_model(zernike_pol, coef, cali=False):
     outer_wa = CONFIG_INI.getint(telescope, 'OWA')
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
     im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')            # sampling
+    sampling = CONFIG_INI.getfloat(telescope, 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
     px_sq_to_rad = (size_px_tel * np.pi / tel_size_m) * u.rad
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    sz = CONFIG_INI.getint('numerical', 'im_size_lamD_hcipy')
+    sz = CONFIG_INI.getint('ATLAST', 'im_size_lamD_hcipy')              # image size in lam/D, only used in ATLAST case
 
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zernike_pol)
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
+    nm_aber = CONFIG_INI.getfloat(telescope, 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')             # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                           # Convert from Noll to WSS framework
 

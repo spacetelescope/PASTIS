@@ -3,7 +3,7 @@ Run different cases, free combination of matrices and analysis scripts.
 """
 import os
 from hockeystick_contrast_curve import hockeystick_luvoir
-from matrix_building_numerical import num_matrix_luvoir
+from matrix_building_numerical import num_matrix_multiprocess
 from pastis_analysis import run_full_pastis_analysis_luvoir
 from config import CONFIG_INI
 import util_pastis as util
@@ -12,9 +12,9 @@ import util_pastis as util
 if __name__ == '__main__':
 
     # First generate a couple of matrices
-    dir_small = num_matrix_luvoir(design='small')
-    #dir_medium = num_matrix_luvoir(design='medium')
-    #dir_large = num_matrix_luvoir(design='large')
+    dir_small = num_matrix_multiprocess(instrument='LUVOIR', design='small')
+    #dir_medium = num_matrix_multiprocess(instrument='LUVOIR', design='medium')
+    #dir_large = num_matrix_multiprocess(instrument='LUVOIR', design='large')
 
     # Alternatively, pick data locations to run PASTIS analysis on
     #dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_small')

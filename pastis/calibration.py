@@ -35,7 +35,7 @@ if __name__ == '__main__':
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
     inner_wa = CONFIG_INI.getint(telescope, 'IWA')
     outer_wa = CONFIG_INI.getint(telescope, 'OWA')
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat(telescope, 'sampling')
 
     if telescope == 'JWST':
         # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
         os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
-    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm       # [nm] amplitude of aberration
+    nm_aber = CONFIG_INI.getfloat(telescope, 'calibration_aberration') * u.nm       # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 

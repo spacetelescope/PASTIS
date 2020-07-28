@@ -83,7 +83,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
     # Instantiate LUVOIR-A
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
     luvoir.flatten()
 
@@ -135,7 +135,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
 if __name__ == '__main__':
 
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_stat = 1e-10
 
