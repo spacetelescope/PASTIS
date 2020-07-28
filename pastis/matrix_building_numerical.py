@@ -352,6 +352,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
 
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
+    """
+    Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
+    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
+                   to use - 'small', 'medium' or 'large'
+    :return: contrast floor and PSF normalization factor
+    """
+
     if instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_INI.getfloat(instrument, 'sampling')
