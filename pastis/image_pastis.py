@@ -234,7 +234,7 @@ if __name__ == '__main__':
     nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
-    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
+    nm_aber = CONFIG_INI.getfloat(telescope, 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
     zern_number = CONFIG_INI.getint('calibration', 'local_zernike')             # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                           # Convert from Noll to WSS framework
 
