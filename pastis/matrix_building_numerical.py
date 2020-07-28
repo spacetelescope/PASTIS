@@ -409,7 +409,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
             segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
         hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
-    # Plot all OPDs
+    # Plot segmented mirror WFE and save to disk
     if saveopds:
         opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
             segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
