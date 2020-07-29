@@ -3,3 +3,4 @@
 .ipynb_checkpoints/
 config_local.ini
 .idea/
+.DS_Store
