@@ -58,6 +58,24 @@ def write_fits(data, filepath, header=None, metadata=None):
     return filepath
 
 
+def write_all_fits_to_cube(path):
+    """
+    Write all fits files in a directory to an image cube.
+
+    Directory can *only* contain fits files, and only files that you want in the cube. Subdirectories will be ignored.
+    :param path: string, path to directory that contains all fits files that should be put into cube; cube gets saved
+                 into that same directory
+    """
+    # Collect all filenames
+    all_file_names = [fname for fname in os.listdir(path) if os.path.isfile(os.path.join(path, fname))]
+    # Read all files into list
+    allfiles = []
+    for fname in all_file_names:
+        allfiles.append(fits.getdata(os.path.join(path, fname)))
+    cube = np.array(allfiles)
+    write_fits(cube, os.path.join(path, 'psf_cube.fits'))
+
+
 def circle_mask(im, xc, yc, rcirc):
     """ Create a circle on array im centered on xc, yc with radius rcirc; inside circle equals 1."""
     x, y = np.shape(im)
