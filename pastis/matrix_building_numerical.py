@@ -130,7 +130,7 @@ def num_matrix_jwst():
             # plt.show()
 
             # Save OPD images for testing
-            opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             plt.clf()
             ote_coro.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
@@ -140,7 +140,7 @@ def num_matrix_jwst():
             psf = image[0].data / normp
 
             # Save WebbPSF image to disk
-            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
             all_psfs.append(psf)
 
@@ -150,7 +150,7 @@ def num_matrix_jwst():
             log.info(f'contrast: {contrast}')
 
             # Save DH image to disk and put current contrast in list
-            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_dh = f'dh_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             util.write_fits(dh_intensity, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
             all_dhs.append(dh_intensity)
             all_contrasts.append(contrast)
@@ -178,13 +178,13 @@ def num_matrix_jwst():
     matrix_pastis /= np.square(wfe_aber.value)
 
     # Save matrix to file
-    filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
-    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
-    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
+    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube.fits'), header=None, metadata=None)
+    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube.fits'), header=None, metadata=None)
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
@@ -293,13 +293,12 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
             # Save image to disk
             if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
-                filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+                filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
                 hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
             # Save OPD images for testing
             if saveopds:
-                opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-                    i + 1) + '-' + str(j + 1)
+                opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
                 plt.clf()
                 hcipy.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
                 plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
@@ -318,7 +317,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     all_contrasts = np.array(all_contrasts)
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
-    hcipy.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    hcipy.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube.fits'),)
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
@@ -428,7 +427,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luv = LuvoirAPLC(optics_input, design, sampling)
 
-    log.info('PAIR: {}-{}'.format(segment_pair[0]+1, segment_pair[1]+1))
+    log.info(f'PAIR: {segment_pair[0]+1}-{segment_pair[1]+1}')
 
     # Put aberration on correct segments. If i=j, apply only once!
     luv.flatten()
@@ -443,14 +442,12 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
 
     # Save PSF image to disk
     if savepsfs:
-        filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+        filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
-        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+        opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         plt.clf()
         hcipy.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
@@ -458,7 +455,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     log.info('Calculating mean contrast in dark hole')
     dh_intensity = psf * luv.dh_mask
     contrast = np.mean(dh_intensity[np.where(luv.dh_mask != 0)])
-    log.info('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
+    log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
 
@@ -488,7 +485,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
     # TODO: load DM map (optionally?)
 
-    log.info('PAIR: {}-{}'.format(segment_pair[0], segment_pair[1]))
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
 
     # Put aberration on correct segments. If i=j, apply only once!
     hc.iris_dm.flatten()
@@ -575,7 +572,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
     log.info(f'Segment list: {seglist}')
-    log.info('wfe_aber: {} m'.format(wfe_aber))
+    log.info(f'wfe_aber: {wfe_aber} m')
 
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
