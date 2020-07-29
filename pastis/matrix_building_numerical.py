@@ -417,8 +417,9 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate. If same segment gets passed in both tuple entries, the
-                         segment will be aberrated only once.
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how LUVOIR segments start numbering at 1, with 0 being the center segment that doesn't exist.
     :return: contrast as float, and segment pair as tuple
     """
 
@@ -470,8 +471,8 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate. If same segment gets passed in both tuple entries, the
-                         segment will be aberrated only once.
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
                          Note how HiCAT segments start numbering at 0, with 0 being the center segment.
     :return: contrast as float, and segment pair as tuple
     """
@@ -565,6 +566,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # General telescope parameters
     nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
+    seglist = util.get_segment_list(instrument)
     wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
     wfe_aber = CONFIG_INI.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
 
@@ -572,6 +574,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
+    log.info(f'Segment list: {seglist}')
     log.info('wfe_aber: {} m'.format(wfe_aber))
 
     #  Copy configfile to resulting matrix directory
@@ -639,12 +642,12 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
     matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
-    for i in range(nb_seg):
-        for j in range(nb_seg):
+    for i, seg_i in enumerate(seglist):
+        for j, seg_j in enumerate(seglist):
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
+                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same

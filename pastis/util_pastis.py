@@ -13,6 +13,8 @@ import logging
 import logging.handlers
 import numpy as np
 
+from config import CONFIG_INI
+
 log = logging.getLogger()
 
 
@@ -163,6 +165,23 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
     """
     var = 2 * np.trace(np.matmul(pastismatrix, np.matmul(cov_segments, (np.matmul(pastismatrix, cov_segments)))))
     return var
+
+
+def get_segment_list(instrument):
+    """
+    Horribly hacky function to get correct segment numer list for an instrument.
+
+    We can assume that both implemented instruments start their numbering at 0, at the center segment. LUVOIR doesn't
+    use the center segment though, so we start at 1 and go until 120, for a total of 120 segments. HiCAT does use it,
+    so we start at 0 and go to 36 for a total of 37 segments.
+    :param instrument: string, "HiCAT" or "LUVOIR"
+    :return: seglist, array of segment numbers (names!)
+    """
+    seglist = np.arange(CONFIG_INI.getint(instrument, 'nb_subapertures'))
+    if instrument == 'LUVOIR':
+        seglist += 1
+
+    return seglist
 
 
 def rms(ar):
