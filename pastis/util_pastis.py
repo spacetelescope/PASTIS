@@ -184,6 +184,21 @@ def get_segment_list(instrument):
     return seglist
 
 
+def read_continuous_dm_maps_hicat(path_to_dm_maps):
+    """
+    Read Boston DM maps from disk and return as one list per DM.
+    :param path_to_dm_maps: string, absolute path to folder containing DM maps to load
+    :return: DM1 actuator map array, DM2 actuator map array; in m
+    """
+
+    surfaces = []
+    for dmnum in [1, 2]:
+        actuators_2d = fits.getdata(os.path.join(path_to_dm_maps, f'dm{dmnum}_command_2d_noflat.fits'))
+        surfaces.append(actuators_2d)
+
+    return surfaces[0], surfaces[1]
+
+
 def rms(ar):
     """
     Manual root-mean-square calculation, assuming a zero-mean

@@ -384,7 +384,11 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
         hc.lyot_stop = 'circular'
         hc.detector = 'imager'
 
-        # TODO: load DM map (optionally?)
+        # Load Boston DM maps into HiCAT simulator
+        path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
+        dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
+        hc.dm1.set_surface(dm1_surface)
+        hc.dm2.set_surface(dm2_surface)
 
         # Calculate direct reference images for contrast normalization
         hc.include_fpm = False
@@ -483,7 +487,11 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     hc.lyot_stop = 'circular'
     hc.detector = 'imager'
 
-    # TODO: load DM map (optionally?)
+    # Load Boston DM maps into HiCAT simulator
+    path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
+    dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
+    hc.dm1.set_surface(dm1_surface)
+    hc.dm2.set_surface(dm2_surface)
 
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
 
