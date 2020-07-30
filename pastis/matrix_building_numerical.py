@@ -5,7 +5,7 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
  Currently supported:
  JWST
  LUVOIR
- #TODO: HiCAT (already exists in notebook HiCAT/4)
+ HiCAT
  """
 
 import os
@@ -19,7 +19,8 @@ import logging
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
-import hcipy as hc
+import hcipy
+import hicat.simulators
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -129,7 +130,7 @@ def num_matrix_jwst():
             # plt.show()
 
             # Save OPD images for testing
-            opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             plt.clf()
             ote_coro.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
@@ -139,7 +140,7 @@ def num_matrix_jwst():
             psf = image[0].data / normp
 
             # Save WebbPSF image to disk
-            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
             all_psfs.append(psf)
 
@@ -149,7 +150,7 @@ def num_matrix_jwst():
             log.info(f'contrast: {contrast}')
 
             # Save DH image to disk and put current contrast in list
-            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_dh = f'dh_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
             util.write_fits(dh_intensity, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
             all_dhs.append(dh_intensity)
             all_contrasts.append(contrast)
@@ -177,13 +178,13 @@ def num_matrix_jwst():
     matrix_pastis /= np.square(wfe_aber.value)
 
     # Save matrix to file
-    filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
+    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
-    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
-    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
+    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube.fits'), header=None, metadata=None)
+    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube.fits'), header=None, metadata=None)
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
@@ -292,15 +293,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
             # Save image to disk
             if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
-                filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
-                hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+                filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
+                hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
             # Save OPD images for testing
             if saveopds:
-                opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-                    i + 1) + '-' + str(j + 1)
+                opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
                 plt.clf()
-                hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
+                hcipy.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
                 plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
             log.info('Calculating mean contrast in dark hole')
@@ -317,7 +317,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     all_contrasts = np.array(all_contrasts)
 
     # Save the PSF image *cube* as well (as opposed to each one individually)
-    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    hcipy.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube.fits'),)
     np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
@@ -339,7 +339,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
-    hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
@@ -350,12 +350,21 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def calculate_unaberrated_contrast_and_normalization(instrument):
+def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
+    """
+    Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
+    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
+                   to use - 'small', 'medium' or 'large'
+    :return: contrast floor and PSF normalization factor
+    """
+
     if instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_INI.getfloat(instrument, 'sampling')
         optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-        design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+        if design is None:
+            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Calculate reference images for contrast normalization and coronagraph floor
@@ -365,31 +374,64 @@ def calculate_unaberrated_contrast_and_normalization(instrument):
         # Calculate coronagraph floor in dark hole
         contrast_floor = util.dh_mean(unaberrated_coro_psf/norm, luvoir.dh_mask)
 
+    if instrument == 'HiCAT':
+        # Set up HiCAT simulator in correct state
+        hc = hicat.simulators.hicat_sim.HICAT_Sim()
+
+        hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+        hc.iris_ao = 'iris_ao'
+        hc.apodizer = 'no_apodizer'
+        hc.lyot_stop = 'circular'
+        hc.detector = 'imager'
+
+        # Load Boston DM maps into HiCAT simulator
+        path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
+        dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
+        hc.dm1.set_surface(dm1_surface)
+        hc.dm2.set_surface(dm2_surface)
+
+        # Calculate direct reference images for contrast normalization
+        hc.include_fpm = False
+        direct = hc.calc_psf()
+        norm = direct[0].data.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        hc.include_fpm = True
+        coro_image = hc.calc_psf()
+        coro_psf = coro_image[0].data / norm
+
+        iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling)
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+
     log.info(f'contrast floor: {contrast_floor}')
     return contrast_floor, norm
 
 
-def _luvoir_matrix_one_pair(norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
+def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
+    :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in nm
+    :param wfe_aber: float, calibration aberration per segment in nm
     :param zern_mode: Zernike mode object, local Zernike aberration
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate. If same segment gets passed in both tuple entries, the
-                         segment will be aberrated only once.
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how LUVOIR segments start numbering at 1, with 0 being the center segment that doesn't exist.
     :return: contrast as float, and segment pair as tuple
     """
 
     # Instantiate LUVOIR object
     sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     luv = LuvoirAPLC(optics_input, design, sampling)
 
-    log.info('PAIR: {}-{}'.format(segment_pair[0]+1, segment_pair[1]+1))
+    log.info(f'PAIR: {segment_pair[0]+1}-{segment_pair[1]+1}')
 
     # Put aberration on correct segments. If i=j, apply only once!
     luv.flatten()
@@ -404,24 +446,85 @@ def _luvoir_matrix_one_pair(norm, wfe_aber, zern_mode, resDir, savepsfs, saveopd
 
     # Save PSF image to disk
     if savepsfs:
-        filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
-        hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+        filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
-    # Plot all OPDs
+    # Plot segmented mirror WFE and save to disk
     if saveopds:
-        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-            segment_pair[0]+1) + '-' + str(segment_pair[1]+1)
+        opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         plt.clf()
-        hc.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
+        hcipy.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
     dh_intensity = psf * luv.dh_mask
     contrast = np.mean(dh_intensity[np.where(luv.dh_mask != 0)])
-    log.info('contrast: {}'.format(float(contrast)))    # contrast is a Field, here casting to normal float
+    log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
+
+
+def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: calibration aberration per segment in nm
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how HiCAT segments start numbering at 0, with 0 being the center segment.
+    :return: contrast as float, and segment pair as tuple
+    """
+
+    # Set up HiCAT simulator in correct state
+    hc = hicat.simulators.hicat_sim.HICAT_Sim()
+
+    hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+    hc.iris_ao = 'iris_ao'
+    hc.apodizer = 'no_apodizer'
+    hc.lyot_stop = 'circular'
+    hc.detector = 'imager'
+
+    # Load Boston DM maps into HiCAT simulator
+    path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
+    dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
+    hc.dm1.set_surface(dm1_surface)
+    hc.dm2.set_surface(dm2_surface)
+
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    hc.iris_dm.flatten()
+    hc.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    if segment_pair[0] != segment_pair[1]:
+        hc.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+
+    log.info('Calculating coro image...')
+    image, inter = hc.calc_psf(display=False, return_intermediates=True)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot segmented mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.imshow(inter[1].phase)
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf/norm, dh_mask)
+
+    return contrast, segment_pair
 
 
 def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
@@ -468,6 +571,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # General telescope parameters
     nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
+    seglist = util.get_segment_list(instrument)
     wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
     wfe_aber = CONFIG_INI.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
 
@@ -475,13 +579,14 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f'Instrument: {tel_suffix}')
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
-    log.info('wfe_aber: {} m'.format(wfe_aber))
+    log.info(f'Segment list: {seglist}')
+    log.info(f'wfe_aber: {wfe_aber} m')
 
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design)
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
@@ -508,8 +613,11 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
     if instrument == 'LUVOIR':
-        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, norm, wfe_aber, zern_mode, resDir,
+        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, zern_mode, resDir,
                                                   savepsfs, saveopds)
+
+    if instrument == 'HiCAT':
+        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
@@ -539,12 +647,12 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
     matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
-    for i in range(nb_seg):
-        for j in range(nb_seg):
+    for i, seg_i in enumerate(seglist):
+        for j, seg_j in enumerate(seglist):
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
+                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
@@ -553,7 +661,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
-    hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
@@ -569,7 +677,6 @@ if __name__ == '__main__':
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
 
-        tel = CONFIG_INI.get('telescope', 'name')
-        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
-        #num_matrix_luvoir(design=coro_design)
-        num_matrix_multiprocess(instrument=tel, design=coro_design)
+        #num_matrix_luvoir(design='small')
+        #num_matrix_multiprocess(instrument='LUVOIR', design='small')
+        num_matrix_multiprocess(instrument='HiCAT')

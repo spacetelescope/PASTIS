@@ -13,6 +13,8 @@ import logging
 import logging.handlers
 import numpy as np
 
+from config import CONFIG_INI
+
 log = logging.getLogger()
 
 
@@ -54,6 +56,24 @@ def write_fits(data, filepath, header=None, metadata=None):
 
     #print('Wrote ' + filepath)
     return filepath
+
+
+def write_all_fits_to_cube(path):
+    """
+    Write all fits files in a directory to an image cube.
+
+    Directory can *only* contain fits files, and only files that you want in the cube. Subdirectories will be ignored.
+    :param path: string, path to directory that contains all fits files that should be put into cube; cube gets saved
+                 into that same directory
+    """
+    # Collect all filenames
+    all_file_names = [fname for fname in os.listdir(path) if os.path.isfile(os.path.join(path, fname))]
+    # Read all files into list
+    allfiles = []
+    for fname in all_file_names:
+        allfiles.append(fits.getdata(os.path.join(path, fname)))
+    cube = np.array(allfiles)
+    write_fits(cube, os.path.join(path, 'psf_cube.fits'))
 
 
 def circle_mask(im, xc, yc, rcirc):
@@ -163,6 +183,38 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
     """
     var = 2 * np.trace(np.matmul(pastismatrix, np.matmul(cov_segments, (np.matmul(pastismatrix, cov_segments)))))
     return var
+
+
+def get_segment_list(instrument):
+    """
+    Horribly hacky function to get correct segment numer list for an instrument.
+
+    We can assume that both implemented instruments start their numbering at 0, at the center segment. LUVOIR doesn't
+    use the center segment though, so we start at 1 and go until 120, for a total of 120 segments. HiCAT does use it,
+    so we start at 0 and go to 36 for a total of 37 segments.
+    :param instrument: string, "HiCAT" or "LUVOIR"
+    :return: seglist, array of segment numbers (names!)
+    """
+    seglist = np.arange(CONFIG_INI.getint(instrument, 'nb_subapertures'))
+    if instrument == 'LUVOIR':
+        seglist += 1
+
+    return seglist
+
+
+def read_continuous_dm_maps_hicat(path_to_dm_maps):
+    """
+    Read Boston DM maps from disk and return as one list per DM.
+    :param path_to_dm_maps: string, absolute path to folder containing DM maps to load
+    :return: DM1 actuator map array, DM2 actuator map array; in m
+    """
+
+    surfaces = []
+    for dmnum in [1, 2]:
+        actuators_2d = fits.getdata(os.path.join(path_to_dm_maps, f'dm{dmnum}_command_2d_noflat.fits'))
+        surfaces.append(actuators_2d)
+
+    return surfaces[0], surfaces[1]
 
 
 def rms(ar):
