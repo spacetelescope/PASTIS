@@ -446,7 +446,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
 
     # Save PSF image to disk
     if savepsfs:
-        filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
+        filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
