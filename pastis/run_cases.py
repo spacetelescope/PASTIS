@@ -2,7 +2,7 @@
 Run different cases, free combination of matrices and analysis scripts.
 """
 import os
-from hockeystick_contrast_curve import hockeystick_luvoir
+from hockeystick_contrast_curve import hockeystick_curve
 from matrix_building_numerical import num_matrix_multiprocess
 from pastis_analysis import run_full_pastis_analysis_luvoir
 from config import CONFIG_INI
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # Then generate all hockeystick curves
     result_dir_small = os.path.join(dir_small, 'results')
     matrix_dir_small = os.path.join(dir_small, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice='small', matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=50, no_realizations=20)
+    hockeystick_curve(instrument='LUVOIR', apodizer_choice='small', matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=2)
 
     #result_dir_medium = os.path.join(dir_medium, 'results')
     #matrix_dir_medium = os.path.join(dir_medium, 'matrix_numerical')
