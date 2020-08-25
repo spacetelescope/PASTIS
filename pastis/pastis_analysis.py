@@ -77,6 +77,8 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
     :param pmodes: array of PASTIS modes [segnum, modenum]
     :param datadir: string, path to overall data directory containing matrix and results folder
+    :param sm: hcipy.SegmentedMirror, but usually LuvoirAPLC.sm
+    :param wf_aper: hcipy.Wavefront of the aperture
     :param saving: bool, whether to save figure to disk or not, default=False
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
@@ -142,7 +144,7 @@ def apply_mode_to_sm(pmode, sm, wf_aper):
     This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
     one by one to the segmented mirror.
     :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
-    :param sm: hcipy.SegmentedMirror
+    :param sm: hcipy.SegmentedMirror, but usually LuvoirAPLC.sm
     :param wf_aper: hcipy.Wavefront of the aperture
     :return: wf_sm: hcipy.Wavefront of the segmented mirror propagation
     """
@@ -400,7 +402,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     # TODO: set up instrument
     # TODO: calculate coronagraph floor
 
-    luvoir, wf_aper, sm = set_up_luvoir(design)
+    luvoir, wf_aper = set_up_luvoir(design)
 
     # Generate reference PSF and coronagraph contrast floor
     luvoir.flatten()
@@ -434,7 +436,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         pmodes, svals = modes_from_matrix(workdir)
 
         ### Get full 2D modes and save them
-        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, sm, wf_aper, saving=True)
+        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, luvoir.sm, wf_aper, saving=True)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
@@ -512,7 +514,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
         # Put mus on SM and plot
-        wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
+        wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
         ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
