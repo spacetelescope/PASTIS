@@ -202,6 +202,31 @@ def get_segment_list(instrument):
     return seglist
 
 
+def apply_mode_to_luvoir(pmode, luvoir):
+    """
+    Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
+
+    This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
+    one by one to the segmented mirror.
+    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
+    :param luvoir: LuvoirAPLC
+    :return: hcipy.Wavefront of the segmented mirror
+    """
+
+    # Flatten SM to be sure we have no residual aberrations
+    luvoir.flatten()
+
+    # Loop through all segments to put them on the segmented mirror one by one
+    for seg, val in enumerate(pmode):
+        val *= u.nm  # the LUVOIR modes come out in units of nanometers
+        luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
+
+    # Propagate the aperture wavefront through the SM
+    psf, planes = luvoir.calc_psf(return_intermediate='efield')
+
+    return planes['seg_mirror']
+
+
 def read_continuous_dm_maps_hicat(path_to_dm_maps):
     """
     Read Boston DM maps from disk and return as one list per DM.
