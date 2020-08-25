@@ -402,7 +402,6 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
         optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
-        wf_aper = hcipy.Wavefront(luvoir.aper, wvln)
 
         # Generate reference PSF and coronagraph contrast floor
         luvoir.flatten()

@@ -393,31 +393,6 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def create_luvoir_and_wf_at_mirror(design, wvln):
-    """
-    Instantiate a LuvoirAPLC simulator and create the wavefront at the segmented primary mirror plane.
-    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
-    :param wvln: float, wavelength at which to instantiate the simulator with, in nm
-    :return: luvoir (LuvoirAPLC), wf_aper (hcipy.wavefront)
-    """
-    # Create wavefront in aperture plane
-    optics_path = CONFIG_INI.get('LUVOIR', 'optics_path')
-
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    aper_read = hc.read_fits(os.path.join(optics_path, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(optics_path, aper_ind_path))
-
-    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
-    aper = hc.Field(aper_read.ravel(), pupil_grid)
-    wf_aper = hc.Wavefront(aper, wvln * 1e-9)
-
-    # Create LUVOIR instance and wavefront in the segmented mirror plane
-    luvoir = LuvoirAPLC(optics_path, design, samp=4)
-
-    return luvoir, wf_aper
-
-
 def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
@@ -435,8 +410,11 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    # Create luvoir instance
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
     wf_constraints = apply_mode_to_luvoir(mus, luvoir)
 
     plt.figure(figsize=(10, 10))
@@ -469,8 +447,10 @@ def calculate_mode_phases(pastis_modes, wvln, design):
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :return: all_modes, array of phase pupil images
     """
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    # Create luvoir instance
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Calculate phases of all modes
     all_modes = []
@@ -529,8 +509,10 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    # Create luvoir instance
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)
     one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)
