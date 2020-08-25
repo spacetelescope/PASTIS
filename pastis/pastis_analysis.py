@@ -22,11 +22,13 @@ import util_pastis as util
 log = logging.getLogger(__name__)
 
 
-def modes_from_matrix(datadir, saving=True):
+def modes_from_matrix(instrument, datadir, saving=True):
     """
     Calculate mode basis and singular values from PASTIS matrix using an SVD. In the case of the PASTIS matrix,
     this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
-    modes and singular values in reverse order conpared to an eigendecomposition.
+    modes and singular values in reverse order compared to an eigendecomposition.
+
+    :param instrument: string, "LUVOIR" or "HiCAT"
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param saving: string, whether to save singular values, modes and their plots or not; default=True
     :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
@@ -42,14 +44,14 @@ def modes_from_matrix(datadir, saving=True):
     if not os.path.isdir(os.path.join(datadir, 'results')):
         os.mkdir(os.path.join(datadir, 'results'))
 
-    # Save singular values and modes (singular vectors)
+    # Save singular values and pastis modes (singular vectors)
     if saving:
         np.savetxt(os.path.join(datadir, 'results', 'eigenvalues.txt'), svals)
         np.savetxt(os.path.join(datadir, 'results', 'pastis_modes.txt'), pmodes)
 
     # Plot singular values and save
     if saving:
-        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
+        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.getfloat(instrument, 'lambda'),
                              out_dir=os.path.join(datadir, 'results'), save=True)
 
     return pmodes, svals
@@ -68,18 +70,20 @@ def modes_from_file(datadir):
     return pmodes, svals
 
 
-def full_modes_from_themselves(pmodes, datadir, luvoir, saving=False):
+def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving=False):
     """
     Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes.
 
     Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
     in the pupil. This phase gets returned both as an array of hcipy.Fields, as well as a standard array of 2D arrays.
     Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
+
+    :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array of PASTIS modes [segnum, modenum]
     :param datadir: string, path to overall data directory containing matrix and results folder
-    :param luvoir: LuvoirAPLC
+    :param sim_instance: class instance of the simulator for "instrument"
     :param saving: bool, whether to save figure to disk or not, default=False
-    :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
+    :return: mode_cube as array of 2D arrays (matplotlib)
     """
 
     nseg = pmodes.shape[0]
@@ -89,8 +93,9 @@ def full_modes_from_themselves(pmodes, datadir, luvoir, saving=False):
     for thismode in range(nseg):
         log.info(f'Working on mode {thismode + 1}/{nseg}.')
 
-        wf_sm = apply_mode_to_luvoir(pmodes[:, thismode], luvoir)
+        if instrument == "LUVOIR":
             wf_sm = util.apply_mode_to_luvoir(pmodes[:, thismode], sim_instance)
+            all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf.phase is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
     if saving:
@@ -108,57 +113,28 @@ def full_modes_from_themselves(pmodes, datadir, luvoir, saving=False):
         plt.figure(figsize=(36, 30))
         for thismode in range(nseg):
             plt.subplot(12, 10, thismode + 1)
-            hcipy.imshow_field(all_modes[thismode], cmap='RdBu')
+            plt.imshow(all_modes[thismode], cmap='RdBu')
             plt.axis('off')
             plt.title(f'Mode {thismode + 1}')
         plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
 
     ### Plot them individually and save as fits and pdf
-    mode_cube = []  # to save as a fits cube
     for thismode in range(nseg):
 
         # pdf
         plt.clf()
-        hcipy.imshow_field(all_modes[thismode], cmap='RdBu')
+        plt.imshow(all_modes[thismode], cmap='RdBu')
         plt.axis('off')
         plt.title(f'Mode {thismode + 1}', size=30)
         if saving:
             plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode_{thismode+1}.pdf'))
 
-        # for the fits cube
-        mode_cube.append(all_modes[thismode].shaped)
-
     # fits cube
-    mode_cube = np.array(mode_cube)
+    mode_cube = np.array(all_modes)
     if saving:
         hcipy.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
 
-    return all_modes, mode_cube
-
-
-def apply_mode_to_luvoir(pmode, luvoir):
-    """
-    Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
-
-    This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
-    one by one to the segmented mirror.
-    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
-    :param luvoir: LuvoirAPLC
-    :return: hcipy.Wavefront of the segmented mirror
-    """
-
-    # Flatten SM to be sure we have no residual aberrations
-    luvoir.flatten()
-
-    # Loop through all segments to put them on the segmented mirror one by one
-    for seg, val in enumerate(pmode):
-        val *= u.nm  # the LUVOIR modes come out in units of nanometers
-        luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
-
-    # Propagate the aperture wavefront through the SM
-    psf, planes = luvoir.calc_psf(return_intermediate='efield')
-
-    return planes['seg_mirror']
+    return mode_cube
 
 
 def full_modes_from_file(datadir):
@@ -379,14 +355,14 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
 
     # Which parts are we running?
     calculate_modes = True
-    calculate_sigmas = True
-    run_monte_carlo_modes = True
-    calc_cumulative_contrast = True
-    calculate_mus = True
-    run_monte_carlo_segments = True
-    calculate_covariance_matrices = True
-    analytical_statistics = True
-    calculate_segment_based = True
+    calculate_sigmas = False
+    run_monte_carlo_modes = False
+    calc_cumulative_contrast = False
+    calculate_mus = False
+    run_monte_carlo_segments = False
+    calculate_covariance_matrices = False
+    analytical_statistics = False
+    calculate_segment_based = False
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
@@ -403,13 +379,14 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-        # Generate reference PSF and coronagraph contrast floor
+        # Generate reference PSF
         luvoir.flatten()
         psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
         norm = ref.max()
 
         psf_unaber = psf_unaber.shaped
         dh_mask = luvoir.dh_mask.shaped
+        sim_instance = luvoir
 
     # Plot unaberrated coronagraph PSF
     plt.figure()
@@ -424,7 +401,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
     plt.imshow(np.ma.masked_where(~dh_mask, psf_unaber), norm=LogNorm())
     plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
-    # Calculate coronagraph floor
+    # Calculate coronagraph contrast floor
     coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
     log.info(f'Coronagraph floor: {coro_floor}')
     with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
@@ -436,10 +413,10 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
     ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:
         log.info('Calculating all PASTIS modes')
-        pmodes, svals = modes_from_matrix(workdir)
+        pmodes, svals = modes_from_matrix(instrument, workdir)
 
         ### Get full 2D modes and save them
-        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, luvoir, saving=True)
+        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
@@ -636,6 +613,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
 
 
 if __name__ == '__main__':
+
     instrument = CONFIG_INI.get('telescope', 'name')
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
