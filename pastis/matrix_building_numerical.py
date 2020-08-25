@@ -376,28 +376,28 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
 
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
-        hc = hicat.simulators.hicat_sim.HICAT_Sim()
+        hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
 
-        hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-        hc.iris_ao = 'iris_ao'
-        hc.apodizer = 'no_apodizer'
-        hc.lyot_stop = 'circular'
-        hc.detector = 'imager'
+        hicat_sim.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+        hicat_sim.iris_ao = 'iris_ao'
+        hicat_sim.apodizer = 'no_apodizer'
+        hicat_sim.lyot_stop = 'circular'
+        hicat_sim.detector = 'imager'
 
         # Load Boston DM maps into HiCAT simulator
         path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
         dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-        hc.dm1.set_surface(dm1_surface)
-        hc.dm2.set_surface(dm2_surface)
+        hicat_sim.dm1.set_surface(dm1_surface)
+        hicat_sim.dm2.set_surface(dm2_surface)
 
         # Calculate direct reference images for contrast normalization
-        hc.include_fpm = False
-        direct = hc.calc_psf()
+        hicat_sim.include_fpm = False
+        direct = hicat_sim.calc_psf()
         norm = direct[0].data.max()
 
         # Calculate unaberrated coronagraph image for contrast floor
-        hc.include_fpm = True
-        coro_image = hc.calc_psf()
+        hicat_sim.include_fpm = True
+        coro_image = hicat_sim.calc_psf()
         coro_psf = coro_image[0].data / norm
 
         iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
@@ -479,30 +479,30 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     """
 
     # Set up HiCAT simulator in correct state
-    hc = hicat.simulators.hicat_sim.HICAT_Sim()
+    hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
 
-    hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-    hc.iris_ao = 'iris_ao'
-    hc.apodizer = 'no_apodizer'
-    hc.lyot_stop = 'circular'
-    hc.detector = 'imager'
+    hicat_sim.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
+    hicat_sim.iris_ao = 'iris_ao'
+    hicat_sim.apodizer = 'no_apodizer'
+    hicat_sim.lyot_stop = 'circular'
+    hicat_sim.detector = 'imager'
 
     # Load Boston DM maps into HiCAT simulator
     path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
     dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-    hc.dm1.set_surface(dm1_surface)
-    hc.dm2.set_surface(dm2_surface)
+    hicat_sim.dm1.set_surface(dm1_surface)
+    hicat_sim.dm2.set_surface(dm2_surface)
 
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
 
     # Put aberration on correct segments. If i=j, apply only once!
-    hc.iris_dm.flatten()
-    hc.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    hicat_sim.iris_dm.flatten()
+    hicat_sim.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
     if segment_pair[0] != segment_pair[1]:
-        hc.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+        hicat_sim.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
 
     log.info('Calculating coro image...')
-    image, inter = hc.calc_psf(display=False, return_intermediates=True)
+    image, inter = hicat_sim.calc_psf(display=False, return_intermediates=True)
     psf = image[0].data / norm
 
     # Save PSF image to disk
