@@ -15,7 +15,7 @@ import hcipy
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
+from e2e_simulators.luvoir_imaging import set_up_luvoir
 import plotting as ppl
 import util_pastis as util
 
@@ -390,9 +390,6 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
-    # LUVOIR coronagraph parameters
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-
     nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
 
@@ -400,39 +397,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     log.info(f'Data folder: {workdir}')
     log.info(f'Coronagraph: {design}')
 
-    # Create SM
-    # Read pupil and indexed pupil
-    inputdir = CONFIG_INI.get('LUVOIR', 'optics_path')
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    aper_read = hcipy.read_fits(os.path.join(inputdir, aper_path))
-    aper_ind_read = hcipy.read_fits(os.path.join(inputdir, aper_ind_path))
+    # TODO: set up instrument
+    # TODO: calculate coronagraph floor
 
-    # Sample them on a pupil grid and make them hcipy.Fields
-    pupil_grid = hcipy.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
-    aper = hcipy.Field(aper_read.ravel(), pupil_grid)
-    aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
-
-    # Create the wavefront on the aperture
-    wf_aper = hcipy.Wavefront(aper, wvln)
-
-    # Load segment positions from fits header
-    hdr = fits.getheader(os.path.join(inputdir, aper_ind_path))
-    poslist = []
-    for i in range(nseg):
-        segname = 'SEG' + str(i + 1)
-        xin = hdr[segname + '_X']
-        yin = hdr[segname + '_Y']
-        poslist.append((xin, yin))
-    poslist = np.transpose(np.array(poslist))
-    seg_pos = hcipy.CartesianGrid(poslist)
-
-    # Instantiate segmented mirror
-    sm = SegmentedMirror(aper_ind, seg_pos)
-
-    # Instantiate LUVOIR
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
+    luvoir, wf_aper, sm = set_up_luvoir(design)
 
     # Generate reference PSF and coronagraph contrast floor
     luvoir.flatten()
