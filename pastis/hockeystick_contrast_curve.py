@@ -20,6 +20,7 @@ import pandas as pd
 
 from config import CONFIG_INI
 import contrast_calculation_simple as consim
+from matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import plotting as ppl
 
 log = logging.getLogger()
@@ -153,6 +154,9 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     # Create results directory if it doesn't exist yet
     os.makedirs(resultdir, exist_ok=True)
 
+    # Calculate coronagraph floor, and normalization factor from direct image
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice)
+
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
@@ -175,9 +179,9 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
 
             # Chose correct contrast propagation function for chose instrument
             if instrument == 'LUVOIR':
-                c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
+                c_e2e, c_matrix = consim.contrast_luvoir_num(contrast_floor, norm, apodizer_choice, matrix_dir=matrixdir, rms=rms)
             if instrument == 'HiCAT':
-                c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir=matrixdir, rms=rms)
+                c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
