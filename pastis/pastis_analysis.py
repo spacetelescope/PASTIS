@@ -440,7 +440,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         pmodes, svals = modes_from_matrix(workdir)
 
         ### Get full 2D modes and save them
-        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, luvoir.sm, wf_aper, saving=True)
+        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, luvoir, saving=True)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
