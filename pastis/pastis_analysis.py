@@ -90,7 +90,7 @@ def full_modes_from_themselves(pmodes, datadir, luvoir, saving=False):
         log.info(f'Working on mode {thismode + 1}/{nseg}.')
 
         wf_sm = apply_mode_to_luvoir(pmodes[:, thismode], luvoir)
-        all_modes.append(wf_sm.phase / wf_sm.wavenumber)    # wf.phase is in rad, so this converts it to meters
+            wf_sm = util.apply_mode_to_luvoir(pmodes[:, thismode], sim_instance)
 
     ### Check for results directory structure and create if it doesn't exist
     if saving:
@@ -517,7 +517,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
         # Put mus on SM and plot
-        wf_constraints = apply_mode_to_luvoir(mus, luvoir)
+        wf_constraints = util.apply_mode_to_luvoir(mus, luvoir)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
         ppl.plot_mu_map(mus, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
