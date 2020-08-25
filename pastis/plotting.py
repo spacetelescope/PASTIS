@@ -11,7 +11,7 @@ import numpy as np
 
 from config import CONFIG_INI
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis_analysis import apply_mode_to_sm
+from pastis_analysis import apply_mode_to_luvoir
 
 cmap_brev = cm.get_cmap('Blues_r')
 
@@ -437,7 +437,7 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
 
     # Create wavefront in aperture plane and luvoir instance
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
-    wf_constraints = apply_mode_to_sm(mus, luvoir)
+    wf_constraints = apply_mode_to_luvoir(mus, luvoir)
 
     plt.figure(figsize=(10, 10))
 
@@ -475,7 +475,7 @@ def calculate_mode_phases(pastis_modes, wvln, design):
     # Calculate phases of all modes
     all_modes = []
     for mode in range(len(pastis_modes)):
-        all_modes.append(apply_mode_to_sm(pastis_modes[:, mode], luvoir).phase)
+        all_modes.append(apply_mode_to_luvoir(pastis_modes[:, mode], luvoir).phase)
 
     return all_modes
 
@@ -533,7 +533,7 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,
     luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
 
     plt.figure(figsize=figsize, constrained_layout=False)
-    one_mode = apply_mode_to_sm(pastis_modes[:, mode_nr - 1], luvoir)
+    one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)
     hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
