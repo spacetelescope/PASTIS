@@ -184,11 +184,10 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
 def contrast_hicat_num(matrix_dir, rms=1*u.nm):
     """
-    Compute the contrast for a random IrisAO mislignment on the HiCAT simulator.
+    Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
     :param matrix_dir: str, directory of saved matrix
-    :param matrix_mode: str, analytical or numerical; currently only numerical supported
     :param rms: astropy quantity, rms wfe to be put randomly on the SM
-    :return: 2x float, E2E and matrix contrast
+    :return: E2E and matrix contrast, both floats
     """
 
     # Keep track of time
@@ -249,14 +248,11 @@ def contrast_hicat_num(matrix_dir, rms=1*u.nm):
     # Create DH
     dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=sampling)
     # Get the mean contrast
-    hicat_dh_psf = psf_hicat * dh_mask
-    contrast_hicat = np.mean(hicat_dh_psf[np.where(hicat_dh_psf != 0)])
+    contrast_hicat = util.dh_mean(psf_hicat, dh_mask)
     end_e2e = time.time()
 
-    ###
     # Calculate coronagraph contrast floor
-    baseline_dh = psf_coro * dh_mask
-    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    coro_floor = util.dh_mean(psf_coro, dh_mask)
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')
@@ -294,7 +290,7 @@ def contrast_luvoir_num(design, matrix_dir, rms=1*u.nm):
 
     # Parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    sampling = 4
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
 
     # Import numerical PASTIS matrix
     filename = 'PASTISmatrix_num_piston_Noll1'
@@ -339,20 +335,12 @@ def contrast_luvoir_num(design, matrix_dir, rms=1*u.nm):
     psf_luvoir = luvoir.calc_psf()
     psf_luvoir /= normp
 
-    # Create DH
-    dh_outer = hcipy.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hcipy.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_mask = (dh_outer - dh_inner).astype('bool')
-
     # Get the mean contrast
-    dh_intensity = psf_luvoir * dh_mask
-    contrast_luvoir = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+    contrast_luvoir = util.dh_mean(psf_luvoir, luvoir.dh_mask)
     end_e2e = time.time()
 
-    ###
     # Calculate coronagraph contrast floor
-    baseline_dh = psf_coro * dh_mask
-    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    coro_floor = util.dh_mean(psf_coro, luvoir.dh_mask)
     log.info(f'Baseline contrast: {coro_floor}')
 
     ## MATRIX PASTIS
