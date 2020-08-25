@@ -414,6 +414,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         psf_unaber = psf_unaber.shaped
         dh_mask = luvoir.dh_mask.shaped
 
+    # Plot unaberrated coronagraph PSF
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.title("Dark hole mask")
