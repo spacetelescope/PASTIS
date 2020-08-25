@@ -68,7 +68,7 @@ def modes_from_file(datadir):
     return pmodes, svals
 
 
-def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
+def full_modes_from_themselves(pmodes, datadir, luvoir, saving=False):
     """
     Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes.
 
@@ -77,8 +77,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
     :param pmodes: array of PASTIS modes [segnum, modenum]
     :param datadir: string, path to overall data directory containing matrix and results folder
-    :param sm: hcipy.SegmentedMirror, but usually LuvoirAPLC.sm
-    :param wf_aper: hcipy.Wavefront of the aperture
+    :param luvoir: LuvoirAPLC
     :param saving: bool, whether to save figure to disk or not, default=False
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
@@ -90,7 +89,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     for thismode in range(nseg):
         log.info(f'Working on mode {thismode + 1}/{nseg}.')
 
-        wf_sm = apply_mode_to_sm(pmodes[:, thismode], sm, wf_aper)
+        wf_sm = apply_mode_to_sm(pmodes[:, thismode], luvoir)
         all_modes.append(wf_sm.phase / wf_sm.wavenumber)    # wf.phase is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
@@ -137,30 +136,29 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     return all_modes, mode_cube
 
 
-def apply_mode_to_sm(pmode, sm, wf_aper):
+def apply_mode_to_sm(pmode, luvoir):
     """
     Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
 
     This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
     one by one to the segmented mirror.
     :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
-    :param sm: hcipy.SegmentedMirror, but usually LuvoirAPLC.sm
-    :param wf_aper: hcipy.Wavefront of the aperture
-    :return: wf_sm: hcipy.Wavefront of the segmented mirror propagation
+    :param luvoir: LuvoirAPLC
+    :return: hcipy.Wavefront of the segmented mirror
     """
 
     # Flatten SM to be sure we have no residual aberrations
-    sm.flatten()
+    luvoir.flatten()
 
     # Loop through all segments to put them on the segmented mirror one by one
     for seg, val in enumerate(pmode):
         val *= u.nm  # the LUVOIR modes come out in units of nanometers
-        sm.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
+        luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
 
     # Propagate the aperture wavefront through the SM
-    wf_sm = sm(wf_aper)
+    psf, planes = luvoir.calc_psf(return_intermediate='efield')
 
-    return wf_sm
+    return planes['seg_mirror']
 
 
 def full_modes_from_file(datadir):
@@ -520,7 +518,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
         # Put mus on SM and plot
-        wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
+        wf_constraints = apply_mode_to_sm(mus, luvoir)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
         ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
