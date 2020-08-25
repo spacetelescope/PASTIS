@@ -15,7 +15,7 @@ import hcipy
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
-from e2e_simulators.luvoir_imaging import set_up_luvoir
+from e2e_simulators.luvoir_imaging import LuvoirAPLC
 import plotting as ppl
 import util_pastis as util
 
@@ -402,7 +402,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     # TODO: set up instrument
     # TODO: calculate coronagraph floor
 
-    luvoir, wf_aper = set_up_luvoir(design)
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+    wf_aper = hcipy.Wavefront(luvoir.aper, wvln)
 
     # Generate reference PSF and coronagraph contrast floor
     luvoir.flatten()
