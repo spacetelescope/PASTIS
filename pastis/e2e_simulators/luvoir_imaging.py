@@ -12,6 +12,46 @@ from hcipy.optics.segmented_mirror import SegmentedMirror
 from config import CONFIG_INI
 
 
+def set_up_luvoir(design):
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
+
+    # Read pupil and indexed pupil
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
+    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
+    aper_read = hc.read_fits(os.path.join(optics_input, aper_path))
+    aper_ind_read = hc.read_fits(os.path.join(optics_input, aper_ind_path))
+
+    # Sample them on a pupil grid and make them hcipy.Fields
+    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
+    aper = hc.Field(aper_read.ravel(), pupil_grid)
+    aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
+
+    # Create the wavefront on the aperture
+    wf_aper = hc.Wavefront(aper, wvln)
+
+    # Load segment positions from fits header
+    hdr = fits.getheader(os.path.join(optics_input, aper_ind_path))
+    poslist = []
+    for i in range(nseg):
+        segname = 'SEG' + str(i + 1)
+        xin = hdr[segname + '_X']
+        yin = hdr[segname + '_Y']
+        poslist.append((xin, yin))
+    poslist = np.transpose(np.array(poslist))
+    seg_pos = hc.CartesianGrid(poslist)
+
+    # Instantiate segmented mirror
+    sm = SegmentedMirror(aper_ind, seg_pos)
+
+    # Instantiate LUVOIR
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    return luvoir, wf_aper, sm
+
+
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
 
