@@ -182,9 +182,12 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     return contrast_webbpsf, contrast_am, contrast_matrix
 
 
-def contrast_hicat_num(matrix_dir, rms=1*u.nm):
+def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     """
     Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
     :param rms: astropy quantity, rms wfe to be put randomly on the SM
     :return: E2E and matrix contrast, both floats
@@ -217,25 +220,12 @@ def contrast_hicat_num(matrix_dir, rms=1*u.nm):
     # Remove global piston
     aber -= np.mean(aber)
 
-    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
-    log.info('Also generating coro PSF without aberrations')
-
-    hicat_sim = set_up_hicat()
-    hicat_sim.include_fpm = False
-
-    psf_perfect = hicat_sim.calc_psf(display=False, return_intermediates=False)
-    normp = np.max(psf_perfect[0].data)
-
     ### E2E HiCAT sim
     start_e2e = time.time()
 
     # Set HiCAT simulator to coro mode
+    hicat_sim = set_up_hicat()
     hicat_sim.include_fpm = True
-
-    # Calculate coro PSF without aberrations
-    psf_coro = hicat_sim.calc_psf(display=False, return_intermediates=False)
-    psf_coro = psf_coro[0].data / normp
 
     log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
@@ -243,16 +233,13 @@ def contrast_hicat_num(matrix_dir, rms=1*u.nm):
         hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
-    psf_hicat = psf_hicat[0].data / normp
+    psf_hicat = psf_hicat[0].data / norm
 
     # Create DH
     dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=sampling)
     # Get the mean contrast
     contrast_hicat = util.dh_mean(psf_hicat, dh_mask)
     end_e2e = time.time()
-
-    # Calculate coronagraph contrast floor
-    coro_floor = util.dh_mean(psf_coro, dh_mask)
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')
@@ -277,9 +264,12 @@ def contrast_hicat_num(matrix_dir, rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(design, matrix_dir, rms=1*u.nm):
+def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     """
     Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
     :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
     :return: 2x float, E2E and matrix contrast
@@ -310,6 +300,7 @@ def contrast_luvoir_num(design, matrix_dir, rms=1*u.nm):
     # Remove global piston
     aber -= np.mean(aber)
 
+    start_e2e = time.time()
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
@@ -318,30 +309,16 @@ def contrast_luvoir_num(design, matrix_dir, rms=1*u.nm):
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    # and coro PSF without aberrations
-    start_e2e = time.time()
-    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
-    log.info('Also generating coro PSF without aberrations')
-    psf_perfect, ref = luvoir.calc_psf(ref=True)
-    normp = np.max(ref)
-    psf_coro = psf_perfect / normp
-
     log.info('Calculating E2E contrast...')
     # Put aberrations on segmented mirror
     for nseg in range(nb_seg):
         luvoir.set_segment(nseg+1, aber[nseg].to(u.m).value/2, 0, 0)
-
     psf_luvoir = luvoir.calc_psf()
-    psf_luvoir /= normp
+    psf_luvoir /= norm
 
     # Get the mean contrast
     contrast_luvoir = util.dh_mean(psf_luvoir, luvoir.dh_mask)
     end_e2e = time.time()
-
-    # Calculate coronagraph contrast floor
-    coro_floor = util.dh_mean(psf_coro, luvoir.dh_mask)
-    log.info(f'Baseline contrast: {coro_floor}')
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')
