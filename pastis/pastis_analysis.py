@@ -357,7 +357,7 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-10, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -372,6 +372,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     8. analytically calculating the statistical mean contrast and its variance
     9. calculting segment-based error budget
 
+    :param instrument: str, "LUVOIR" or "HiCAT"
     :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
     :param run_choice: str, path to data and where outputs will be saved
     :param c_target: float, target contrast
@@ -392,40 +393,41 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
 
-    nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
+    nseg = CONFIG_INI.getint(instrument, 'nb_subapertures')
+    wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9   # [m]
 
     log.info('Setting up optics...')
     log.info(f'Data folder: {workdir}')
-    log.info(f'Coronagraph: {design}')
+    log.info(f'Instrument: {instrument}')
 
-    # TODO: set up instrument
-    # TODO: calculate coronagraph floor
+    if instrument == "LUVOIR":
+        sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+        optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
+        wf_aper = hcipy.Wavefront(luvoir.aper, wvln)
 
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
-    wf_aper = hcipy.Wavefront(luvoir.aper, wvln)
+        # Generate reference PSF and coronagraph contrast floor
+        luvoir.flatten()
+        psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+        norm = ref.max()
 
-    # Generate reference PSF and coronagraph contrast floor
-    luvoir.flatten()
-    psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
-    norm = ref.max()
+        psf_unaber = psf_unaber.shaped
+        dh_mask = luvoir.dh_mask.shaped
 
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.title("Dark hole mask")
-    hcipy.imshow_field(luvoir.dh_mask)
+    plt.imshow(dh_mask)
     plt.subplot(1, 3, 2)
     plt.title("Unaberrated PSF")
-    hcipy.imshow_field(psf_unaber, norm=LogNorm(), mask=luvoir.dh_mask)
+    plt.imshow(psf_unaber, norm=LogNorm())
     plt.subplot(1, 3, 3)
     plt.title("Unaberrated PSF (masked)")
-    hcipy.imshow_field(psf_unaber, norm=LogNorm())
+    plt.imshow(np.ma.masked_where(~dh_mask, psf_unaber), norm=LogNorm())
     plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Calculate coronagraph floor
-    coro_floor = util.dh_mean(psf_unaber/norm, luvoir.dh_mask)
+    coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
     log.info(f'Coronagraph floor: {coro_floor}')
     with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
         file.write(f'{coro_floor}')
@@ -637,10 +639,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
 
 if __name__ == '__main__':
-
+    instrument = CONFIG_INI.get('telescope', 'name')
     coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_target = 1e-10
     mc_repeat = 100
 
-    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
+    run_full_pastis_analysis_luvoir(instrument, coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
