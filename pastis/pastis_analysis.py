@@ -11,7 +11,7 @@ import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import hcipy as hc
+import hcipy
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
@@ -107,7 +107,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
         plt.figure(figsize=(36, 30))
         for thismode in range(nseg):
             plt.subplot(12, 10, thismode + 1)
-            hc.imshow_field(all_modes[thismode], cmap='RdBu')
+            hcipy.imshow_field(all_modes[thismode], cmap='RdBu')
             plt.axis('off')
             plt.title(f'Mode {thismode + 1}')
         plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
@@ -118,7 +118,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
 
         # pdf
         plt.clf()
-        hc.imshow_field(all_modes[thismode], cmap='RdBu')
+        hcipy.imshow_field(all_modes[thismode], cmap='RdBu')
         plt.axis('off')
         plt.title(f'Mode {thismode + 1}', size=30)
         if saving:
@@ -130,7 +130,7 @@ def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
     # fits cube
     mode_cube = np.array(mode_cube)
     if saving:
-        hc.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
+        hcipy.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
 
     return all_modes, mode_cube
 
@@ -168,8 +168,8 @@ def full_modes_from_file(datadir):
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
 
-    mode_cube = hc.read_fits(os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
-    all_modes = hc.Field(mode_cube.ravel())
+    mode_cube = hcipy.read_fits(os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
+    all_modes = hcipy.Field(mode_cube.ravel())
 
     return all_modes, mode_cube
 
@@ -314,11 +314,11 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
 
     # plt.figure()
     # plt.subplot(1, 3, 1)
-    # hc.imshow_field(dh_mask)
+    # hcipy.imshow_field(dh_mask)
     # plt.subplot(1, 3, 2)
-    # hc.imshow_field(psf, norm=LogNorm(), mask=dh_mask)
+    # hcipy.imshow_field(psf, norm=LogNorm(), mask=dh_mask)
     # plt.subplot(1, 3, 3)
-    # hc.imshow_field(psf, norm=LogNorm())
+    # hcipy.imshow_field(psf, norm=LogNorm())
     # plt.show()
 
     rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
@@ -405,16 +405,16 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     inputdir = CONFIG_INI.get('LUVOIR', 'optics_path')
     aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
     aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    aper_read = hc.read_fits(os.path.join(inputdir, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(inputdir, aper_ind_path))
+    aper_read = hcipy.read_fits(os.path.join(inputdir, aper_path))
+    aper_ind_read = hcipy.read_fits(os.path.join(inputdir, aper_ind_path))
 
-    # Sample them on a pupil grid and make them hc.Fields
-    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
-    aper = hc.Field(aper_read.ravel(), pupil_grid)
-    aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
+    # Sample them on a pupil grid and make them hcipy.Fields
+    pupil_grid = hcipy.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
+    aper = hcipy.Field(aper_read.ravel(), pupil_grid)
+    aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
 
     # Create the wavefront on the aperture
-    wf_aper = hc.Wavefront(aper, wvln)
+    wf_aper = hcipy.Wavefront(aper, wvln)
 
     # Load segment positions from fits header
     hdr = fits.getheader(os.path.join(inputdir, aper_ind_path))
@@ -425,7 +425,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         yin = hdr[segname + '_Y']
         poslist.append((xin, yin))
     poslist = np.transpose(np.array(poslist))
-    seg_pos = hc.CartesianGrid(poslist)
+    seg_pos = hcipy.CartesianGrid(poslist)
 
     # Instantiate segmented mirror
     sm = SegmentedMirror(aper_ind, seg_pos)
@@ -442,13 +442,13 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     plt.figure()
     plt.subplot(1, 3, 1)
     plt.title("Dark hole mask")
-    hc.imshow_field(luvoir.dh_mask)
+    hcipy.imshow_field(luvoir.dh_mask)
     plt.subplot(1, 3, 2)
     plt.title("Unaberrated PSF")
-    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=luvoir.dh_mask)
+    hcipy.imshow_field(psf_unaber, norm=LogNorm(), mask=luvoir.dh_mask)
     plt.subplot(1, 3, 3)
     plt.title("Unaberrated PSF (masked)")
-    hc.imshow_field(psf_unaber, norm=LogNorm())
+    hcipy.imshow_field(psf_unaber, norm=LogNorm())
     plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Calculate coronagraph floor
@@ -594,10 +594,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     if calculate_covariance_matrices:
         log.info('Calculating covariance matrices')
         Ca = np.diag(np.square(mus))
-        hc.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
 
         Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-        hc.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
         ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
                                    fname_suffix='segment-based', save=True)
