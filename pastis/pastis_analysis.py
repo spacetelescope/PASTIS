@@ -520,8 +520,7 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
         wf_constraints = apply_mode_to_luvoir(mus, luvoir)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
-        ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
-                        design=design, c_target=c_target, save=True)
+        ppl.plot_mu_map(mus, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
     else:
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))

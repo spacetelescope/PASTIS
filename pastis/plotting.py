@@ -393,11 +393,10 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
+def plot_mu_map(mus, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
     :param mus: array or list, segment requirements (standard deviations) in nm
-    :param wvln: float, operating wavelength in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design for which the mus have been calculated
     :param c_target: float, target contrast for which the segment requirements have been calculated
@@ -439,11 +438,10 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def calculate_mode_phases(pastis_modes, wvln, design):
+def calculate_mode_phases(pastis_modes, design):
     """
     Calculate the phase maps in radians of a set of PASTIS modes.
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :return: all_modes, array of phase pupil images
     """
@@ -460,11 +458,10 @@ def calculate_mode_phases(pastis_modes, wvln, design):
     return all_modes
 
 
-def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=False):
+def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
     """
     Plot all PATIS modes onto a grid.
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :param fname_suffix: str, optional, suffix to add to the saved file name
@@ -476,7 +473,7 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=Fa
         fname += f'_{fname_suffix}'
 
     # Calculate phases of all modes
-    all_modes = calculate_mode_phases(pastis_modes, wvln, design)
+    all_modes = calculate_mode_phases(pastis_modes, design)
 
     # Plot them
     fig, axs = plt.subplots(12, 10, figsize=(20, 24))
@@ -490,12 +487,11 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=Fa
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
     """
     Plot a single PASTIS mode.
     :param mode_nr: int, mode index
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :param figsize: tuple, size of figure, default=(8.5,8.5)
