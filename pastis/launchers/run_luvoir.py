@@ -2,10 +2,11 @@
 Run different cases, free combination of matrices and analysis scripts.
 """
 import os
+
+from config import CONFIG_INI
 from hockeystick_contrast_curve import hockeystick_curve
 from matrix_building_numerical import num_matrix_multiprocess
 from pastis_analysis import run_full_pastis_analysis_luvoir
-from config import CONFIG_INI
 import util_pastis as util
 
 
