@@ -187,7 +187,7 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
 
 def get_segment_list(instrument):
     """
-    Horribly hacky function to get correct segment numer list for an instrument.
+    Horribly hacky function to get correct segment number list for an instrument (LUVOIR or HiCAT).
 
     We can assume that both implemented instruments start their numbering at 0, at the center segment. LUVOIR doesn't
     use the center segment though, so we start at 1 and go until 120, for a total of 120 segments. HiCAT does use it,
@@ -195,7 +195,12 @@ def get_segment_list(instrument):
     :param instrument: string, "HiCAT" or "LUVOIR"
     :return: seglist, array of segment numbers (names!)
     """
+    if instrument not in ['LUVOIR', 'HiCAT']:
+        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR" or "HiCAT" instead.')
+
     seglist = np.arange(CONFIG_INI.getint(instrument, 'nb_subapertures'))
+
+    # Drop the center segment with label '0' when working with LUVOIR
     if instrument == 'LUVOIR':
         seglist += 1
 
