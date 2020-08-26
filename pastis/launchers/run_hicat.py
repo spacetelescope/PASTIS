@@ -6,7 +6,7 @@ import os
 from config import CONFIG_INI
 from hockeystick_contrast_curve import hockeystick_curve
 from matrix_building_numerical import num_matrix_multiprocess
-from pastis_analysis import run_full_pastis_analysis_luvoir
+from pastis_analysis import run_full_pastis_analysis
 import util_pastis as util
 
 
@@ -27,4 +27,4 @@ if __name__ == '__main__':
     hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=20)
 
     # Finally run the analysis
-    run_full_pastis_analysis_luvoir(instrument='HiCAT', design='small', run_choice=dir_run)
+    run_full_pastis_analysis(instrument='HiCAT', design='small', run_choice=dir_run)
