@@ -332,8 +332,9 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Create normal distribution
-    rand = np.random.normal(0, 1, sigmas.shape[0])
+    # Create a random number generator
+    this_rng = np.random.RandomState()
+    rand = this_rng.normal(0, 1, sigmas.shape[0])
     random_weights = sigmas * rand
 
     # Sum up all modes with randomly scaled sigmas to make total OPD
