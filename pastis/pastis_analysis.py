@@ -89,22 +89,23 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     """
 
     nseg = pmodes.shape[0]
+    seglist = util.get_segment_list(instrument)
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
-    for thismode in range(nseg):
+    for i, thismode in enumerate(seglist):
 
         if instrument == "LUVOIR":
-            log.info(f'Working on mode {thismode + 1}/{nseg}.')
+            log.info(f'Working on mode {thismode}/{nseg}.')
 
-            wf_sm = util.apply_mode_to_luvoir(pmodes[:, thismode], sim_instance)
+            wf_sm = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
             all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
 
         if instrument == 'HiCAT':
             log.info(f'Working on mode {thismode}/{nseg-1}.')
 
             for segnum in range(nseg):
-                sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, thismode] / 1e9, 0, 0)   # /1e9 converts to meters
+                sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
             psf, inter = sim_instance.calc_psf(return_intermediates=True)
             wf_sm = inter[1].phase
 
@@ -125,23 +126,22 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     if saving:
         log.info('Saving all PASTIS modes...')
         plt.figure(figsize=(36, 30))
-        for thismode in range(nseg):
-            plt.subplot(12, 10, thismode + 1)
-            plt.imshow(all_modes[thismode], cmap='RdBu')
+        for i, thismode in enumerate(seglist):
+            plt.subplot(12, 10, i + 1)
+            plt.imshow(all_modes[i], cmap='RdBu')
             plt.axis('off')
-            plt.title(f'Mode {thismode + 1}')
+            plt.title(f'Mode {thismode}')
         plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
 
     ### Plot them individually and save as fits and pdf
-    for thismode in range(nseg):
-
+    for i, thismode in enumerate(seglist):
         # pdf
         plt.clf()
-        plt.imshow(all_modes[thismode], cmap='RdBu')
+        plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
-        plt.title(f'Mode {thismode + 1}', size=30)
+        plt.title(f'Mode {thismode}', size=30)
         if saving:
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode_{thismode+1}.pdf'))
+            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode_{thismode}.pdf'))
 
     # fits cube
     mode_cube = np.array(all_modes)
