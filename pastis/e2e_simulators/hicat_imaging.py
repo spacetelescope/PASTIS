@@ -11,6 +11,14 @@ log = logging.getLogger()
 
 
 def set_up_hicat(apply_continuous_dm_maps=False):
+    """
+    Return a configured instance of the HiCAT simulator.
+
+    Sets the pupil mask, whether the IrisAO is in or out, apodizer, Lyot stop and detector. Optionally, loads DM maps
+    onto the two continuous face-sheet Boston DMs.
+    :param apply_continuous_dm_maps: bool, whether to load BostonDM maps from path specified in configfile, default False
+    :return: instance of HICAT_Sim()
+    """
 
     hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
 
