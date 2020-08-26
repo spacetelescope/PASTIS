@@ -469,6 +469,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
     # Set up HiCAT simulator in correct state
     hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim.include_fpm = True
 
     # Put aberration on correct segments. If i=j, apply only once!
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
