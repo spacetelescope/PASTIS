@@ -81,7 +81,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
 
     :param instrument: string, 'LUVOIR' or 'HiCAT'
-    :param pmodes: array of PASTIS modes [segnum, modenum]
+    :param pmodes: array of PASTIS modes [segnum, modenum], expected in nanometers
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param sim_instance: class instance of the simulator for "instrument"
     :param saving: bool, whether to save figure to disk or not, default=False
@@ -93,11 +93,23 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
     for thismode in range(nseg):
-        log.info(f'Working on mode {thismode + 1}/{nseg}.')
 
         if instrument == "LUVOIR":
+            log.info(f'Working on mode {thismode + 1}/{nseg}.')
+
             wf_sm = util.apply_mode_to_luvoir(pmodes[:, thismode], sim_instance)
-            all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf.phase is in rad, so this converts it to meters
+            all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
+
+        if instrument == 'HiCAT':
+            log.info(f'Working on mode {thismode}/{nseg-1}.')
+
+            for segnum in range(nseg):
+                sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, thismode] / 1e9, 0, 0)   # /1e9 converts to meters
+            psf, inter = sim_instance.calc_psf(return_intermediates=True)
+            wf_sm = inter[1].phase
+
+            hicat_wavenumber = 2 * np.pi / (CONFIG_INI.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
+            all_modes.append(wf_sm / hicat_wavenumber)    # wf_sm is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
     if saving:
