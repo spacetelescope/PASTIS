@@ -16,12 +16,14 @@ import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import hcipy as hc
+import hcipy
 
 from config import CONFIG_INI
-import util_pastis as util
-import image_pastis as impastis
+from e2e_simulators.hicat_imaging import set_up_hicat
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+import hicat.simulators
+import image_pastis as impastis
+import util_pastis as util
 
 log = logging.getLogger()
 
@@ -180,15 +182,16 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     return contrast_webbpsf, contrast_am, contrast_matrix
 
 
-def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
+def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     """
-    Compute the contrast for a random IrisAO mislignment on the HiCAT simulator.
+    Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
-    :param matrix_mode: str, analytical or numerical; currently only numerical supported
     :param rms: astropy quantity, rms wfe to be put randomly on the SM
-    :return: 2x float, E2E and matrix contrast
+    :return: E2E and matrix contrast, both floats
     """
-    import hicat.simulators
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
@@ -197,9 +200,10 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     nb_seg = CONFIG_INI.getint('HiCAT', 'nb_subapertures')
     iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
     owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
 
-    # Import numerical PASTIS matrix for HiCAT sim
-    filename = 'PASTISmatrix_num_HiCAT_piston_Noll1'
+    # Import numerical PASTIS matrix
+    filename = 'PASTISmatrix_num_piston_Noll1'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
     # Create random aberration coefficients
@@ -211,54 +215,31 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     aber *= rms.value / rms_init
     calc_rms = util.rms(aber) * u.nm
     aber *= u.nm    # making sure the aberration has the correct units
-    log.info(f"Calculated RMS: {calc_rms}")
+    log.info(f"Calculated WFE RMS: {calc_rms}")
 
     # Remove global piston
     aber -= np.mean(aber)
 
-    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
-    hc = hicat.simulators.hicat_sim.HICAT_Sim()
-    hc.iris_ao = 'iris_ao'
-    hc.apodizer = 'cnt1_apodizer'
-    hc.lyot_stop = 'cnt1_apodizer_lyot_stop'
-    hc.include_fpm = False
-
-    psf_perfect = hc.calc_psf(display=False, return_intermediates=False)
-    normp = np.max(psf_perfect[0].data)
-    #psf_perfect = psf_perfect[0].data / normp   don't actually need the perfect PSF
-
-    ### HiCAT sim
+    ### E2E HiCAT sim
     start_e2e = time.time()
-    # Set up the HiCAT simulator, get PSF
-    hc.apodizer = 'cnt1_apodizer'
-    hc.lyot_stop = 'cnt1_apodizer_lyot_stop'
-    hc.include_fpm = True
 
-    # Calculate coro PSF without aberrations
-    psf_coro = hc.calc_psf(display=False, return_intermediates=False)
-    psf_coro = psf_coro[0].data / normp
-
+    # Set HiCAT simulator to coro mode
+    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim.include_fpm = True
 
     log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
     for nseg in range(nb_seg):
-        hc.iris_dm.set_actuator(nseg+1, aber[nseg], 0, 0)
+        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
 
-    psf_hicat = hc.calc_psf(display=False, return_intermediates=False)
-    psf_hicat = psf_hicat[0].data / normp
+    psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
+    psf_hicat = psf_hicat[0].data / norm
 
     # Create DH
-    dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=13 / 4)
+    dh_mask = util.create_dark_hole(psf_hicat, iwa=iwa, owa=owa, samp=sampling)
     # Get the mean contrast
-    hicat_dh_psf = psf_hicat * dh_mask
-    contrast_hicat = np.mean(hicat_dh_psf[np.where(hicat_dh_psf != 0)])
+    contrast_hicat = util.dh_mean(psf_hicat, dh_mask)
     end_e2e = time.time()
-
-    ###
-    # Calculate coronagraph contrast floor
-    baseline_dh = psf_coro * dh_mask
-    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')
@@ -283,9 +264,12 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
+def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     """
     Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
     :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
     :return: 2x float, E2E and matrix contrast
@@ -296,9 +280,9 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
 
     # Parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    sampling = 4
+    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
 
-    # Import numerical PASTIS matrix for HiCAT sim
+    # Import numerical PASTIS matrix
     filename = 'PASTISmatrix_num_piston_Noll1'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
@@ -316,47 +300,25 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
     # Remove global piston
     aber -= np.mean(aber)
 
+    start_e2e = time.time()
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    design = apodizer_choice
     optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
 
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-    ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    # and coro PSF without aberrations
-    start_e2e = time.time()
-    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
-    log.info('Also generating coro PSF without aberrations')
-    psf_perfect, ref = luvoir.calc_psf(ref=True)
-    normp = np.max(ref)
-    psf_coro = psf_perfect / normp
-
     log.info('Calculating E2E contrast...')
     # Put aberrations on segmented mirror
     for nseg in range(nb_seg):
         luvoir.set_segment(nseg+1, aber[nseg].to(u.m).value/2, 0, 0)
-
     psf_luvoir = luvoir.calc_psf()
-    psf_luvoir /= normp
-
-    # Create DH
-    dh_outer = hc.circular_aperture(2 * luvoir.apod_dict[design]['owa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_inner = hc.circular_aperture(2 * luvoir.apod_dict[design]['iwa'] * luvoir.lam_over_d)(luvoir.focal_det)
-    dh_mask = (dh_outer - dh_inner).astype('bool')
+    psf_luvoir /= norm
 
     # Get the mean contrast
-    dh_intensity = psf_luvoir * dh_mask
-    contrast_luvoir = np.mean(dh_intensity[np.where(dh_intensity != 0)])
+    contrast_luvoir = util.dh_mean(psf_luvoir, luvoir.dh_mask)
     end_e2e = time.time()
-
-    ###
-    # Calculate coronagraph contrast floor
-    baseline_dh = psf_coro * dh_mask
-    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
-    log.info(f'Baseline contrast: {coro_floor}')
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')

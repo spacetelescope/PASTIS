@@ -24,6 +24,7 @@ import hicat.simulators
 
 from config import CONFIG_INI
 import util_pastis as util
+from e2e_simulators.hicat_imaging import set_up_hicat
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 log = logging.getLogger()
@@ -350,13 +351,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
+def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
-    :return: contrast floor and PSF normalization factor
+    :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
+    :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
 
     if instrument == 'LUVOIR':
@@ -374,30 +376,21 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
         # Calculate coronagraph floor in dark hole
         contrast_floor = util.dh_mean(unaberrated_coro_psf/norm, luvoir.dh_mask)
 
+        # Return the coronagraphic simulator
+        coro_simulator = luvoir
+
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
-        hc = hicat.simulators.hicat_sim.HICAT_Sim()
-
-        hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-        hc.iris_ao = 'iris_ao'
-        hc.apodizer = 'no_apodizer'
-        hc.lyot_stop = 'circular'
-        hc.detector = 'imager'
-
-        # Load Boston DM maps into HiCAT simulator
-        path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
-        dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-        hc.dm1.set_surface(dm1_surface)
-        hc.dm2.set_surface(dm2_surface)
+        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
 
         # Calculate direct reference images for contrast normalization
-        hc.include_fpm = False
-        direct = hc.calc_psf()
+        hicat_sim.include_fpm = False
+        direct = hicat_sim.calc_psf()
         norm = direct[0].data.max()
 
         # Calculate unaberrated coronagraph image for contrast floor
-        hc.include_fpm = True
-        coro_image = hc.calc_psf()
+        hicat_sim.include_fpm = True
+        coro_image = hicat_sim.calc_psf()
         coro_psf = coro_image[0].data / norm
 
         iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
@@ -406,8 +399,15 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
         dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling)
         contrast_floor = util.dh_mean(coro_psf, dh_mask)
 
+        # Return the coronagraphic simulator
+        coro_simulator = hicat_sim
+
     log.info(f'contrast floor: {contrast_floor}')
-    return contrast_floor, norm
+
+    if return_coro_simulator:
+        return contrast_floor, norm, coro_simulator
+    else:
+        return contrast_floor, norm
 
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
@@ -479,30 +479,18 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     """
 
     # Set up HiCAT simulator in correct state
-    hc = hicat.simulators.hicat_sim.HICAT_Sim()
-
-    hc.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-    hc.iris_ao = 'iris_ao'
-    hc.apodizer = 'no_apodizer'
-    hc.lyot_stop = 'circular'
-    hc.detector = 'imager'
-
-    # Load Boston DM maps into HiCAT simulator
-    path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
-    dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-    hc.dm1.set_surface(dm1_surface)
-    hc.dm2.set_surface(dm2_surface)
-
-    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim.include_fpm = True
 
     # Put aberration on correct segments. If i=j, apply only once!
-    hc.iris_dm.flatten()
-    hc.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+    hicat_sim.iris_dm.flatten()
+    hicat_sim.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
     if segment_pair[0] != segment_pair[1]:
-        hc.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+        hicat_sim.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
 
     log.info('Calculating coro image...')
-    image, inter = hc.calc_psf(display=False, return_intermediates=True)
+    image, inter = hicat_sim.calc_psf(display=False, return_intermediates=True)
     psf = image[0].data / norm
 
     # Save PSF image to disk
@@ -522,7 +510,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
     sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
     dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
-    contrast = util.dh_mean(psf/norm, dh_mask)
+    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
 
@@ -586,7 +574,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False)
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
