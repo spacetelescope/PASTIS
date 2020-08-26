@@ -2,7 +2,7 @@
 Plotting functions for the PASTIS code.
 """
 import os
-import hcipy as hc
+import hcipy
 import matplotlib
 from matplotlib import cm
 import matplotlib.pyplot as plt
@@ -478,7 +478,7 @@ def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
     # Plot them
     fig, axs = plt.subplots(12, 10, figsize=(20, 24))
     for i, ax in enumerate(axs.flat):
-        im = hc.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
+        im = hcipy.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
         ax.axis('off')
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
@@ -512,7 +512,7 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
 
     plt.figure(figsize=figsize, constrained_layout=False)
     one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)
-    hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
+    hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
     cbar = plt.colorbar(fraction=0.046,
