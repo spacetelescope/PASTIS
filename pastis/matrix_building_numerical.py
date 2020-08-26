@@ -498,7 +498,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
     sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
     dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
-    contrast = util.dh_mean(psf/norm, dh_mask)
+    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
 
