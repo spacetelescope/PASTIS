@@ -15,7 +15,9 @@ import hcipy
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
+from e2e_simulators.hicat_imaging import set_up_hicat
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+from matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import plotting as ppl
 import util_pastis as util
 
@@ -374,19 +376,49 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
     log.info(f'Data folder: {workdir}')
     log.info(f'Instrument: {instrument}')
 
+    # Set up simulator, calculate reference PSF and dark hole mask
+    # TODO: replace this section with calculate_unaberrated_contrast_and_normalization(). This will require to save out
+    # reference and unaberrated coronagraphic PSF already in matrix generation.
     if instrument == "LUVOIR":
         sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
         optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-        # Generate reference PSF
+        # Generate reference PSF and unaberrated coronagraphic image
         luvoir.flatten()
         psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
         norm = ref.max()
 
-        psf_unaber = psf_unaber.shaped
+        psf_unaber = psf_unaber.shaped / norm
         dh_mask = luvoir.dh_mask.shaped
         sim_instance = luvoir
+
+    if instrument == 'HiCAT':
+        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+
+        # Generate reference PSF and unaberrated coronagraphic image
+        hicat_sim.include_fpm = False
+        direct = hicat_sim.calc_psf()
+        norm = direct[0].data.max()
+
+        hicat_sim.include_fpm = True
+        coro_image = hicat_sim.calc_psf()
+        psf_unaber = coro_image[0].data / norm
+
+        # Create DH mask
+        iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+        dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
+
+        sim_instance = hicat_sim
+
+    # TODO: this would also be part of the refactor mentioned above
+    # Calculate coronagraph contrast floor
+    coro_floor = util.dh_mean(psf_unaber, dh_mask)
+    log.info(f'Coronagraph floor: {coro_floor}')
+    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
+        file.write(f'{coro_floor}')
 
     # Plot unaberrated coronagraph PSF
     plt.figure()
@@ -394,18 +426,12 @@ def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-
     plt.title("Dark hole mask")
     plt.imshow(dh_mask)
     plt.subplot(1, 3, 2)
-    plt.title("Unaberrated PSF")
+    plt.title("Unaberrated coro PSF")
     plt.imshow(psf_unaber, norm=LogNorm())
     plt.subplot(1, 3, 3)
-    plt.title("Unaberrated PSF (masked)")
+    plt.title("Unaberrated coro PSF (masked)")
     plt.imshow(np.ma.masked_where(~dh_mask, psf_unaber), norm=LogNorm())
     plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
-
-    # Calculate coronagraph contrast floor
-    coro_floor = util.dh_mean(psf_unaber/norm, dh_mask)
-    log.info(f'Coronagraph floor: {coro_floor}')
-    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
-        file.write(f'{coro_floor}')
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
