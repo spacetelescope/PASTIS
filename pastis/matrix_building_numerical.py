@@ -24,6 +24,7 @@ import hicat.simulators
 
 from config import CONFIG_INI
 import util_pastis as util
+from e2e_simulators.hicat_imaging import set_up_hicat
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
 log = logging.getLogger()
@@ -376,19 +377,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None):
 
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
-        hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
-
-        hicat_sim.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-        hicat_sim.iris_ao = 'iris_ao'
-        hicat_sim.apodizer = 'no_apodizer'
-        hicat_sim.lyot_stop = 'circular'
-        hicat_sim.detector = 'imager'
-
-        # Load Boston DM maps into HiCAT simulator
-        path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
-        dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-        hicat_sim.dm1.set_surface(dm1_surface)
-        hicat_sim.dm2.set_surface(dm2_surface)
+        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
 
         # Calculate direct reference images for contrast normalization
         hicat_sim.include_fpm = False
@@ -479,23 +468,10 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     """
 
     # Set up HiCAT simulator in correct state
-    hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
-
-    hicat_sim.pupil_maskmask = 'circular'  # I will likely have to implement a new pupil mask
-    hicat_sim.iris_ao = 'iris_ao'
-    hicat_sim.apodizer = 'no_apodizer'
-    hicat_sim.lyot_stop = 'circular'
-    hicat_sim.detector = 'imager'
-
-    # Load Boston DM maps into HiCAT simulator
-    path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
-    dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
-    hicat_sim.dm1.set_surface(dm1_surface)
-    hicat_sim.dm2.set_surface(dm2_surface)
-
-    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
 
     # Put aberration on correct segments. If i=j, apply only once!
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
     hicat_sim.iris_dm.flatten()
     hicat_sim.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
     if segment_pair[0] != segment_pair[1]:
