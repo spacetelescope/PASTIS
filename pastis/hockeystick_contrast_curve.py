@@ -155,7 +155,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     os.makedirs(resultdir, exist_ok=True)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice, return_coro_simulator=False)
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
