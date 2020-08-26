@@ -127,7 +127,10 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         log.info('Saving all PASTIS modes...')
         plt.figure(figsize=(36, 30))
         for i, thismode in enumerate(seglist):
-            plt.subplot(12, 10, i + 1)
+            if instrument == 'LUVOIR':
+                plt.subplot(12, 10, i + 1)
+            if instrument == 'HiCAT':
+                plt.subplot(8, 5, i + 1)
             plt.imshow(all_modes[i], cmap='RdBu')
             plt.axis('off')
             plt.title(f'Mode {thismode}')
