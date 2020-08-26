@@ -368,8 +368,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     """
 
     # Which parts are we running?
-    calculate_modes = True
-    calculate_sigmas = False
+    calculate_modes = False
+    calculate_sigmas = True
     run_monte_carlo_modes = False
     calc_cumulative_contrast = False
     calculate_mus = False
@@ -467,7 +467,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
+        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.getfloat(instrument, 'lambda'),
                                      out_dir=os.path.join(workdir, 'results'),
                                      c_target=c_target,
                                      fname_suffix='uniform',
