@@ -333,7 +333,7 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(instrument, design, run_choice, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -646,4 +646,4 @@ if __name__ == '__main__':
     c_target = 1e-10
     mc_repeat = 100
 
-    run_full_pastis_analysis_luvoir(instrument, coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
+    run_full_pastis_analysis(instrument, coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
