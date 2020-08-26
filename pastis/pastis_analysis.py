@@ -319,13 +319,15 @@ def calc_random_segment_configuration(luvoir, mus, dh_mask):
     return random_map, rand_contrast
 
 
-def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
+def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
+    :param instrument: str, "LUVOIR" or "HiCAT"
     :param pmodes: array, pastis mode matrix [nseg, nmodes]
-    :param luvoir: LuvoirAPLC
+    :param sim_instance: class instance of the simulator for "instrument"
     :param sigmas: array, mode-based PASTIS constraints
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_weights: array, random weights used in this PSF calculation
              rand_contrast: float, mean contrast of the calculated PSF
     """
@@ -338,12 +340,22 @@ def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
     opd = np.nansum(pmodes[:, :] * random_weights, axis=1)
     opd *= u.nm
 
-    luvoir.flatten()
-    for seg, aber in enumerate(opd):
-        luvoir.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+    # Apply random aberration to E2E simulator
+    if instrument == "LUVOIR":
+        sim_instance.flatten()
+        for seg, aber in enumerate(opd):
+            sim_instance.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data.shaped
 
-    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for seg, aber in enumerate(opd):
+            sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data[0].data
+
+    rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights, rand_contrast
 
@@ -372,8 +384,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
 
     # Which parts are we running?
     calculate_modes = False
-    calculate_sigmas = True
-    run_monte_carlo_modes = False
+    calculate_sigmas = False
+    run_monte_carlo_modes = True
     calc_cumulative_contrast = False
     calculate_mus = False
     run_monte_carlo_segments = False
@@ -490,7 +502,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         all_random_weight_sets = []
         for rep in range(n_repeat):
             log.info(f'Mode realization {rep + 1}/{n_repeat}')
-            random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, luvoir.dh_mask)
+            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
