@@ -13,18 +13,18 @@ import util_pastis as util
 if __name__ == '__main__':
 
     # Generate the matrix
-    dir_matrix = num_matrix_multiprocess(instrument='HiCAT')
+    dir_run = num_matrix_multiprocess(instrument='HiCAT')
 
     # Alternatively, pick data location to run PASTIS analysis on
-    #dir_matrix = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory')
+    #dir_run = os.path.join(CONFIG_INI.get('local', 'local_data_path'), '2020-08-26T11-44-28_hicat')
 
     # Set up loggers for data analysis
-    util.setup_pastis_logging(dir_matrix, 'pastis_analysis')
+    util.setup_pastis_logging(dir_run, 'pastis_analysis')
 
     # Then generate hockeystick curve
-    result_dir_small = os.path.join(dir_matrix, 'results')
-    matrix_dir_small = os.path.join(dir_matrix, 'matrix_numerical')
-    hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=2)
+    result_dir = os.path.join(dir_run, 'results')
+    matrix_dir = os.path.join(dir_run, 'matrix_numerical')
+    hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=20)
 
     # Finally run the analysis
-    run_full_pastis_analysis_luvoir(instrument='HiCAT', design='small', run_choice=matrix_dir_small)
+    run_full_pastis_analysis_luvoir(instrument='HiCAT', design='small', run_choice=dir_run)
