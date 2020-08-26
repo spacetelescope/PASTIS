@@ -137,7 +137,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     for i, thismode in enumerate(seglist):
         # pdf
         plt.clf()
-        plt.imshow(all_modes[i], cmap='RdBu')
+        plt.imshow(all_modes[i], cmap='RdBu')    # TODO: this is now super slow for LUVOIR, using hcipy was way faster. Change back in LUVOIR case?
         plt.axis('off')
         plt.title(f'Mode {thismode}', size=30)
         if saving:
