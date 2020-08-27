@@ -627,6 +627,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         log.info('Calculating analytical statistics.')
         mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
         var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
+        log.info(f'Analytical statistical mean: {mean_stat_c}')
+        log.info(f'Analytical standard deviation: {var_c}')
 
         with open(os.path.join(workdir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'w') as file:
             file.write(f'Analytical, statistical mean: {mean_stat_c}')
