@@ -496,7 +496,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.getfloat(instrument, 'lambda'),
+        ppl.plot_mode_weights_simple(sigmas, wvln,
                                      out_dir=os.path.join(workdir, 'results'),
                                      c_target=c_target,
                                      fname_suffix='uniform',
