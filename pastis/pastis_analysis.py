@@ -288,41 +288,46 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
     return mu_map
 
 
-def calc_random_segment_configuration(luvoir, mus, dh_mask):
+def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param luvoir: LuvoirAPLC
+    :param instrument: str, "LUVOIR" or "HiCAT"
+    :param sim_instance: class instance of the simulator for "instrument"
     :param mus: array, segment-based PASTIS constraints in nm
     :param dh_mask: hcipy.Field, dark hole mask for PSF produced by LuvoirAPLC instance
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
     # Draw a normal distribution where the stddev gets scaled to mu later on
-    rand = np.random.normal(0, 1, mus.shape[0])
+    segments_random_state = np.random.RandomState()
+    rand = segments_random_state.normal(0, 1, mus.shape[0])
 
     mus *= u.nm
+    random_map = []
 
     # Multiply each segment mu by one of these random numbers,
-    # put that on the LUVOIR SM and calculate the PSF.
-    luvoir.flatten()
-    random_map = []
-    for seg, (mu, randval) in enumerate(zip(mus, rand)):
-        random_seg = mu * randval
-        random_map.append(random_seg.to(u.m).value)
-        luvoir.set_segment(seg+1, (random_seg).to(u.m).value/2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+    # put that on the simulator and calculate the PSF and mean contrast.
+    if instrument == "LUVOIR":
+        sim_instance.flatten()
+        for seg, (mu, randval) in enumerate(zip(mus, rand)):
+            random_seg = mu * randval
+            random_map.append(random_seg.to(u.m).value)
+            sim_instance.set_segment(seg+1, random_seg.to(u.m).value/2, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data.shaped
 
-    # plt.figure()
-    # plt.subplot(1, 3, 1)
-    # hcipy.imshow_field(dh_mask)
-    # plt.subplot(1, 3, 2)
-    # hcipy.imshow_field(psf, norm=LogNorm(), mask=dh_mask)
-    # plt.subplot(1, 3, 3)
-    # hcipy.imshow_field(psf, norm=LogNorm())
-    # plt.show()
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for seg, (mu, randval) in enumerate(zip(mus, rand)):
+            random_seg = mu * randval
+            random_map.append(random_seg.to(u.m).value)
+            sim_instance.iris_dm.set_actuator(seg, random_seg.to(u.m).value, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data[0].data
 
-    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
+    rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_map, rand_contrast
 
@@ -341,8 +346,8 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     """
 
     # Create a random number generator
-    this_rng = np.random.RandomState()
-    rand = this_rng.normal(0, 1, sigmas.shape[0])
+    modes_random_state = np.random.RandomState()
+    rand = modes_random_state.normal(0, 1, sigmas.shape[0])
     random_weights = sigmas * rand
 
     # Sum up all modes with randomly scaled sigmas to make total OPD
@@ -396,8 +401,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     calculate_sigmas = False
     run_monte_carlo_modes = False
     calc_cumulative_contrast = False
-    calculate_mus = True
-    run_monte_carlo_segments = False
+    calculate_mus = False
+    run_monte_carlo_segments = True
     calculate_covariance_matrices = False
     analytical_statistics = False
     calculate_segment_based = False
@@ -571,7 +576,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         all_random_maps = []
         for rep in range(n_repeat):
             log.info(f'Segment realization {rep + 1}/{n_repeat}')
-            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, luvoir.dh_mask)
+            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
