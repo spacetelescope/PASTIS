@@ -283,7 +283,7 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
 
     # Calculate segment requirements
     mu_map = np.sqrt(
-        ((c_target - coronagraph_floor) / nmodes) / (np.dot(c_avg - coronagraph_floor, np.square(modestosegs))))
+        ((c_target - coronagraph_floor) / nmodes) / (np.dot(np.array(c_avg) - coronagraph_floor, np.square(modestosegs))))
 
     return mu_map
 
@@ -395,8 +395,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     calculate_modes = False
     calculate_sigmas = False
     run_monte_carlo_modes = False
-    calc_cumulative_contrast = True
-    calculate_mus = False
+    calc_cumulative_contrast = False
+    calculate_mus = True
     run_monte_carlo_segments = False
     calculate_covariance_matrices = False
     analytical_statistics = False
@@ -555,11 +555,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
-        # Put mus on SM and plot
-        wf_constraints = util.apply_mode_to_luvoir(mus, luvoir)
-
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
-        ppl.plot_mu_map(mus, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
+        ppl.plot_mu_map(instrument, mus, sim_instance, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
     else:
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))

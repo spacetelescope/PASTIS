@@ -393,10 +393,12 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_mu_map(mus, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
+def plot_mu_map(instrument, mus, sim_instance, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
+    :param instrument: string, "LUVOIR" or "HiCAT"
     :param mus: array or list, segment requirements (standard deviations) in nm
+    :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design for which the mus have been calculated
     :param c_target: float, target contrast for which the segment requirements have been calculated
@@ -409,22 +411,25 @@ def plot_mu_map(mus, out_dir, design, c_target, limits=None, fname_suffix='', sa
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Create luvoir instance
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
+    if instrument == 'LUVOIR':
+        wf_constraints = apply_mode_to_luvoir(mus, sim_instance)
+        map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
+    if instrument == 'HiCAT':
+        for segnum in range(CONFIG_INI.getint(instrument, 'nb_subapertures')):
+            sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
+        psf, inter = sim_instance.calc_psf(return_intermediates=True)
+        wf_sm = inter[1].phase
 
-    wf_constraints = apply_mode_to_luvoir(mus, luvoir)
+        hicat_wavenumber = 2 * np.pi / (CONFIG_INI.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
 
-    plt.figure(figsize=(10, 10))
-
-    map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
     map_small = np.ma.masked_where(map_small == 0, map_small)
     cmap_brev.set_bad(color='black')
 
+    plt.figure(figsize=(10, 10))
     plt.imshow(map_small, cmap=cmap_brev)
     cbar = plt.colorbar(fraction=0.046,
-                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+                        pad=0.04)  # no clue what these numbers mean but they did the job of adjusting the colorbar size to the actual plot size
     cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
     cbar.ax.yaxis.offsetText.set(size=25)  # this changes the base of ten on the colorbar
     cbar.set_label('picometers', size=30)
