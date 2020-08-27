@@ -619,8 +619,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
 
     else:
         log.info('Loading covariance matrices from disk.')
-        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}.fits'))
-        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}.fits'))
+        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
     ### Analytically calculate statistical mean contrast and its variance
     if analytical_statistics:
