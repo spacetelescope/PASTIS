@@ -412,9 +412,11 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, design, c_target, limits
         fname += f'_{fname_suffix}'
 
     if instrument == 'LUVOIR':
+        sim_instance.flatten()
         wf_constraints = apply_mode_to_luvoir(mus, sim_instance)
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
     if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
         for segnum in range(CONFIG_INI.getint(instrument, 'nb_subapertures')):
             sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
         psf, inter = sim_instance.calc_psf(return_intermediates=True)
