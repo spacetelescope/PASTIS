@@ -143,13 +143,10 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     # Keep track of time
     start_time = time.time()
 
-    ##########################
     # Create range of WFE RMS values to test
-    if instrument == 'LUVOIR':
-        rms_range = np.logspace(-4, 4, range_points)
-    if instrument == 'HiCAT':
-        rms_range = np.logspace(-1, 3, range_points)
-    ##########################
+    rms_range = np.logspace(CONFIG_INI.getfloat(instrument, 'valid_range_lower'),
+                            CONFIG_INI.getfloat(instrument, 'valid_range_upper'),
+                            range_points)
 
     # Create results directory if it doesn't exist yet
     os.makedirs(resultdir, exist_ok=True)
