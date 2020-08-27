@@ -659,6 +659,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         log.info('Calculating segment-based error budget.')
 
         # Extract segment-based mode weights
+        log.info('Calculate segment-based mode weights')
         sigmas_opt = np.sqrt(np.diag(Cb))
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
         ppl.plot_mode_weights_simple(sigmas_opt, wvln, out_dir=os.path.join(workdir, 'results'), c_target=c_target,
@@ -669,6 +670,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
                                           alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
 
         # Calculate contrast per mode
+        log.info('Calculating contrast per mode')
         per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
         np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
                    per_mode_opt_e2e)
@@ -676,6 +678,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
                                    os.path.join(workdir, 'results'), save=True)
 
         # Calculate segment-based cumulative contrast
+        log.info('Calculating segment-based cumulative contrast')
         cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
                    cumulative_opt_e2e)
