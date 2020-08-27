@@ -397,15 +397,15 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     """
 
     # Which parts are we running?
-    calculate_modes = False
-    calculate_sigmas = False
-    run_monte_carlo_modes = False
-    calc_cumulative_contrast = False
-    calculate_mus = False
+    calculate_modes = True
+    calculate_sigmas = True
+    run_monte_carlo_modes = True
+    calc_cumulative_contrast = True
+    calculate_mus = True
     run_monte_carlo_segments = True
-    calculate_covariance_matrices = False
-    analytical_statistics = False
-    calculate_segment_based = False
+    calculate_covariance_matrices = True
+    analytical_statistics = True
+    calculate_segment_based = True
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
