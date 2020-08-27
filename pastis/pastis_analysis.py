@@ -562,6 +562,26 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
         ppl.plot_mu_map(instrument, mus, sim_instance, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
+
+        # Apply mu map directly and run through E2E simulator
+        mus *= u.nm
+
+        if instrument == 'LUVOIR':
+            sim_instance.flatten()
+            for seg, mu in enumerate(mus):
+                sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf_pure_mu_map = im_data.shaped
+        if instrument == 'HiCAT':
+            sim_instance.iris_dm.flatten()
+            for seg, mu in enumerate(mus):
+                sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+            im_data = sim_instance.calc_psf()
+            psf_pure_mu_map = im_data[0].data
+
+        contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
+        log.info(f'Contrast with pure mu-map: {contrast_mu}')
+
     else:
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
@@ -664,26 +684,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
                                                         c_target, fname_suffix='segment-based-vs-uniform', save=True)
 
-    ### Apply mu map directly and run through E2E simulator
-    mus *= u.nm
-
-    if instrument == 'LUVOIR':
-        sim_instance.flatten()
-        for seg, mu in enumerate(mus):
-            sim_instance.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
-        im_data = sim_instance.calc_psf()
-        psf_pure_mu_map = im_data.shaped
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for seg, mu in enumerate(mus):
-            sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
-        im_data = sim_instance.calc_psf()
-        psf_pure_mu_map = im_data[0].data
-
-    contrast_mu = util.dh_mean(psf_pure_mu_map/norm, dh_mask)
-    log.info(f'Contrast with pure mu-map: {contrast_mu}')
-
-    ###
+    ### DONE
     log.info(f"All saved in {os.path.join(workdir, 'results')}")
     log.info('\nGood job')
 
