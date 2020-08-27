@@ -664,14 +664,24 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
                                                         c_target, fname_suffix='segment-based-vs-uniform', save=True)
 
-    ### Apply mu map and run through E2E simulator
+    ### Apply mu map directly and run through E2E simulator
     mus *= u.nm
-    luvoir.flatten()
-    for seg, mu in enumerate(mus):
-        luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    contrast_mu = util.dh_mean(psf/ref.max(), luvoir.dh_mask)
-    log.info(f'Contrast with mu-map: {contrast_mu}')
+
+    if instrument == 'LUVOIR':
+        sim_instance.flatten()
+        for seg, mu in enumerate(mus):
+            sim_instance.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf_pure_mu_map = im_data.shaped
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for seg, mu in enumerate(mus):
+            sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+        im_data = sim_instance.calc_psf()
+        psf_pure_mu_map = im_data[0].data
+
+    contrast_mu = util.dh_mean(psf_pure_mu_map/norm, dh_mask)
+    log.info(f'Contrast with pure mu-map: {contrast_mu}')
 
     ###
     log.info(f"All saved in {os.path.join(workdir, 'results')}")
