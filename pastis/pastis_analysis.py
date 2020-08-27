@@ -304,7 +304,6 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     segments_random_state = np.random.RandomState()
     rand = segments_random_state.normal(0, 1, mus.shape[0])
 
-    mus *= u.nm
     random_map = []
 
     # Multiply each segment mu by one of these random numbers,
@@ -585,6 +584,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     else:
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
+        mus *= u.nm
 
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
