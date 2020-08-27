@@ -192,14 +192,16 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, individual=False):
+def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
+    :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param sigmas: array, weights per PASTIS mode
-    :param luvoir: LuvoirAPLC
+    :param sim_instance: class instance of the simulator for "instrument"
     :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
+        :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
     :return: cont_cum_e2e, list of cumulative or individual contrasts
     """
@@ -211,18 +213,24 @@ def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, individual=False):
             opd = pmodes[:, maxmode] * sigmas[maxmode]
         else:
             opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+        opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
-        luvoir.flatten()
-        for seg, val in enumerate(opd):
-            val *= u.nm    # the LUVOIR modes come out in units of nanometers
-            luvoir.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
+        if instrument == 'LUVOIR':
+            sim_instance.flatten()
+            for seg, val in enumerate(opd):
+                sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf = im_data.shaped
 
-        # Get PSF from putting this WFE on the simulator
-        psf, ref = luvoir.calc_psf(ref=True)
-        norm = ref.max()
+        if instrument == 'HiCAT':
+            sim_instance.iris_dm.flatten()
+            for seg, val in enumerate(opd):
+                sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf = im_data[0].data
 
         # Calculate the contrast from that PSF
-        contrast = util.dh_mean(psf/norm, dh_mask)
+        contrast = util.dh_mean(psf/norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
 
     return cont_cum_e2e
@@ -386,8 +394,8 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     # Which parts are we running?
     calculate_modes = False
     calculate_sigmas = False
-    run_monte_carlo_modes = True
-    calc_cumulative_contrast = False
+    run_monte_carlo_modes = False
+    calc_cumulative_contrast = True
     calculate_mus = False
     run_monte_carlo_segments = False
     calculate_covariance_matrices = False
@@ -525,7 +533,7 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
-        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, luvoir.dh_mask)
+        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'), cumulative_e2e)
@@ -637,14 +645,14 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
                                           alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
 
         # Calculate contrast per mode
-        per_mode_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask, individual=True)
+        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
         np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
                    per_mode_opt_e2e)
         ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
                                    os.path.join(workdir, 'results'), save=True)
 
         # Calculate segment-based cumulative contrast
-        cumulative_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask)
+        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
                    cumulative_opt_e2e)
 
