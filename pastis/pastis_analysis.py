@@ -373,7 +373,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -389,8 +389,9 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     9. calculting segment-based error budget
 
     :param instrument: str, "LUVOIR" or "HiCAT"
-    :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
     :param run_choice: str, path to data and where outputs will be saved
+    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
+               to use - 'small', 'medium' or 'large'
     :param c_target: float, target contrast
     :param n_repeat: number of realizations in both Monte Carlo simulations (modes and segments), default=100
     """
@@ -420,6 +421,10 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
     # TODO: replace this section with calculate_unaberrated_contrast_and_normalization(). This will require to save out
     # reference and unaberrated coronagraphic PSF already in matrix generation.
     if instrument == "LUVOIR":
+        if design is None:
+            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+            log.info(f'Coronagraph design: {design}')
+
         sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
         optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
@@ -689,15 +694,14 @@ def run_full_pastis_analysis(instrument, design, run_choice, c_target=1e-10, n_r
 
     ### DONE
     log.info(f"All saved in {os.path.join(workdir, 'results')}")
-    log.info('\nGood job')
+    log.info('Good job')
 
 
 if __name__ == '__main__':
 
     instrument = CONFIG_INI.get('telescope', 'name')
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
     run = CONFIG_INI.get('numerical', 'current_analysis')
     c_target = 1e-10
     mc_repeat = 100
 
-    run_full_pastis_analysis(instrument, coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
+    run_full_pastis_analysis(instrument, run_choice=run, c_target=c_target, n_repeat=mc_repeat)

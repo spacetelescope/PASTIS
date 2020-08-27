@@ -27,4 +27,4 @@ if __name__ == '__main__':
     hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=20)
 
     # Finally run the analysis
-    run_full_pastis_analysis(instrument='HiCAT', design='small', run_choice=dir_run)
+    run_full_pastis_analysis(instrument='HiCAT', run_choice=dir_run, c_target=1e-7)
