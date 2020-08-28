@@ -12,15 +12,13 @@ import os
 import time
 import functools
 from itertools import product
-from shutil import copy
-from astropy.io import fits
+import shutil
 import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
 import hcipy
-import hicat.simulators
 
 from config import CONFIG_INI
 import util_pastis as util
@@ -605,6 +603,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
                                                   savepsfs, saveopds)
 
     if instrument == 'HiCAT':
+        # Copy used BostonDM maps to matrix folder
+        shutil.copytree(CONFIG_INI.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
+
         calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
