@@ -397,9 +397,9 @@ def copy_config(outdir):
     """
     print('Saving the configfile to outputs folder.')
     try:
-        copy('config_local.ini', outdir)
+        copy(os.path.join(CONFIG_INI.get('local', 'local_repo_path'), 'pastis', 'config_local.ini'), outdir)
     except IOError:
-        copy('config.ini', outdir)
+        copy(os.path.join(CONFIG_INI.get('local', 'local_repo_path'), 'pastis', 'config.ini'), outdir)
 
 
 def setup_pastis_logging(experiment_path, name):
