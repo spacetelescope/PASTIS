@@ -219,7 +219,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         # Pupil plane optics
         aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
         aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-        apod_path = os.path.join(input_dir, 'luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
+        apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
                                  self.apod_dict[apod_design]['fname'])
         ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
 
