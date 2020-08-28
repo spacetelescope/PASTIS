@@ -10,9 +10,7 @@ from astropy.io import fits
 import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 import hcipy
-from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from config import CONFIG_INI
 from e2e_simulators.hicat_imaging import set_up_hicat
@@ -460,21 +458,6 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Calculate coronagraph contrast floor
     coro_floor = util.dh_mean(psf_unaber, dh_mask)
     log.info(f'Coronagraph floor: {coro_floor}')
-    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
-        file.write(f'{coro_floor}')
-
-    # Plot unaberrated coronagraph PSF
-    plt.figure()
-    plt.subplot(1, 3, 1)
-    plt.title("Dark hole mask")
-    plt.imshow(dh_mask)
-    plt.subplot(1, 3, 2)
-    plt.title("Unaberrated coro PSF")
-    plt.imshow(psf_unaber, norm=LogNorm())
-    plt.subplot(1, 3, 3)
-    plt.title("Unaberrated coro PSF (masked)")
-    plt.imshow(np.ma.masked_where(~dh_mask, psf_unaber), norm=LogNorm())
-    plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
