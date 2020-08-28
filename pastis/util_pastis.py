@@ -215,7 +215,7 @@ def apply_mode_to_luvoir(pmode, luvoir):
     one by one to the segmented mirror.
     :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
     :param luvoir: LuvoirAPLC
-    :return: hcipy.Wavefront of the segmented mirror
+    :return: hcipy.Wavefront of the segmented mirror, hcipy.Wavefront of the detector plane
     """
 
     # Flatten SM to be sure we have no residual aberrations
@@ -229,7 +229,7 @@ def apply_mode_to_luvoir(pmode, luvoir):
     # Propagate the aperture wavefront through the SM
     psf, planes = luvoir.calc_psf(return_intermediate='efield')
 
-    return planes['seg_mirror']
+    return planes['seg_mirror'], psf
 
 
 def read_continuous_dm_maps_hicat(path_to_dm_maps):
