@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 import logging
+from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
 
@@ -72,18 +73,19 @@ def modes_from_file(datadir):
 
 def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving=False):
     """
-    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes.
+    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
 
     Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
-    in the pupil. This phase gets returned both as an array of hcipy.Fields, as well as a standard array of 2D arrays.
-    Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
+    in the pupil. This phase gets returned both as an array of 2D arrays.
+    Both the pupl plane and the focal plane modes get save into a PDF grid, and as a cube to fits. Optionally, you can
+    save the pupil plane modes individually to PDF files by setting saving=True.
 
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array of PASTIS modes [segnum, modenum], expected in nanometers
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param sim_instance: class instance of the simulator for "instrument"
-    :param saving: bool, whether to save figure to disk or not, default=False
-    :return: mode_cube as array of 2D arrays (matplotlib)
+    :param saving: bool, whether to save the individual pupil plane modes as PDFs to disk, default=False
+    :return: cube of pupil plane modes as array of 2D arrays
     """
 
     nseg = pmodes.shape[0]
@@ -91,61 +93,88 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
+    all_modes_focal_plane = []
     for i, thismode in enumerate(seglist):
 
         if instrument == "LUVOIR":
             log.info(f'Working on mode {thismode}/{nseg}.')
-            wf_sm = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
+            wf_sm, wf_detector = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
+            psf_detector = wf_detector.intensity.shaped
+            all_modes_focal_plane.append(psf_detector)
             all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
 
         if instrument == 'HiCAT':
             log.info(f'Working on mode {thismode}/{nseg-1}.')
             for segnum in range(nseg):
                 sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
-            psf, inter = sim_instance.calc_psf(return_intermediates=True)
-            wf_sm = inter[1].phase
+            psf_detector_data, inter = sim_instance.calc_psf(return_intermediates=True)
+            psf_detector = psf_detector_data[0].data
+            all_modes_focal_plane.append(psf_detector)
 
+            phase_sm = inter[1].phase
             hicat_wavenumber = 2 * np.pi / (CONFIG_INI.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
-            all_modes.append(wf_sm / hicat_wavenumber)    # wf_sm is in rad, so this converts it to meters
+            all_modes.append(phase_sm / hicat_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
-    if saving:
-        subdirs = [os.path.join(datadir, 'results'),
-                   os.path.join(datadir, 'results', 'modes'),
-                   os.path.join(datadir, 'results', 'modes', 'fits'),
-                   os.path.join(datadir, 'results', 'modes', 'pdf')]
-        for place in subdirs:
-            if not os.path.isdir(place):
-                os.mkdir(place)
+    log.info('Creating data directories')
+    subdirs = [os.path.join(datadir, 'results'),
+               os.path.join(datadir, 'results', 'modes'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane'),
+               os.path.join(datadir, 'results', 'modes', 'focal_plane'),
+               os.path.join(datadir, 'results', 'modes', 'focal_plane', 'fits'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'pdf')]
+    for place in subdirs:
+        if not os.path.isdir(place):
+            os.mkdir(place)
 
-    ### Plot all modes together and save
-    if saving:
-        log.info('Saving all PASTIS modes...')
-        plt.figure(figsize=(36, 30))
-        for i, thismode in enumerate(seglist):
-            if instrument == 'LUVOIR':
-                plt.subplot(12, 10, i + 1)
-            if instrument == 'HiCAT':
-                plt.subplot(8, 5, i + 1)
-            plt.imshow(all_modes[i], cmap='RdBu')
-            plt.axis('off')
-            plt.title(f'Mode {thismode}')
-        plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
-
-    ### Plot them individually and save as fits and pdf
+    ### Plot all modes together and save as PDF (pupil plane)
+    log.info('Saving all PASTIS modes together as PDF (pupil plane)...')
+    plt.figure(figsize=(36, 30))
     for i, thismode in enumerate(seglist):
-        # pdf
-        plt.clf()
-        plt.imshow(all_modes[i], cmap='RdBu')    # TODO: this is now super slow for LUVOIR, using hcipy was way faster. Change back in LUVOIR case?
+        if instrument == 'LUVOIR':
+            plt.subplot(12, 10, i + 1)
+        if instrument == 'HiCAT':
+            plt.subplot(8, 5, i + 1)
+        plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
-        plt.title(f'Mode {thismode}', size=30)
-        if saving:
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode_{thismode}.pdf'))
+        plt.title(f'Mode {thismode}')
+    plt.savefig(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'modes_piston.pdf'))
 
-    # fits cube
-    mode_cube = np.array(all_modes)
+    ### Plot them individually and save as PDF (pupil plane)
     if saving:
-        hcipy.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
+        log.info('Saving all PASTIS modes into individual PDFs (pupil plane)...')
+        for i, thismode in enumerate(seglist):
+            # pdf
+            plt.clf()
+            plt.imshow(all_modes[i], cmap='RdBu')    # TODO: this is now super slow for LUVOIR, using hcipy was way faster. Change back in LUVOIR case?
+            plt.axis('off')
+            plt.title(f'Mode {thismode}', size=30)
+            if saving:
+                plt.savefig(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'pdf', f'mode_{thismode}.pdf'))
+
+    ### Save as fits cube (pupil plane)
+    log.info('Saving all PASTIS modes into fits cube (pupil plane)')
+    mode_cube = np.array(all_modes)
+    hcipy.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits', 'cube_modes.fits'))
+
+    ### Plot all modes together and save as PDF (focal plane)
+    log.info('Saving all PASTIS modes together as PDF (focal plane)...')
+    plt.figure(figsize=(36, 30))
+    for i, thismode in enumerate(seglist):
+        if instrument == 'LUVOIR':
+            plt.subplot(12, 10, i + 1)
+        if instrument == 'HiCAT':
+            plt.subplot(8, 5, i + 1)
+        plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
+        plt.axis('off')
+        plt.title(f'Mode {thismode}')
+    plt.savefig(os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'))
+
+    ### Save as fits cube (focal plane)
+    log.info('Saving all PASTIS modes into fits cube (focal plane)')
+    psf_cube = np.array(all_modes_focal_plane)
+    hcipy.write_fits(psf_cube, os.path.join(datadir, 'results', 'modes', 'focal_plane', 'fits', 'cube_modes.fits'))
 
     return mode_cube
 
@@ -157,7 +186,7 @@ def full_modes_from_file(datadir):
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
 
-    mode_cube = hcipy.read_fits(os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
+    mode_cube = hcipy.read_fits(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits', 'cube_modes.fits'))
     all_modes = hcipy.Field(mode_cube.ravel())
 
     return all_modes, mode_cube

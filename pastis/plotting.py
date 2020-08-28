@@ -413,7 +413,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, design, c_target, limits
 
     if instrument == 'LUVOIR':
         sim_instance.flatten()
-        wf_constraints = apply_mode_to_luvoir(mus, sim_instance)
+        wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
     if instrument == 'HiCAT':
         sim_instance.iris_dm.flatten()
@@ -460,7 +460,7 @@ def calculate_mode_phases(pastis_modes, design):
     # Calculate phases of all modes
     all_modes = []
     for mode in range(len(pastis_modes)):
-        all_modes.append(apply_mode_to_luvoir(pastis_modes[:, mode], luvoir).phase)
+        all_modes.append(apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
 
     return all_modes
 
@@ -518,7 +518,7 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)
-    one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)
+    one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
     hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
