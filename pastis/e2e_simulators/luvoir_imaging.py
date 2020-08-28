@@ -217,11 +217,11 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         self.imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
         # Pupil plane optics
-        aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-        aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
+        aper_path = CONFIG_INI.get('LUVOIR', 'aperture_path_in_optics')
+        aper_ind_path = CONFIG_INI.get('LUVOIR', 'indexed_aperture_path_in_optics')
         apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
                                  self.apod_dict[apod_design]['fname'])
-        ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
+        ls_fname = CONFIG_INI.get('LUVOIR', 'lyot_stop_path_in_optics')
 
         pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
         aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
