@@ -395,7 +395,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
         owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
         sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
-        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling)
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
 
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
