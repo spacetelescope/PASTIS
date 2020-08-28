@@ -628,8 +628,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     mypool.close()
 
     # Save all contrasts to disk
-    all_contrasts = all_contrasts.ravel()
-    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
+    hcipy.write_fits(all_contrasts, os.path.join(resDir, 'pair-wise_contrasts.fits'))
 
     # Filling the off-axis elements
     log.info('\nCalculating off-axis matrix elements...')
