@@ -158,7 +158,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    log.info("RMS range: {} nm".format(rms_range, fmt="%e"))
+    log.info("WFE RMS range: {} nm".format(rms_range, fmt="%e"))
     log.info(f"Random realizations: {no_realizations}")
 
     for i, rms in enumerate(rms_range):
