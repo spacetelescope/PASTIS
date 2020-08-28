@@ -11,7 +11,6 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 import os
 import time
 import functools
-from itertools import product
 import shutil
 import astropy.units as u
 import logging
@@ -611,7 +610,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
     t_start = time.time()
-    results = mypool.map(calculate_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
+    results = mypool.map(calculate_matrix_pair, util.segment_pairs_non_repeating(nb_seg))    # this util function returns a generator
     t_stop = time.time()
 
     log.info(f"Multiprocess calculation complete in {t_stop-t_start}sec = {(t_stop-t_start)/60}min")
@@ -630,17 +629,19 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Save all contrasts to disk
     hcipy.write_fits(all_contrasts, os.path.join(resDir, 'pair-wise_contrasts.fits'))
 
-    # Filling the off-axis elements
-    log.info('\nCalculating off-axis matrix elements...')
+    # Calculate the off-axis elements
+    log.info('Calculating off-axis matrix elements...')
     matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
+    matrix_pastis_half = np.copy(contrast_matrix)     # This will be the not yet symmetric final PASTIS matrix.
 
-    for i, seg_i in enumerate(seglist):
-        for j, seg_j in enumerate(seglist):
-            if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
+    for pair in util.segment_pairs_non_repeating(nb_seg):    # this util function returns a generator
+        if pair[0] != pair[1]:    # exclude diagonal elements
+            matrix_off_val = (matrix_two_N[pair[0], pair[1]] - matrix_two_N[pair[0], pair[0]] - matrix_two_N[pair[1], pair[1]]) / 2.
+            matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
+            log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
+
+    # Fill the second half of the symmetric matrix, such that M = M.T
+    matrix_pastis = util.symmetrize(matrix_pastis_half)    # This is the final, symmetric PASTIS matrix
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
