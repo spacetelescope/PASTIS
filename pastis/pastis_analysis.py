@@ -97,13 +97,11 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
         if instrument == "LUVOIR":
             log.info(f'Working on mode {thismode}/{nseg}.')
-
             wf_sm = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
             all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
 
         if instrument == 'HiCAT':
             log.info(f'Working on mode {thismode}/{nseg-1}.')
-
             for segnum in range(nseg):
                 sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
             psf, inter = sim_instance.calc_psf(return_intermediates=True)
@@ -201,7 +199,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     :param sigmas: array, weights per PASTIS mode
     :param sim_instance: class instance of the simulator for "instrument"
     :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
-        :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
     :return: cont_cum_e2e, list of cumulative or individual contrasts
     """
