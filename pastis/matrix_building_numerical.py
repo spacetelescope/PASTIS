@@ -15,6 +15,7 @@ from itertools import product
 import shutil
 import astropy.units as u
 import logging
+from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
@@ -349,13 +350,15 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True):
+def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save=False, outpath=''):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
+    :param save: bool, if True, will save direct and coro PSFs to disk, default False
+    :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
 
@@ -375,7 +378,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator and DH mask
         coro_simulator = luvoir
-        dh_mask = luvoir.dh_mask
+        dh_mask = luvoir.dh_mask.shaped
 
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
@@ -403,6 +406,28 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     # Calculate coronagraph floor in dark hole
     contrast_floor = util.dh_mean(coro_psf, dh_mask)
     log.info(f'contrast floor: {contrast_floor}')
+
+    if save:
+
+        # Save contrast floor to text file
+        with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
+            file.write(f'{contrast_floor}')
+
+        # Save direct PSF, unaberrated coro PSF and DH masked coro PSF
+        plt.figure(figsize=(18, 6))
+        plt.subplot(1, 3, 1)
+        plt.title("Direct PSF")
+        plt.imshow(direct_psf, norm=LogNorm())
+        plt.colorbar()
+        plt.subplot(1, 3, 2)
+        plt.title("Unaberrated coro PSF")
+        plt.imshow(coro_psf, norm=LogNorm())
+        plt.colorbar()
+        plt.subplot(1, 3, 3)
+        plt.title("Dark hole coro PSF")
+        plt.imshow(np.ma.masked_where(~dh_mask, coro_psf), norm=LogNorm())
+        plt.colorbar()
+        plt.savefig(os.path.join(outpath, 'unaberrated_dh.pdf'))
 
     if return_coro_simulator:
         return contrast_floor, norm, coro_simulator
@@ -574,7 +599,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False, save=True, outpath=overall_dir)
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
