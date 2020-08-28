@@ -368,14 +368,14 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Calculate reference images for contrast normalization and coronagraph floor
-        unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
-        norm = np.max(ref)
+        unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
+        norm = np.max(direct)
+        direct_psf = direct.shaped
+        coro_psf = unaberrated_coro_psf.shaped / norm
 
-        # Calculate coronagraph floor in dark hole
-        contrast_floor = util.dh_mean(unaberrated_coro_psf/norm, luvoir.dh_mask)
-
-        # Return the coronagraphic simulator
+        # Return the coronagraphic simulator and DH mask
         coro_simulator = luvoir
+        dh_mask = luvoir.dh_mask
 
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
@@ -384,7 +384,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Calculate direct reference images for contrast normalization
         hicat_sim.include_fpm = False
         direct = hicat_sim.calc_psf()
-        norm = direct[0].data.max()
+        direct_psf = direct[0].data
+        norm = direct_psf.max()
 
         # Calculate unaberrated coronagraph image for contrast floor
         hicat_sim.include_fpm = True
@@ -395,11 +396,12 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
         sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
         dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling)
-        contrast_floor = util.dh_mean(coro_psf, dh_mask)
 
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
 
+    # Calculate coronagraph floor in dark hole
+    contrast_floor = util.dh_mean(coro_psf, dh_mask)
     log.info(f'contrast floor: {contrast_floor}')
 
     if return_coro_simulator:
