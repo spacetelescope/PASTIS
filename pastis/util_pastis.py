@@ -5,6 +5,7 @@ Helper functions for PASTIS.
 import glob
 import os
 import datetime
+import itertools
 import time
 from shutil import copy
 import sys
@@ -248,6 +249,49 @@ def read_continuous_dm_maps_hicat(path_to_dm_maps):
         surfaces.append(actuators_2d)
 
     return surfaces[0], surfaces[1]
+
+
+def segment_pairs_all(nseg):
+    """
+    Return a generator with all possible segment pairs, including repeating ones.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 10, 11, 12, 20, 21, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.product(np.arange(nseg), np.arange(nseg))
+
+
+def segment_pairs_non_repeating(nseg):
+    """
+    Return a generator with all possible non-repeating segment pairs.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 11, 12, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.combinations_with_replacement(np.arange(nseg), r=2)
+
+
+def symmetrize(array):
+    """
+    Return a symmetrized version of NumPy array a.
+
+    Values x are replaced by the array value at the symmetric
+    position (with respect to the diagonal), i.e. if a_ij = x,
+    then the returned array a' is such that a'_ij = a_ji.
+
+    Diagonal values are left untouched.
+
+    a -- square NumPy array, such that a_ij = x or a_ji = x,
+    for i != j.
+
+    Srouce:
+    https://stackoverflow.com/a/2573982/10112569
+    """
+    return array + array.T - np.diag(array.diagonal())
 
 
 def rms(ar):
