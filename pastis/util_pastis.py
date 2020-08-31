@@ -2,6 +2,7 @@
 Helper functions for PASTIS.
 """
 
+import glob
 import os
 import datetime
 import time
@@ -522,12 +523,17 @@ def create_pdf_report(datadir, c_target):
     :param datadir: str, data directory
     :param c_target: float, target contrast - beware of formatting differences (usually good: e.g. 1e-07, 1e-10, etc.)
     """
+
+    # The hockey stick plot has a variable filename... need to change that at some point
+    hockey_filename_full_path = glob.glob(os.path.join(datadir, 'results', 'hockeystick*'))[0]
+
+    # Define in what order the PDFs should be merged
     pdfs = [os.path.join(datadir, 'title_page.pdf'),
             os.path.join(datadir, 'unaberrated_dh.pdf'),
             os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'modes_piston.pdf'),
             os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'),
             os.path.join(datadir, 'results', f'eigenvalues.pdf'),
-            #os.path.join(datadir, 'results', f'hockeystick_*.pdf'),    #TODO: crawl for the correct hockeystick curve
+            hockey_filename_full_path,
             os.path.join(datadir, 'results', f'mode_requirements_{c_target}_uniform.pdf'),
             os.path.join(datadir, 'results', f'monte_carlo_modes_{c_target}.pdf'),
             os.path.join(datadir, 'results', f'cumulative_contrast_accuracy_{c_target}.pdf'),
