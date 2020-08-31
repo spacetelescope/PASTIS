@@ -490,37 +490,30 @@ def create_title_page(instrument, datadir, itemlist):
 def collect_title_page(datadir, c_target):
     """
     Collect all the items from the data directory and return as list of strings for title page.
+
+    Will skip README if none exists.
     :param datadir:  str, data location
     :param c_target: float, target contrast
     :return:
     """
 
-    full_list = []
+    # Define what txt file contents you want to include in the title page
+    txt_files = [os.path.join(datadir, 'README.txt'),
+                 os.path.join(datadir, 'coronagraph_floor.txt'),
+                 os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'),
+                 os.path.join(datadir, 'results', f'statistical_contrast_empirical_{c_target}.txt')]
+    read_list = []
 
-    # README
-    try:
-        with open(os.path.join(datadir, 'README.txt'), 'r') as file:
-            readme = file.read()
-        full_list.append(readme)
-    except FileNotFoundError:
-        log.info("No README.txt found, won't include.")
+    # Read all files and add their contents as string to read_list
+    for one_file in txt_files:
+        try:
+            with open(one_file, 'r') as file:
+                read_this = file.read()
+            read_list.append(read_this)
+        except FileNotFoundError:
+            log.info(f"No {os.path.basename(os.path.normpath(one_file))} found, won't include.")
 
-    # Coronagraph contrast floor
-    with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
-        coro_floor = file.read()
-    full_list.append(coro_floor)
-
-    # Statistics analytical
-    with open(os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'r') as file:
-        analytical_stats = file.read()
-    full_list.append(analytical_stats)
-
-    # Statistics empirical
-    with open(os.path.join(datadir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'r') as file:
-        empirical_stats = file.read()
-    full_list.append(empirical_stats)
-
-    return full_list
+    return read_list
 
 
 def create_pdf_report(datadir, c_target):
