@@ -702,6 +702,11 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
                                                         c_target, fname_suffix='segment-based-vs-uniform', save=True)
 
+    ### Write full PDF report
+    title_page_list = util.collect_title_page(workdir, c_target)
+    util.create_title_page(instrument, workdir, title_page_list)
+    util.create_pdf_report(workdir, c_target)
+
     ### DONE
     log.info(f"All saved in {os.path.join(workdir, 'results')}")
     log.info('Good job')
