@@ -411,7 +411,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Save contrast floor to text file
         with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
-            file.write(f'{contrast_floor}')
+            file.write(f'Coronagraph floor: {contrast_floor}')
 
         # Save direct PSF, unaberrated coro PSF and DH masked coro PSF
         plt.figure(figsize=(18, 6))

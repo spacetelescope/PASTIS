@@ -508,7 +508,7 @@ def collect_title_page(datadir, c_target):
     # Coronagraph contrast floor
     with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
         coro_floor = file.read()
-    full_list.append(f'Coronagrahp floor: {coro_floor}')
+    full_list.append(coro_floor)
 
     # Statistics analytical
     with open(os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'r') as file:
