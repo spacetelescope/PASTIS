@@ -495,24 +495,32 @@ def collect_title_page(datadir, c_target):
     :return:
     """
 
+    full_list = []
+
     # README
-    with open(os.path.join(datadir, 'README.txt'), 'r') as file:
-        readme = file.read()
+    try:
+        with open(os.path.join(datadir, 'README.txt'), 'r') as file:
+            readme = file.read()
+        full_list.append(readme)
+    except FileNotFoundError:
+        log.info("No README.txt found, won't include.")
 
     # Coronagraph contrast floor
     with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
         coro_floor = file.read()
-    coronagragph_floor = f'Coronagrahp floor: {coro_floor}'
+    full_list.append(f'Coronagrahp floor: {coro_floor}')
 
     # Statistics analytical
     with open(os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'r') as file:
         analytical_stats = file.read()
+    full_list.append(analytical_stats)
 
     # Statistics empirical
     with open(os.path.join(datadir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'r') as file:
         empirical_stats = file.read()
+    full_list.append(empirical_stats)
 
-    return [readme, coronagragph_floor, analytical_stats, empirical_stats]
+    return full_list
 
 
 def create_pdf_report(datadir, c_target):
