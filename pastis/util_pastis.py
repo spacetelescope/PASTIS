@@ -9,9 +9,11 @@ from shutil import copy
 import sys
 from astropy.io import fits
 import astropy.units as u
+import fpdf
 import logging
 import logging.handlers
 import numpy as np
+from PyPDF2 import PdfFileMerger
 
 from config import CONFIG_INI
 
@@ -433,3 +435,116 @@ def setup_pastis_logging(experiment_path, name):
     log.addHandler(experiment_hander)
     log.info("LOG SETUP: Experiment log will save messages of {} or higher to {}".format(logging.getLevelName(experiment_hander.level),
                                                                                          experiment_logfile_path))
+
+
+class PDF(fpdf.FPDF):
+    """
+    Subclass from fpdf.FPDF to be able to add a header and footer.
+    :param instrument: str, 'LUVOIR' or 'HiCAT'
+    """
+    def __init__(self, instrument):
+        super().__init__()
+        self.instrument = instrument
+
+    def header(self):
+        # Arial bold 15
+        self.set_font('Arial', 'B', 15)
+        # Move to the right
+        self.cell(80)
+        # Title
+        self.cell(30, 10, self.instrument, 1, 0, 'C')
+        # Line break
+        self.ln(20)
+
+    # Page footer
+    def footer(self):
+        # Position at 1.5 cm from bottom
+        self.set_y(-15)
+        # Arial italic 8
+        self.set_font('Arial', 'I', 8)
+        # Page number, on the right
+        #self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'R')
+        # Date, centered
+        self.cell(0, 10, str(datetime.date.today()), 0, 0, 'C')
+
+
+def create_title_page(instrument, datadir, itemlist):
+    """
+    Write the title page as PDF to disk.
+    :param instrument:  str, 'LUVOIR' or 'HiCAT'
+    :param datadir: str, data location
+    :param itemlist: list of strings to add to the title page
+    :return:
+    """
+
+    pdf = PDF(instrument=instrument)
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_font('Times', '', 12)
+    pdf.cell(w=0, h=15, txt=os.path.basename(os.path.normpath(datadir)), border=0, ln=1, align='L')
+    for entry in itemlist:
+        pdf.multi_cell(0, 10, entry, 0, 1)
+    pdf.output(os.path.join(datadir, 'title_page.pdf'), 'F')
+
+
+def collect_title_page(datadir, c_target):
+    """
+    Collect all the items from the data directory and return as list of strings for title page.
+    :param datadir:  str, data location
+    :param c_target: float, target contrast
+    :return:
+    """
+
+    # README
+    with open(os.path.join(datadir, 'README.txt'), 'r') as file:
+        readme = file.read()
+
+    # Coronagraph contrast floor
+    with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
+        coro_floor = file.read()
+    coronagragph_floor = f'Coronagrahp floor: {coro_floor}'
+
+    # Statistics analytical
+    with open(os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'r') as file:
+        analytical_stats = file.read()
+
+    # Statistics empirical
+    with open(os.path.join(datadir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'r') as file:
+        empirical_stats = file.read()
+
+    return [readme, coronagragph_floor, analytical_stats, empirical_stats]
+
+
+def create_pdf_report(datadir, c_target):
+    """
+    Create and write to disk PDF file with all PDF figures and title page.
+    :param datadir: str, data directory
+    :param c_target: float, target contrast - beware of formatting differences (usually good: e.g. 1e-07, 1e-10, etc.)
+    """
+    pdfs = [os.path.join(datadir, 'title_page.pdf'),
+            os.path.join(datadir, 'unaberrated_dh.pdf'),
+            os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'modes_piston.pdf'),
+            os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'),
+            os.path.join(datadir, 'results', f'eigenvalues.pdf'),
+            #os.path.join(datadir, 'results', f'hockeystick_*.pdf'),    #TODO: crawl for the correct hockeystick curve
+            os.path.join(datadir, 'results', f'mode_requirements_{c_target}_uniform.pdf'),
+            os.path.join(datadir, 'results', f'monte_carlo_modes_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cumulative_contrast_accuracy_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'segment_requirements_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'segment_tolerance_map_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'monte_carlo_segments_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'mode_requirements_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'mode_requirements_double_axis_{c_target}_segment-based-vs-uniform.pdf'),
+            os.path.join(datadir, 'results', f'contrast_per_mode_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cumulative_contrast_allocation_{c_target}_segment-based-vs-uniform.pdf')
+            ]
+
+    merger = PdfFileMerger()
+
+    for pdf in pdfs:
+        merger.append(pdf)
+
+    merger.write(os.path.join(datadir, 'full_report.pdf'))
+    merger.close()
