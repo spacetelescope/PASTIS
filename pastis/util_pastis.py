@@ -551,7 +551,10 @@ def create_pdf_report(datadir, c_target):
     merger = PdfFileMerger()
 
     for pdf in pdfs:
-        merger.append(pdf)
+        try:
+            merger.append(pdf)
+        except FileNotFoundError:
+            log.info(f"{pdf} omitted from full report - it doesn't exist.")
 
     merger.write(os.path.join(datadir, 'full_report.pdf'))
     merger.close()

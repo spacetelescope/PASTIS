@@ -350,14 +350,14 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     return overall_dir
 
 
-def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save=False, outpath=''):
+def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
-    :param save: bool, if True, will save direct and coro PSFs to disk, default False
+    :param save: bool, if True, will save direct and coro PSF images to disk, default False
     :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
@@ -407,13 +407,14 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     contrast_floor = util.dh_mean(coro_psf, dh_mask)
     log.info(f'contrast floor: {contrast_floor}')
 
-    if save:
-
+    if save_coro_floor:
         # Save contrast floor to text file
         with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
             file.write(f'Coronagraph floor: {contrast_floor}')
 
-        # Save direct PSF, unaberrated coro PSF and DH masked coro PSF
+    if save_psfs:
+
+        # Save direct PSF, unaberrated coro PSF and DH masked coro PSF as PDF
         plt.figure(figsize=(18, 6))
         plt.subplot(1, 3, 1)
         plt.title("Direct PSF")
@@ -599,7 +600,8 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False, save=True, outpath=overall_dir)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False,
+                                                                            save_coro_floor=True, save_psfs=False, outpath=overall_dir)
 
     # Figure out how many processes is optimal and create a Pool.
     # Assume we're the only one on the machine so we can hog all the resources.
