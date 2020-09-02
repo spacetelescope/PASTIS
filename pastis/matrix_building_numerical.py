@@ -542,16 +542,17 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     """
-    Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted).
+    Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted, but only half filled).
 
-    The contrast matrix is a symmetric nseg x nseg matrix holding the DH mean contrast values of each aberrated
-    segment pair, with an WFE amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix
-    is not normalized to the desired units yet. The coronagraph floor already needs to be subtracted from it at this
-    point though.
+    The contrast matrix is a nseg x nseg matrix where only half of it is filled, it's lower half (np.tril(C)). It holds
+    the DH mean contrast values of each aberrated segment pair, with an WFE amplitude of the calibration
+    aberration wfe_aber, in m. Hence, the input contrast matrix is not normalized to the desired units yet. The
+    coronagraph floor already needs to be subtracted from it at this point though.
     This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
     aberration to get a matrix with units of contrast / nm^2.
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
+                            with the coro floor already subtracted, but only half of the matrix has non-zero values
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
     :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
     :return: the finalized PASTIS matrix, nd.array of nseg x nseg
@@ -571,27 +572,25 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
 
 def calculate_off_axis_elements(contrast_matrix, seglist):
     """
-    Calculate the off-axis elements of the PASTIS matrix, from the contrast matrix (coro floor already subtracted).
+    Calculate the off-axis elements of the (half) PASTIS matrix, from the contrast matrix (coro floor already subtracted).
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
+                            with the coro floor already subtracted
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :return: unnormalized PASTIS matrix, nd.array of nseg x nseg
+    :return: unnormalized half PASTIS matrix, nd.array of nseg x nseg where its lower triangle (np.tril(M)) will be all zeros
     """
 
-    # Create empty PASTIS matrix
-    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
+    # Create future (half filled) PASTIS matrix
+    matrix_pastis_half = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
 
-    # Calculate the off-axis elements in the PASTIS matrix
-    log.info('Calculating off-axis matrix elements...')
-    for i, seg_i in enumerate(seglist):
-        for j, seg_j in enumerate(seglist):
-            if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
+    # Calculate the off-axis elements in the (half) PASTIS matrix
+    for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
+        if pair[0] != pair[1]:    # exclude diagonal elements
+            matrix_off_val = (contrast_matrix[pair[0], pair[1]] - contrast_matrix[pair[0], pair[0]] - contrast_matrix[pair[1], pair[1]]) / 2.
+            matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
+            log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
 
-    return matrix_pastis
+    return matrix_pastis_half
 
 
 def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
