@@ -544,10 +544,10 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     """
     Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted, but only half filled).
 
-    The contrast matrix is a nseg x nseg matrix where only half of it is filled, it's lower half (np.tril(C)). It holds
-    the DH mean contrast values of each aberrated segment pair, with an WFE amplitude of the calibration
-    aberration wfe_aber, in m. Hence, the input contrast matrix is not normalized to the desired units yet. The
-    coronagraph floor already needs to be subtracted from it at this point though.
+    The contrast matrix is a nseg x nseg matrix where only half of it is filled, including the diagonal, and the other
+    half is filled with zeros. It holds the DH mean contrast values of each aberrated segment pair, with an WFE
+    amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix is not normalized to the
+    desired units yet. The coronagraph floor already needs to be subtracted from it at this point though.
     This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
     aberration to get a matrix with units of contrast / nm^2.
     Finally, it symmetrizes the matrix to output the full PASTIS matrix.
@@ -583,7 +583,7 @@ def calculate_off_axis_elements(contrast_matrix, seglist):
     :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
                             with the coro floor already subtracted
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :return: unnormalized half PASTIS matrix, nd.array of nseg x nseg where its lower triangle (np.tril(M)) will be all zeros
+    :return: unnormalized half PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
     """
 
     # Create future (half filled) PASTIS matrix

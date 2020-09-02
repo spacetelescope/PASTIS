@@ -278,12 +278,18 @@ def segment_pairs_non_repeating(nseg):
 def symmetrize(array):
     """
     Return a symmetrized version of NumPy array a.
-    This assumes that the other half of the array only contains zeros.
 
-    :param array: nd.array with filled diagonal and upper triangle (np.triu(array)). Lower triangle is zero.
-    :return symemtric array
+    Values 0 are replaced by the array value at the symmetric
+    position (with respect to the diagonal), i.e. if a_ij = 0,
+    then the returned array a' is such that a'_ij = a_ji.
+    Diagonal values are left untouched.
+    :param array: square NumPy array, such that a_ij = 0 or a_ji = 0,
+    for i != j.
+
+    Source:
+    https://stackoverflow.com/a/2573982/10112569
     """
-    return array.T + np.triu(array, 1)
+    return array + array.T - np.diag(array.diagonal())
 
 
 def read_coro_floor_from_txt(datadir):
