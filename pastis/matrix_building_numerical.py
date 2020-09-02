@@ -560,9 +560,11 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     """
 
     # Calculate the off-axis elements in the PASTIS matrix
+    log.info('Calculating off-axis elements of PASTIS matrix')
     matrix_pastis_half = calculate_off_axis_elements(contrast_matrix, seglist)
 
     # Symmetrize the half-PASTIS matrix
+    log.info('Symmetrizing PASTIS matrix')
     matrix_pastis = util.symmetrize(matrix_pastis_half)
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
