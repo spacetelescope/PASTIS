@@ -541,6 +541,60 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     return contrast, segment_pair
 
 
+def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
+    """
+    Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted).
+
+    The contrast matrix is a symmetric nseg x nseg matrix holding the DH mean contrast values of each aberrated
+    segment pair, with an WFE amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix
+    is not normalized to the desired units yet. The coronagraph floor already needs to be subtracted from it at this
+    point though.
+    This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
+    aberration to get a matrix with units of contrast / nm^2.
+
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
+    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
+    :return: the finalized PASTIS matrix, nd.array of nseg x nseg
+    """
+
+    # Calculate the off-axis elements in the PASTIS matrix
+    matrix_pastis = calculate_off_axis_elements(contrast_matrix, seglist)
+
+    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
+    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
+    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
+    log.info('Normalizing PASTIS matrix')
+    matrix_pastis /= np.square(wfe_aber * 1e9)  # 1e9 converts the calibration aberration back to nanometers
+
+    return matrix_pastis
+
+
+def calculate_off_axis_elements(contrast_matrix, seglist):
+    """
+    Calculate the off-axis elements of the PASTIS matrix, from the contrast matrix (coro floor already subtracted).
+
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
+    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    :return: unnormalized PASTIS matrix, nd.array of nseg x nseg
+    """
+
+    # Create empty PASTIS matrix
+    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
+    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
+
+    # Calculate the off-axis elements in the PASTIS matrix
+    log.info('Calculating off-axis matrix elements...')
+    for i, seg_i in enumerate(seglist):
+        for j, seg_j in enumerate(seglist):
+            if i != j:
+                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
+                matrix_pastis[i,j] = matrix_off_val
+                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
+
+    return matrix_pastis
+
+
 def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
     """
     Generate a numerical/semi-analytical PASTIS matrix.
@@ -659,22 +713,8 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Save all contrasts to disk
     hcipy.write_fits(all_contrasts, os.path.join(resDir, 'pair-wise_contrasts.fits'))
 
-    # Filling the off-axis elements
-    log.info('\nCalculating off-axis matrix elements...')
-    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
-
-    for i, seg_i in enumerate(seglist):
-        for j, seg_j in enumerate(seglist):
-            if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
-
-    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
-    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
-    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
-    matrix_pastis /= np.square(wfe_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
+    # Calculate the PASTIS matrix from the contrast matrix: off-axis elements and normalization
+    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber)
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
