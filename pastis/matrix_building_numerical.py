@@ -709,22 +709,8 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Save all contrasts to disk
     hcipy.write_fits(all_contrasts, os.path.join(resDir, 'pair-wise_contrasts.fits'))
 
-    # Filling the off-axis elements
-    log.info('\nCalculating off-axis matrix elements...')
-    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
-
-    for i, seg_i in enumerate(seglist):
-        for j, seg_j in enumerate(seglist):
-            if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
-
-    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
-    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
-    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
-    matrix_pastis /= np.square(wfe_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
+    # Calculate the PASTIS matrix from the contrast matrix: off-axis elements and normalization
+    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber)
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
