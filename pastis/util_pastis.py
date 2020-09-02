@@ -278,20 +278,12 @@ def segment_pairs_non_repeating(nseg):
 def symmetrize(array):
     """
     Return a symmetrized version of NumPy array a.
+    This assumes that the other half of the array only contains zeros.
 
-    Values x are replaced by the array value at the symmetric
-    position (with respect to the diagonal), i.e. if a_ij = x,
-    then the returned array a' is such that a'_ij = a_ji.
-
-    Diagonal values are left untouched.
-
-    a -- square NumPy array, such that a_ij = x or a_ji = x,
-    for i != j.
-
-    Srouce:
-    https://stackoverflow.com/a/2573982/10112569
+    :param array: nd.array with filled diagonal and upper triangle (np.triu(array)). Lower triangle is zero.
+    :return symemtric array
     """
-    return array + array.T - np.diag(array.diagonal())
+    return array.T + np.triu(array, 1)
 
 
 def rms(ar):
