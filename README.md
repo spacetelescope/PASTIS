@@ -332,7 +332,7 @@ directory structure is as follows:
 |      |-- OTE_images
 |          |-- opd[...].pdf                      # PDF images of each segment pair aberration in the pupil
 |          |-- ...
-|      |-- pair-wise_contrasts.fits:             # contrast matrix - E2E DH average contrasts per aberrated segment pair (only half of it since it is symmetric)
+|      |-- pair-wise_contrasts.fits:             # contrast matrix - E2E DH average contrasts per aberrated segment pair (only half of it since it is symmetric), contrast floor is not subtracted yet
 |      |-- pastis_matrix.log                     # logging output of matrix calculation
 |      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
 |      |-- psfs
