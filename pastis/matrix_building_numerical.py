@@ -546,12 +546,14 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted).
 
     The contrast matrix is a symmetric nseg x nseg matrix holding the DH mean contrast values of each aberrated
-    segment pair, with an WFE amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix is not
-    normalized to the desired units yet.
+    segment pair, with an WFE amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix
+    is not normalized to the desired units yet. The coronagraph floor already needs to be subtracted from it at this
+    point though.
     This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
     aberration to get a matrix with units of contrast / nm^2.
+
     :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
-    :param seglist: list of segment indices (e.g. 0, 1, 2, ...37 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
     :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
     :return: the finalized PASTIS matrix, nd.array of nseg x nseg
     """
@@ -571,8 +573,9 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
 def calculate_off_axis_elements(contrast_matrix, seglist):
     """
     Calculate the off-axis elements of the PASTIS matrix, from the contrast matrix (coro floor already subtracted).
+
     :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs, with the coro floor already subtracted
-    :param seglist: list of segment indices (e.g. 0, 1, 2, ...37 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
     :return: unnormalized PASTIS matrix, nd.array of nseg x nseg
     """
 
@@ -590,6 +593,7 @@ def calculate_off_axis_elements(contrast_matrix, seglist):
                 log.info(f'Off-axis for i{seg_i}-j{seg_j}: {matrix_off_val}')
 
     return matrix_pastis
+
 
 def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
     """
