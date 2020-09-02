@@ -706,7 +706,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
         # Fill according entry in the matrix and subtract baseline contrast
         all_contrasts[results[i][1][0], results[i][1][1]] = results[i][0]
-        contrast_matrix = all_contrasts - contrast_floor
+    contrast_matrix = all_contrasts - contrast_floor
 
     mypool.close()
 
