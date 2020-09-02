@@ -705,15 +705,14 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Unscramble results
     # results is a list of tuples that contain the return from the partial function, in this case: result[i] = (c, (seg1, seg2))
-    all_contrasts = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
+    contrast_matrix = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
     for i in range(len(results)):
         # Fill according entry in the matrix and subtract baseline contrast
-        all_contrasts[results[i][1][0], results[i][1][1]] = results[i][0]
-    contrast_matrix = all_contrasts - contrast_floor
+        contrast_matrix[results[i][1][0], results[i][1][1]] = results[i][0] - contrast_floor
     mypool.close()
 
-    # Save all contrasts to disk, WITHOUT subtraction of coronagraph floor
-    hcipy.write_fits(all_contrasts, os.path.join(resDir, 'pair-wise_contrasts.fits'))
+    # Save all contrasts to disk, WITH subtraction of coronagraph floor
+    hcipy.write_fits(contrast_matrix, os.path.join(resDir, 'pair-wise_contrasts.fits'))
 
     # Calculate the PASTIS matrix from the contrast matrix: off-axis elements and normalization
     matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber)
