@@ -286,6 +286,17 @@ def symmetrize(array):
     return array.T + np.triu(array, 1)
 
 
+def read_coro_floor_from_txt(datadir):
+    """
+    Read the coro floor as float from the output file in the data directory.
+    :param datadir: str, path to data directory
+    :return: coronagraph floor as float
+    """
+    with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
+        full = file.read()
+    return float(full[19:])
+
+
 def rms(ar):
     """
     Manual root-mean-square calculation, assuming a zero-mean
