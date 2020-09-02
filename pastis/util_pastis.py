@@ -5,6 +5,7 @@ Helper functions for PASTIS.
 import glob
 import os
 import datetime
+import itertools
 import time
 from shutil import copy
 import sys
@@ -248,6 +249,58 @@ def read_continuous_dm_maps_hicat(path_to_dm_maps):
         surfaces.append(actuators_2d)
 
     return surfaces[0], surfaces[1]
+
+
+def segment_pairs_all(nseg):
+    """
+    Return a generator with all possible segment pairs, including repeating ones.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 10, 11, 12, 20, 21, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.product(np.arange(nseg), np.arange(nseg))
+
+
+def segment_pairs_non_repeating(nseg):
+    """
+    Return a generator with all possible non-repeating segment pairs.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 11, 12, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.combinations_with_replacement(np.arange(nseg), r=2)
+
+
+def symmetrize(array):
+    """
+    Return a symmetrized version of NumPy array a.
+
+    Values 0 are replaced by the array value at the symmetric
+    position (with respect to the diagonal), i.e. if a_ij = 0,
+    then the returned array a' is such that a'_ij = a_ji.
+    Diagonal values are left untouched.
+    :param array: square NumPy array, such that a_ij = 0 or a_ji = 0,
+    for i != j.
+
+    Source:
+    https://stackoverflow.com/a/2573982/10112569
+    """
+    return array + array.T - np.diag(array.diagonal())
+
+
+def read_coro_floor_from_txt(datadir):
+    """
+    Read the coro floor as float from the output file in the data directory.
+    :param datadir: str, path to data directory
+    :return: coronagraph floor as float
+    """
+    with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
+        full = file.read()
+    return float(full[19:])
 
 
 def rms(ar):
