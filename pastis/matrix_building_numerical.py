@@ -11,7 +11,6 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 import os
 import time
 import functools
-from itertools import product
 import shutil
 import astropy.units as u
 import logging
@@ -692,7 +691,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
     t_start = time.time()
-    results = mypool.map(calculate_matrix_pair, product(np.arange(nb_seg), np.arange(nb_seg)))
+    results = mypool.map(calculate_matrix_pair, util.segment_pairs_non_repeating(nb_seg))    # this util function returns a generator
     t_stop = time.time()
 
     log.info(f"Multiprocess calculation complete in {t_stop-t_start}sec = {(t_stop-t_start)/60}min")
