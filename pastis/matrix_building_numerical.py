@@ -648,6 +648,8 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f'Number of segments: {nb_seg}')
     log.info(f'Segment list: {seglist}')
     log.info(f'wfe_aber: {wfe_aber} m')
+    log.info(f'Total number of segment pairs in {instrument} pupil: {len(list(util.segment_pairs_all(nb_seg)))}')
+    log.info(f'Non-repeating pairs in {instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(nb_seg)))}')
 
     #  Copy configfile to resulting matrix directory
     util.copy_config(resDir)
