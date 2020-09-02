@@ -550,6 +550,7 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     coronagraph floor already needs to be subtracted from it at this point though.
     This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
     aberration to get a matrix with units of contrast / nm^2.
+    Finally, it symmetrizes the matrix to output the full PASTIS matrix.
 
     :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
                             with the coro floor already subtracted, but only half of the matrix has non-zero values
@@ -559,7 +560,10 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
     """
 
     # Calculate the off-axis elements in the PASTIS matrix
-    matrix_pastis = calculate_off_axis_elements(contrast_matrix, seglist)
+    matrix_pastis_half = calculate_off_axis_elements(contrast_matrix, seglist)
+
+    # Symmetrize the half-PASTIS matrix
+    matrix_pastis = util.symmetrize(matrix_pastis_half)
 
     # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
     # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
