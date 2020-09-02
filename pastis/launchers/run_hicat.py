@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # Then generate hockeystick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=20)
+    hockeystick_curve(instrument='HiCAT', matrixdir=matrix_dir, resultdir=result_dir, range_points=10, no_realizations=3)
 
     # Finally run the analysis
     run_full_pastis_analysis(instrument='HiCAT', run_choice=dir_run, c_target=1e-7)
