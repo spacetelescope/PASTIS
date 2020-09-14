@@ -10,8 +10,8 @@ import logging
 import poppy
 import webbpsf
 
-from config import CONFIG_INI
-import util_pastis as util
+from pastis.config import CONFIG_INI
+import pastis.util_pastis as util
 
 log = logging.getLogger()
 

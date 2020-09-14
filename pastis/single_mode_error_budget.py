@@ -12,9 +12,9 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config import CONFIG_INI
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis_analysis import modes_from_file
+from pastis.config import CONFIG_INI
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.pastis_analysis import modes_from_file
 
 log = logging.getLogger(__name__)
 

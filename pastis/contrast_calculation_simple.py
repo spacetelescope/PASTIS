@@ -18,12 +18,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import hcipy
 
-from config import CONFIG_INI
-from e2e_simulators.hicat_imaging import set_up_hicat
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.config import CONFIG_INI
+from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import hicat.simulators
-import image_pastis as impastis
-import util_pastis as util
+import pastis.image_pastis as impastis
+import pastis.util_pastis as util
 
 log = logging.getLogger()
 

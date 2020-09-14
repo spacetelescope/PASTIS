@@ -18,10 +18,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from config import CONFIG_INI
-import contrast_calculation_simple as consim
-from matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
-import plotting as ppl
+from pastis.config import CONFIG_INI
+import pastis.contrast_calculation_simple as consim
+from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
+import pastis.plotting as ppl
 
 log = logging.getLogger()
 

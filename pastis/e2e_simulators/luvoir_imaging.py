@@ -9,7 +9,7 @@ from astropy.io import fits
 import hcipy
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
-from config import CONFIG_INI
+from pastis.config import CONFIG_INI
 
 
 class SegmentedTelescopeAPLC:

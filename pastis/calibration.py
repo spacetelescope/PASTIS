@@ -9,9 +9,9 @@ import astropy.units as u
 import webbpsf
 import logging
 
-from config import CONFIG_INI
-import util_pastis as util
-import image_pastis as impastis
+from pastis.config import CONFIG_INI
+import pastis.util_pastis as util
+import pastis.image_pastis as impastis
 
 log = logging.getLogger()
 
