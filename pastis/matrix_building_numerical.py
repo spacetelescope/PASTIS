@@ -24,6 +24,7 @@ from config import CONFIG_INI
 import util_pastis as util
 from e2e_simulators.hicat_imaging import set_up_hicat
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+import plotting as ppl
 
 log = logging.getLogger()
 
@@ -713,6 +714,10 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Save all contrasts to disk, WITH subtraction of coronagraph floor
     hcipy.write_fits(contrast_matrix, os.path.join(resDir, 'pair-wise_contrasts.fits'))
+    plt.figure(figsize=(10, 10))
+    plt.imshow(contrast_matrix)
+    plt.colorbar()
+    plt.savefig(os.path.join(resDir, 'contrast_matrix.pdf'))
 
     # Calculate the PASTIS matrix from the contrast matrix: off-axis elements and normalization
     matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber)
@@ -720,6 +725,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
     hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
+    ppl.plot_pastis_matrix(matrix_pastis, wvln, out_dir=resDir, save=True)
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
