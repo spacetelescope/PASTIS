@@ -70,6 +70,11 @@ $ conda env create --file environment.yml
 $ conda activate pastis
 ```
 
+- Install the package into this environmentin develop mode
+```bash
+$ python setup.py develop
+```
+
 ### Set up local configfile
 
 - Go into the code directory:
