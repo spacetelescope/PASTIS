@@ -4,11 +4,11 @@ freely choosable between the small, medium and large coronagraph designs.
 """
 import os
 
-from config import CONFIG_INI
-from hockeystick_contrast_curve import hockeystick_curve
-from matrix_building_numerical import num_matrix_multiprocess
-from pastis_analysis import run_full_pastis_analysis
-import util_pastis as util
+from pastis.config import CONFIG_INI
+from pastis.hockeystick_contrast_curve import hockeystick_curve
+from pastis.matrix_building_numerical import num_matrix_multiprocess
+from pastis.pastis_analysis import run_full_pastis_analysis
+import pastis.util_pastis as util
 
 
 if __name__ == '__main__':

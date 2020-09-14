@@ -13,12 +13,12 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
 
-from config import CONFIG_INI
-from e2e_simulators.hicat_imaging import set_up_hicat
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
-import plotting as ppl
-import util_pastis as util
+from pastis.config import CONFIG_INI
+from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
+import pastis.plotting as ppl
+import pastis.util_pastis as util
 
 log = logging.getLogger(__name__)
 
@@ -424,13 +424,13 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Which parts are we running?
     calculate_modes = True
     calculate_sigmas = True
-    run_monte_carlo_modes = True
+    run_monte_carlo_modes = False
     calc_cumulative_contrast = True
     calculate_mus = True
-    run_monte_carlo_segments = True
+    run_monte_carlo_segments = False
     calculate_covariance_matrices = True
     analytical_statistics = True
-    calculate_segment_based = True
+    calculate_segment_based = False
 
     # Data directory
     workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)

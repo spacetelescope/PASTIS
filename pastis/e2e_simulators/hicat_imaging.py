@@ -4,8 +4,8 @@ This module contains useful functions to interface with the HiCAT simulator.
 
 import logging
 import hicat.simulators
-from config import CONFIG_INI
-import util_pastis as util
+from pastis.config import CONFIG_INI
+import pastis.util_pastis as util
 
 log = logging.getLogger()
 

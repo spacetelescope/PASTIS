@@ -37,8 +37,8 @@ import numpy as np
 import astropy.units as u
 import logging
 
-import util_pastis as util
-from config import CONFIG_INI
+import pastis.util_pastis as util
+from pastis.config import CONFIG_INI
 
 log = logging.getLogger()
 
