@@ -578,7 +578,10 @@ def create_pdf_report(datadir, c_target):
     """
 
     # The hockey stick plot has a variable filename... need to change that at some point
-    hockey_filename_full_path = glob.glob(os.path.join(datadir, 'results', 'hockeystick*'))[0]
+    try:
+        hockey_filename_full_path = glob.glob(os.path.join(datadir, 'results', 'hockeystick*'))[0]
+    except:
+        hockey_filename_full_path = 'No hockey stick plot available.'
 
     # Define in what order the PDFs should be merged
     pdfs = [os.path.join(datadir, 'title_page.pdf'),
