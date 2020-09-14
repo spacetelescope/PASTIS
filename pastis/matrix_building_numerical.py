@@ -20,11 +20,11 @@ import multiprocessing
 import numpy as np
 import hcipy
 
-from config import CONFIG_INI
-import util_pastis as util
-from e2e_simulators.hicat_imaging import set_up_hicat
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
-import plotting as ppl
+from pastis.config import CONFIG_INI
+import pastis.util_pastis as util
+from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+import pastis.plotting as ppl
 
 log = logging.getLogger()
 
