@@ -4,3 +4,6 @@
 config_local.ini
 .idea/
 .DS_Store
+pastis.egg-info
+build/
+dist/
