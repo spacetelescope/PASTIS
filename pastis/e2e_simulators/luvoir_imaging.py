@@ -1,15 +1,22 @@
 """
 This is a module containing functions and classes for imaging propagation with HCIPy, for now LUVOIR A.
 """
+import logging
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from astropy.io import fits
 import hcipy
-from hcipy.optics.segmented_mirror import SegmentedMirror
 
 from pastis.config import CONFIG_INI
+
+log = logging.getLogger()
+
+try:
+    from hcipy.optics.segmented_mirror import SegmentedMirror
+except ImportError:
+    log.info('SegmentedMirror simulator from hcipy@980f39c was not imported.')
 
 
 class SegmentedTelescopeAPLC:
