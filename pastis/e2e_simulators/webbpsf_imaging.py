@@ -8,12 +8,16 @@ from matplotlib.colors import LogNorm
 import astropy.units as u
 import logging
 import poppy
-import webbpsf
 
 from pastis.config import CONFIG_INI
 import pastis.util_pastis as util
 
 log = logging.getLogger()
+
+try:
+    import webbpsf
+except ImportError:
+    log.info('WebbPSF was not imported.')
 
 # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
 # webbpsf.utils.get_webbpsf_data_path()

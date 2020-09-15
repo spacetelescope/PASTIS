@@ -3,11 +3,16 @@ This module contains useful functions to interface with the HiCAT simulator.
 """
 
 import logging
-import hicat.simulators
+
 from pastis.config import CONFIG_INI
 import pastis.util_pastis as util
 
 log = logging.getLogger()
+
+try:
+    import hicat.simulators
+except ImportError:
+    log.info('HiCAT simulator not imported.')
 
 
 def set_up_hicat(apply_continuous_dm_maps=False):
