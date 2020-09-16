@@ -6,7 +6,6 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-import webbpsf
 import logging
 
 from pastis.config import CONFIG_INI
@@ -14,6 +13,11 @@ import pastis.util_pastis as util
 import pastis.image_pastis as impastis
 
 log = logging.getLogger()
+
+try:
+    import webbpsf
+except ImportError:
+    log.info('WebbPSF was not imported.')
 
 
 if __name__ == '__main__':
