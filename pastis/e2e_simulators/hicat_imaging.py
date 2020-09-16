@@ -3,9 +3,10 @@ This module contains useful functions to interface with the HiCAT simulator.
 """
 
 import logging
+from astropy.io import fits
+import os
 
 from pastis.config import CONFIG_INI
-import pastis.util_pastis as util
 
 log = logging.getLogger()
 
@@ -38,10 +39,26 @@ def set_up_hicat(apply_continuous_dm_maps=False):
     # Load Boston DM maps into HiCAT simulator
     if apply_continuous_dm_maps:
         path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
-        dm1_surface, dm2_surface = util.read_continuous_dm_maps_hicat(path_to_dh_solution)
+        dm1_surface, dm2_surface = read_continuous_dm_maps_hicat(path_to_dh_solution)
         hicat_sim.dm1.set_surface(dm1_surface)
         hicat_sim.dm2.set_surface(dm2_surface)
 
         log.info(f'BostonDM maps applied from {path_to_dh_solution}.')
 
     return hicat_sim
+
+
+def read_continuous_dm_maps_hicat(path_to_dm_maps):
+    """
+    Read Boston DM maps from disk and return as one list per DM.
+    Hijacked partially from StrokeMinimizatoin.restore_last_strokemin_dm_shapes()
+    :param path_to_dm_maps: string, absolute path to folder containing DM maps to load
+    :return: DM1 actuator map array, DM2 actuator map array; in m
+    """
+
+    surfaces = []
+    for dmnum in [1, 2]:
+        actuators_2d = fits.getdata(os.path.join(path_to_dm_maps, f'dm{dmnum}_command_2d_noflat.fits'))
+        surfaces.append(actuators_2d)
+
+    return surfaces[0], surfaces[1]
