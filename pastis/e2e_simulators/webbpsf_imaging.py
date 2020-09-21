@@ -9,8 +9,8 @@ import astropy.units as u
 import logging
 import poppy
 
-from pastis.config import CONFIG_INI
-import pastis.util_pastis as util
+from pastis.config import CONFIG_PASTIS
+import pastis.util as util
 
 log = logging.getLogger()
 
@@ -22,20 +22,20 @@ except ImportError:
 # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
 # webbpsf.utils.get_webbpsf_data_path()
 # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
-os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
+os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
 
 
-which_tel = CONFIG_INI.get('telescope', 'name')
-nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-flat_to_flat = CONFIG_INI.getfloat(which_tel, 'flat_to_flat')
-wvl = CONFIG_INI.getfloat(which_tel, 'lambda') * u.nm
-im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
-flat_diam = CONFIG_INI.getfloat(which_tel, 'flat_diameter') * u.m
+which_tel = CONFIG_PASTIS.get('telescope', 'name')
+nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
+flat_to_flat = CONFIG_PASTIS.getfloat(which_tel, 'flat_to_flat')
+wvl = CONFIG_PASTIS.getfloat(which_tel, 'lambda') * u.nm
+im_size_pupil = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+flat_diam = CONFIG_PASTIS.getfloat(which_tel, 'flat_diameter') * u.m
 wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
-fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')  # focal plane mask
-lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')  # Lyot stop
-filter = CONFIG_INI.get(which_tel, 'filter_name')
+im_size_e2e = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
+fpm = CONFIG_PASTIS.get(which_tel, 'focal_plane_mask')  # focal plane mask
+lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')  # Lyot stop
+filter = CONFIG_PASTIS.get(which_tel, 'filter_name')
 
 
 def get_jwst_coords(outDir):

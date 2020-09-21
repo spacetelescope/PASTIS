@@ -17,8 +17,8 @@ import poppy.matrixDFT as mft
 import poppy
 import hcipy
 
-from pastis.config import CONFIG_INI
-import pastis.util_pastis as util
+from pastis.config import CONFIG_PASTIS
+import pastis.util as util
 
 log = logging.getLogger()
 
@@ -34,22 +34,22 @@ def analytical_model(zernike_pol, coef, cali=False):
     """
 
     #-# Parameters
-    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
-    telescope = CONFIG_INI.get('telescope', 'name')
-    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
-    tel_size_m = CONFIG_INI.getfloat(telescope, 'diameter') * u.m
-    real_size_seg = CONFIG_INI.getfloat(telescope, 'flat_to_flat')     # in m, size in meters of an individual segment flatl to flat
-    size_seg = CONFIG_INI.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
-    wvln = CONFIG_INI.getint(telescope, 'lambda') * u.nm
-    inner_wa = CONFIG_INI.getint(telescope, 'IWA')
-    outer_wa = CONFIG_INI.getint(telescope, 'OWA')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
-    im_size_pastis = CONFIG_INI.getint('numerical', 'im_size_px_pastis')             # image array size in px
-    sampling = CONFIG_INI.getfloat(telescope, 'sampling')            # sampling
+    dataDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'active')
+    telescope = CONFIG_PASTIS.get('telescope', 'name')
+    nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
+    tel_size_m = CONFIG_PASTIS.getfloat(telescope, 'diameter') * u.m
+    real_size_seg = CONFIG_PASTIS.getfloat(telescope, 'flat_to_flat')     # in m, size in meters of an individual segment flatl to flat
+    size_seg = CONFIG_PASTIS.getint('numerical', 'size_seg')              # pixel size of an individual segment tip to tip
+    wvln = CONFIG_PASTIS.getint(telescope, 'lambda') * u.nm
+    inner_wa = CONFIG_PASTIS.getint(telescope, 'IWA')
+    outer_wa = CONFIG_PASTIS.getint(telescope, 'OWA')
+    tel_size_px = CONFIG_PASTIS.getint('numerical', 'tel_size_px')        # pupil diameter of telescope in pixels
+    im_size_pastis = CONFIG_PASTIS.getint('numerical', 'im_size_px_pastis')             # image array size in px
+    sampling = CONFIG_PASTIS.getfloat(telescope, 'sampling')            # sampling
     size_px_tel = tel_size_m / tel_size_px                             # size of one pixel in pupil plane in m
     px_sq_to_rad = (size_px_tel * np.pi / tel_size_m) * u.rad
-    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    sz = CONFIG_INI.getint('ATLAST', 'im_size_lamD_hcipy')              # image size in lam/D, only used in ATLAST case
+    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
+    sz = CONFIG_PASTIS.getint('ATLAST', 'im_size_lamD_hcipy')              # image size in lam/D, only used in ATLAST case
 
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zernike_pol)
@@ -230,12 +230,12 @@ if __name__ == '__main__':
     "Testing the uncalibrated analytical model\n"
 
     ### Define the aberration coeffitients "coef"
-    telescope = CONFIG_INI.get('telescope', 'name')
-    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
-    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
+    telescope = CONFIG_PASTIS.get('telescope', 'name')
+    nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
+    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
 
-    nm_aber = CONFIG_INI.getfloat(telescope, 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')             # Which (Noll) Zernike we are calibrating for
+    nm_aber = CONFIG_PASTIS.getfloat(telescope, 'calibration_aberration') * u.nm  # [nm] amplitude of aberration
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')             # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                           # Convert from Noll to WSS framework
 
     ### What segmend are we aberrating? ###

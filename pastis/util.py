@@ -17,7 +17,7 @@ import logging.handlers
 import numpy as np
 from PyPDF2 import PdfFileMerger
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
 
@@ -202,7 +202,7 @@ def get_segment_list(instrument):
     if instrument not in ['LUVOIR', 'HiCAT']:
         raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR" or "HiCAT" instead.')
 
-    seglist = np.arange(CONFIG_INI.getint(instrument, 'nb_subapertures'))
+    seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
 
     # Drop the center segment with label '0' when working with LUVOIR
     if instrument == 'LUVOIR':
@@ -234,21 +234,6 @@ def apply_mode_to_luvoir(pmode, luvoir):
     psf, planes = luvoir.calc_psf(return_intermediate='efield')
 
     return planes['seg_mirror'], psf
-
-
-def read_continuous_dm_maps_hicat(path_to_dm_maps):
-    """
-    Read Boston DM maps from disk and return as one list per DM.
-    :param path_to_dm_maps: string, absolute path to folder containing DM maps to load
-    :return: DM1 actuator map array, DM2 actuator map array; in m
-    """
-
-    surfaces = []
-    for dmnum in [1, 2]:
-        actuators_2d = fits.getdata(os.path.join(path_to_dm_maps, f'dm{dmnum}_command_2d_noflat.fits'))
-        surfaces.append(actuators_2d)
-
-    return surfaces[0], surfaces[1]
 
 
 def segment_pairs_all(nseg):
@@ -447,15 +432,15 @@ def create_data_path(initial_path, telescope="", suffix=""):
 
 def copy_config(outdir):
     """
-    Copy the config_local, or if non-existent, config.ini to outdir
+    Copy the config_local, or if non-existent, config_pastis.ini to outdir
     :param outdir: string, target location of copied configfile
     :return: 
     """
     print('Saving the configfile to outputs folder.')
     try:
-        copy(os.path.join(CONFIG_INI.get('local', 'local_repo_path'), 'pastis', 'config_local.ini'), outdir)
+        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_local.ini'), outdir)
     except IOError:
-        copy(os.path.join(CONFIG_INI.get('local', 'local_repo_path'), 'pastis', 'config.ini'), outdir)
+        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_pastis.ini'), outdir)
 
 
 def setup_pastis_logging(experiment_path, name):

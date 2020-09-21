@@ -17,11 +17,11 @@ import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.image_pastis as impastis
-import pastis.util_pastis as util
+import pastis.util as util
 
 log = logging.getLogger()
 
@@ -45,20 +45,20 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     start_time = time.time()   # runtime currently is around 12 min
 
     # Parameters
-    dataDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), matdir)
-    which_tel = CONFIG_INI.get('telescope', 'name')
-    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    filter = CONFIG_INI.get(which_tel, 'filter_name')
-    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')         # focal plane mask
-    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
-    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
-    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    sampling = CONFIG_INI.getfloat(which_tel, 'sampling')
+    dataDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), matdir)
+    which_tel = CONFIG_PASTIS.get('telescope', 'name')
+    nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
+    filter = CONFIG_PASTIS.get(which_tel, 'filter_name')
+    fpm = CONFIG_PASTIS.get(which_tel, 'focal_plane_mask')         # focal plane mask
+    lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    inner_wa = CONFIG_PASTIS.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_PASTIS.getint(which_tel, 'OWA')
+    tel_size_px = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+    sampling = CONFIG_PASTIS.getfloat(which_tel, 'sampling')
     #real_samp = sampling * tel_size_px / im_size
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)
-    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
+    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
 
     # Import PASTIS matrix
     matrix_pastis = None
@@ -195,10 +195,10 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     start_time = time.time()   # runtime currently is around 12 min
 
     # Parameters
-    nb_seg = CONFIG_INI.getint('HiCAT', 'nb_subapertures')
-    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
-    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
-    sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+    nb_seg = CONFIG_PASTIS.getint('HiCAT', 'nb_subapertures')
+    iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
 
     # Import numerical PASTIS matrix
     filename = 'PASTISmatrix_num_piston_Noll1'
@@ -277,8 +277,8 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     start_time = time.time()
 
     # Parameters
-    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    nb_seg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
 
     # Import numerical PASTIS matrix
     filename = 'PASTISmatrix_num_piston_Noll1'
@@ -302,7 +302,7 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
 
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)

@@ -11,8 +11,8 @@ import numpy as np
 import astropy.units as u
 import logging
 
-from pastis.config import CONFIG_INI
-import pastis.util_pastis as util
+from pastis.config import CONFIG_PASTIS
+import pastis.util as util
 import pastis.image_pastis as impastis
 
 log = logging.getLogger()
@@ -25,12 +25,12 @@ def ana_matrix_jwst():
     log.info('Building analytical matrix for JWST\n')
 
     # Parameters
-    datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
-    which_tel = CONFIG_INI.get('telescope', 'name')
+    datadir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'active')
+    which_tel = CONFIG_PASTIS.get('telescope', 'name')
     resDir = os.path.join(datadir, 'matrix_analytical')
-    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat(which_tel, 'calibration_aberration') * u.nm
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')       # Noll convention!
+    nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
+    nm_aber = CONFIG_PASTIS.getfloat(which_tel, 'calibration_aberration') * u.nm
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # If subfolder "matrix_analytical" doesn't exist yet, create it.

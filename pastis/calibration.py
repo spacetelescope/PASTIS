@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import logging
 
-from pastis.config import CONFIG_INI
-import pastis.util_pastis as util
+from pastis.config import CONFIG_PASTIS
+import pastis.util as util
 import pastis.image_pastis as impastis
 
 log = logging.getLogger()
@@ -26,29 +26,29 @@ if __name__ == '__main__':
     start_time = time.time()   # runtime currently is around 3 minutes
 
     # Parameters
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'calibration')
-    telescope = CONFIG_INI.get('telescope', 'name')
-    fpm = CONFIG_INI.get(telescope, 'focal_plane_mask')                 # focal plane mask
-    lyot_stop = CONFIG_INI.get(telescope, 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get(telescope, 'filter_name')
-    tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
-    im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
-    size_seg = CONFIG_INI.getint('numerical', 'size_seg')
-    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')
+    outDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'active', 'calibration')
+    telescope = CONFIG_PASTIS.get('telescope', 'name')
+    fpm = CONFIG_PASTIS.get(telescope, 'focal_plane_mask')                 # focal plane mask
+    lyot_stop = CONFIG_PASTIS.get(telescope, 'pupil_plane_stop')   # Lyot stop
+    filter = CONFIG_PASTIS.get(telescope, 'filter_name')
+    tel_size_px = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+    im_size_e2e = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
+    size_seg = CONFIG_PASTIS.getint('numerical', 'size_seg')
+    nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    inner_wa = CONFIG_INI.getint(telescope, 'IWA')
-    outer_wa = CONFIG_INI.getint(telescope, 'OWA')
-    sampling = CONFIG_INI.getfloat(telescope, 'sampling')
+    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
+    inner_wa = CONFIG_PASTIS.getint(telescope, 'IWA')
+    outer_wa = CONFIG_PASTIS.getint(telescope, 'OWA')
+    sampling = CONFIG_PASTIS.getfloat(telescope, 'sampling')
 
     if telescope == 'JWST':
         # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
         # webbpsf.utils.get_webbpsf_data_path()
         # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
-        os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
+        os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
 
-    nm_aber = CONFIG_INI.getfloat(telescope, 'calibration_aberration') * u.nm       # [nm] amplitude of aberration
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')               # Which (Noll) Zernike we are calibrating for
+    nm_aber = CONFIG_PASTIS.getfloat(telescope, 'calibration_aberration') * u.nm       # [nm] amplitude of aberration
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')               # Which (Noll) Zernike we are calibrating for
     wss_zern_nb = util.noll_to_wss(zern_number)                             # Convert from Noll to WSS framework
 
     # If subfolder "calibration" doesn't exist yet, create it.
