@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 from pastis.pastis_analysis import modes_from_file
 
@@ -76,14 +76,14 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     """
 
     # Data directory
-    workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
+    workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
 
     # Info
     log.info(f'Working on {design} coronagraph design.')
 
     # Instantiate LUVOIR-A
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
     luvoir.flatten()
 
@@ -135,8 +135,8 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
 if __name__ == '__main__':
 
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
-    run = CONFIG_INI.get('numerical', 'current_analysis')
+    coro_design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+    run = CONFIG_PASTIS.get('numerical', 'current_analysis')
     c_stat = 1e-10
 
     single_mode_error_budget(coro_design, run, c_stat, single_mode=69)

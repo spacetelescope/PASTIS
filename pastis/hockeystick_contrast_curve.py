@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 import pastis.contrast_calculation_simple as consim
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import pastis.plotting as ppl
@@ -53,7 +53,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     ##########################
 
     # Set up path for results
-    outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
+    outDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
     os.makedirs(outDir, exist_ok=True)
     os.makedirs(os.path.join(outDir, 'dh_images_'+matrix_mode), exist_ok=True)
 
@@ -144,8 +144,8 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     start_time = time.time()
 
     # Create range of WFE RMS values to test
-    rms_range = np.logspace(CONFIG_INI.getfloat(instrument, 'valid_range_lower'),
-                            CONFIG_INI.getfloat(instrument, 'valid_range_upper'),
+    rms_range = np.logspace(CONFIG_PASTIS.getfloat(instrument, 'valid_range_lower'),
+                            CONFIG_PASTIS.getfloat(instrument, 'valid_range_upper'),
                             range_points)
 
     # Create results directory if it doesn't exist yet
@@ -194,7 +194,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     # Plot
     plt.clf()
     ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
-                                wvln=CONFIG_INI.getfloat(instrument, 'lambda'),
+                                wvln=CONFIG_PASTIS.getfloat(instrument, 'lambda'),
                                 out_dir=resultdir,
                                 fname_suffix=f'{no_realizations}_realizations_each',
                                 save=True)
@@ -209,9 +209,9 @@ if __name__ == '__main__':
     # Pick one to run
     #hockeystick_jwst()
 
-    instrument = CONFIG_INI.get('telescope', 'name')
-    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
-    result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
-    matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+    run_choice = CONFIG_PASTIS.get('numerical', 'current_analysis')
+    coro_design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+    result_dir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice, 'results')
+    matrix_dir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
     hockeystick_curve(instrument, apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=10)

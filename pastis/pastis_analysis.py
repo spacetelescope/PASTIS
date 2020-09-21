@@ -13,7 +13,7 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
@@ -52,7 +52,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
 
     # Plot singular values and save
     if saving:
-        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.getfloat(instrument, 'lambda'),
+        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_PASTIS.getfloat(instrument, 'lambda'),
                              out_dir=os.path.join(datadir, 'results'), save=True)
 
     return pmodes, svals
@@ -112,7 +112,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             all_modes_focal_plane.append(psf_detector)
 
             phase_sm = inter[1].phase
-            hicat_wavenumber = 2 * np.pi / (CONFIG_INI.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
+            hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_sm / hicat_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
@@ -433,10 +433,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     calculate_segment_based = True
 
     # Data directory
-    workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
+    workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
 
-    nseg = CONFIG_INI.getint(instrument, 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9   # [m]
+    nseg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
+    wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9   # [m]
 
     log.info('Setting up optics...')
     log.info(f'Data folder: {workdir}')
@@ -447,11 +447,11 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # reference and unaberrated coronagraphic PSF already in matrix generation.
     if instrument == "LUVOIR":
         if design is None:
-            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
             log.info(f'Coronagraph design: {design}')
 
-        sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-        optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+        optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Generate reference PSF and unaberrated coronagraphic image
@@ -476,9 +476,9 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         psf_unaber = coro_image[0].data / norm
 
         # Create DH mask
-        iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
-        owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
-        sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
         dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
 
         sim_instance = hicat_sim
@@ -714,8 +714,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
 if __name__ == '__main__':
 
-    instrument = CONFIG_INI.get('telescope', 'name')
-    run = CONFIG_INI.get('numerical', 'current_analysis')
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+    run = CONFIG_PASTIS.get('numerical', 'current_analysis')
     c_target = 1e-10
     mc_repeat = 100
 

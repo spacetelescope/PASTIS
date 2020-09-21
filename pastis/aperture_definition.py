@@ -38,7 +38,7 @@ import astropy.units as u
 import logging
 
 import pastis.util_pastis as util
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
 
@@ -49,12 +49,12 @@ def make_aperture_nrp():
     start_time = time.time()   # runtime currently is around 2 seconds for JWST, 9 minutes for ATLAST
 
     # Parameters
-    telescope = CONFIG_INI.get('telescope', 'name').upper()
-    localDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
+    telescope = CONFIG_PASTIS.get('telescope', 'name').upper()
+    localDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'active')
     outDir = os.path.join(localDir, 'segmentation')
-    nb_seg = CONFIG_INI.getint(telescope, 'nb_subapertures')   # Number of apertures, without central obscuration
-    flat_diam = CONFIG_INI.getfloat(telescope, 'diameter') * u.m
-    im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
+    nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')   # Number of apertures, without central obscuration
+    flat_diam = CONFIG_PASTIS.getfloat(telescope, 'diameter') * u.m
+    im_size_pupil = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     log.info('Running aperture generation for {}\n'.format(telescope))

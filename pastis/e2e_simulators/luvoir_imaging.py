@@ -9,7 +9,7 @@ from matplotlib.colors import LogNorm
 from astropy.io import fits
 import hcipy
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
 
@@ -210,9 +210,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-        self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')
+        self.nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
+        self.wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9    # m
+        self.diam = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
@@ -224,11 +224,11 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         self.imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
         # Pupil plane optics
-        aper_path = CONFIG_INI.get('LUVOIR', 'aperture_path_in_optics')
-        aper_ind_path = CONFIG_INI.get('LUVOIR', 'indexed_aperture_path_in_optics')
+        aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
+        aper_ind_path = CONFIG_PASTIS.get('LUVOIR', 'indexed_aperture_path_in_optics')
         apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
                                  self.apod_dict[apod_design]['fname'])
-        ls_fname = CONFIG_INI.get('LUVOIR', 'lyot_stop_path_in_optics')
+        ls_fname = CONFIG_PASTIS.get('LUVOIR', 'lyot_stop_path_in_optics')
 
         pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
         aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))

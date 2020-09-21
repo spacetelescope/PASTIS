@@ -20,7 +20,7 @@ import multiprocessing
 import numpy as np
 import hcipy
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 import pastis.util_pastis as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
@@ -39,28 +39,28 @@ def num_matrix_jwst():
     import webbpsf
     from e2e_simulators import webbpsf_imaging as webbim
     # Set WebbPSF environment variable
-    os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
+    os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
     log.info('Building numerical matrix for JWST\n')
 
     # Parameters
-    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='jwst')
+    overall_dir = util.create_data_path(CONFIG_PASTIS.get('local', 'local_data_path'), telescope='jwst')
     resDir = os.path.join(overall_dir, 'matrix_numerical')
-    which_tel = CONFIG_INI.get('telescope', 'name')
-    nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
-    inner_wa = CONFIG_INI.getint(which_tel, 'IWA')
-    outer_wa = CONFIG_INI.getint(which_tel, 'OWA')
-    sampling = CONFIG_INI.getfloat(which_tel, 'sampling')
-    fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
-    lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_INI.get(which_tel, 'filter_name')
-    wfe_aber = CONFIG_INI.getfloat(which_tel, 'calibration_aberration') * u.nm
+    which_tel = CONFIG_PASTIS.get('telescope', 'name')
+    nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
+    im_size_e2e = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
+    inner_wa = CONFIG_PASTIS.getint(which_tel, 'IWA')
+    outer_wa = CONFIG_PASTIS.getint(which_tel, 'OWA')
+    sampling = CONFIG_PASTIS.getfloat(which_tel, 'sampling')
+    fpm = CONFIG_PASTIS.get(which_tel, 'focal_plane_mask')                 # focal plane mask
+    lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')   # Lyot stop
+    filter = CONFIG_PASTIS.get(which_tel, 'filter_name')
+    wfe_aber = CONFIG_PASTIS.getfloat(which_tel, 'calibration_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-    zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
+    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
@@ -220,7 +220,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     ### Parameters
 
     # System parameters
-    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-'+design)
+    overall_dir = util.create_data_path(CONFIG_PASTIS.get('local', 'local_data_path'), telescope='luvoir-'+design)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
@@ -234,17 +234,17 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     log.info('Building numerical matrix for LUVOIR\n')
 
     # Read calibration aberration
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
-    nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
-    diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
-    wfe_aber = CONFIG_INI.getfloat('LUVOIR', 'calibration_aberration') * 1e-9   # m
+    nb_seg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
+    wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9  # m
+    diam = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')  # m
+    wfe_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
 
     # Record some of the defined parameters
     log.info(f'LUVOIR apodizer design: {design}')
@@ -258,7 +258,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     util.copy_config(resDir)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### Reference images for contrast normalization and coronagraph floor
@@ -364,10 +364,10 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
     if instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
-        sampling = CONFIG_INI.getfloat(instrument, 'sampling')
-        optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+        sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
+        optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
         if design is None:
-            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Calculate reference images for contrast normalization and coronagraph floor
@@ -395,9 +395,9 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_image = hicat_sim.calc_psf()
         coro_psf = coro_image[0].data / norm
 
-        iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
-        owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
-        sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
         dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
 
         # Return the coronagraphic simulator
@@ -453,8 +453,8 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     """
 
     # Instantiate LUVOIR object
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
     luv = LuvoirAPLC(optics_input, design, sampling)
 
     log.info(f'PAIR: {segment_pair[0]+1}-{segment_pair[1]+1}')
@@ -532,9 +532,9 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
-    iwa = CONFIG_INI.getfloat('HiCAT', 'IWA')
-    owa = CONFIG_INI.getfloat('HiCAT', 'OWA')
-    sampling = CONFIG_INI.getfloat('HiCAT', 'sampling')
+    iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
     dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
     contrast = util.dh_mean(psf, dh_mask)
 
@@ -623,9 +623,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     tel_suffix = f'{instrument.lower()}'
     if instrument == 'LUVOIR':
         if design is None:
-            design = CONFIG_INI.get('LUVOIR', 'coronagraph_design')
+            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
         tel_suffix += f'-{design}'
-    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope=tel_suffix)
+    overall_dir = util.create_data_path(CONFIG_PASTIS.get('local', 'local_data_path'), telescope=tel_suffix)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
@@ -639,14 +639,14 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f'Building numerical matrix for {tel_suffix}\n')
 
     # Read calibration aberration
-    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
+    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
-    nb_seg = CONFIG_INI.getint(instrument, 'nb_subapertures')
+    nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
     seglist = util.get_segment_list(instrument)
-    wvln = CONFIG_INI.getfloat(instrument, 'lambda') * 1e-9  # m
-    wfe_aber = CONFIG_INI.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
+    wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
+    wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
 
     # Record some of the defined parameters
     log.info(f'Instrument: {tel_suffix}')
@@ -692,7 +692,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     if instrument == 'HiCAT':
         # Copy used BostonDM maps to matrix folder
-        shutil.copytree(CONFIG_INI.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
+        shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
 
         calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
