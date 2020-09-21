@@ -557,7 +557,7 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
                             with the coro floor already subtracted, but only half of the matrix has non-zero values
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
     :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
-    :return: the finalized PASTIS matrix, nd.array of nseg x nseg
+    :return: the finalized PASTIS matrix in units of contrast per nanometers squared, nd.array of nseg x nseg
     """
 
     # Calculate the off-axis elements in the PASTIS matrix
@@ -584,7 +584,7 @@ def calculate_off_axis_elements(contrast_matrix, seglist):
     :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
                             with the coro floor already subtracted
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :return: unnormalized half PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
+    :return: unnormalized half-PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
     """
 
     # Create future (half filled) PASTIS matrix
