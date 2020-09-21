@@ -21,7 +21,7 @@ from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.image_pastis as impastis
-import pastis.util_pastis as util
+import pastis.util as util
 
 log = logging.getLogger()
 

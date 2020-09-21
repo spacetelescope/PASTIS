@@ -12,7 +12,7 @@ import astropy.units as u
 import logging
 
 from pastis.config import CONFIG_PASTIS
-import pastis.util_pastis as util
+import pastis.util as util
 import pastis.image_pastis as impastis
 
 log = logging.getLogger()

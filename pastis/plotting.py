@@ -11,7 +11,7 @@ import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.util_pastis import apply_mode_to_luvoir
+from pastis.util import apply_mode_to_luvoir
 
 cmap_brev = cm.get_cmap('Blues_r')
 
