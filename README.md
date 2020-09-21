@@ -82,7 +82,7 @@ $ python setup.py develop
 $ cd pastis
 ```
 
-- Copy the file `config.ini` and name the copy `config_local.ini`.
+- Copy the file `config_pastis.ini` and name the copy `config_local.ini`.
 
 - Open your local configfile `config_local.ini` and find the section `[local]`. In that section, edit the key 
 `local_repo_path` to point to your local repo clone that you just created, e.g. (for more about the configfile, see 
@@ -244,15 +244,15 @@ encounter this issue you can change the default backend in the `matplotlibrc` fi
 
 ## Configuration file
 
-The main configuration file is `config.ini`, which holds all of your simulation parameters. This specific file, however, 
+The main configuration file is `config_pastis.ini`, which holds all of your simulation parameters. This specific file, however, 
 is version controlled, and the paths to local directories will get messed up if you push or pull this file; you might 
-also lose the changes you made to the parameters. This is why `config.ini` is initially supposed to be used as a **template**.
+also lose the changes you made to the parameters. This is why `config_pastis.ini` is initially supposed to be used as a **template**.
 
-In order to make it work for you, copy `config.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
-you can set all your parameters, and it will override the `config.ini` at runtime. This means that if there is a `config_local.ini`,
-it will be used, if not, the code will fall back on `config.ini`. A copy of the used configfile is always saved together 
+In order to make it work for you, copy `config_pastis.ini` and rename the copy to `config_local.ini`. In this **local configfile**, 
+you can set all your parameters, and it will override the `config_pastis.ini` at runtime. This means that if there is a `config_local.ini`,
+it will be used, if not, the code will fall back on `config_pastis.ini`. A copy of the used configfile is always saved together 
 with the PASTIS matrix output when a matrix is generated. In the case you want to version control the configfile you use, 
-we recommend that you **fork** the repository and simply use the `config.ini` file directly.
+we recommend that you **fork** the repository and simply use the `config_pastis.ini` file directly.
 
 The first section deals with local paths. Here, you need to point the file to the local clone of your repo and the 
 directory you want to have the output data saved to:

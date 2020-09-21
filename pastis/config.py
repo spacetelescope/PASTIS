@@ -12,7 +12,7 @@ import configparser
 import os
 
 
-config_file_name = "config.ini"
+config_file_name = "config_pastis.ini"
 override_file_name = "config_local.ini"
 
 
@@ -37,4 +37,4 @@ def load_config_ini():
 
 
 # Import CONFIG_INI below instead of loading the ini file manually.
-CONFIG_INI = load_config_ini()
+CONFIG_PASTIS = load_config_ini()

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 from pastis.util_pastis import apply_mode_to_luvoir
 
@@ -417,12 +417,12 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, design, c_target, limits
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
     if instrument == 'HiCAT':
         sim_instance.iris_dm.flatten()
-        for segnum in range(CONFIG_INI.getint(instrument, 'nb_subapertures')):
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
             sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
         psf, inter = sim_instance.calc_psf(return_intermediates=True)
         wf_sm = inter[1].phase
 
-        hicat_wavenumber = 2 * np.pi / (CONFIG_INI.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
+        hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
 
     map_small = np.ma.masked_where(map_small == 0, map_small)
@@ -453,8 +453,8 @@ def calculate_mode_phases(pastis_modes, design):
     :return: all_modes, array of phase pupil images
     """
     # Create luvoir instance
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Calculate phases of all modes
@@ -513,8 +513,8 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
         fname += f'_{fname_suffix}'
 
     # Create luvoir instance
-    sampling = CONFIG_INI.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)

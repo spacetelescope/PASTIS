@@ -4,7 +4,7 @@ freely choosable between the small, medium and large coronagraph designs.
 """
 import os
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 from pastis.hockeystick_contrast_curve import hockeystick_curve
 from pastis.matrix_building_numerical import num_matrix_multiprocess
 from pastis.pastis_analysis import run_full_pastis_analysis
@@ -19,9 +19,9 @@ if __name__ == '__main__':
     #dir_large = num_matrix_multiprocess(instrument='LUVOIR', design='large')
 
     # Alternatively, pick data locations to run PASTIS analysis on
-    #dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_small')
-    #dir_medium = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
-    #dir_large = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'your-data-directory_medium')
+    #dir_small = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory_small')
+    #dir_medium = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory_medium')
+    #dir_large = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory_medium')
 
     # Set up loggers for data analysis in all cases
     util.setup_pastis_logging(dir_small, 'pastis_analysis')

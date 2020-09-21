@@ -6,7 +6,7 @@ import logging
 from astropy.io import fits
 import os
 
-from pastis.config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
 
@@ -38,7 +38,7 @@ def set_up_hicat(apply_continuous_dm_maps=False):
 
     # Load Boston DM maps into HiCAT simulator
     if apply_continuous_dm_maps:
-        path_to_dh_solution = CONFIG_INI.get('HiCAT', 'dm_maps_path')
+        path_to_dh_solution = CONFIG_PASTIS.get('HiCAT', 'dm_maps_path')
         dm1_surface, dm2_surface = read_continuous_dm_maps_hicat(path_to_dh_solution)
         hicat_sim.dm1.set_surface(dm1_surface)
         hicat_sim.dm2.set_surface(dm2_surface)
