@@ -307,9 +307,11 @@ def create_random_rms_values(nb_seg, total_rms):
     :param rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
     :return: aber: array of segment aberration values in nm (astropy units) of WFE rms, scaled to input rms value (total_rms)
     """
+    # Create own random state
+    rms_random_state = np.random.RandomState()
 
     # Create random aberration coefficients
-    aber = np.random.random([nb_seg])  # piston values in input units
+    aber = rms_random_state.random_sample([nb_seg])  # piston values in input units
     log.info(f'PISTON ABERRATIONS: {aber}')
 
     # Normalize to the WFE RMS value I want
