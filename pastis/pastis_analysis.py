@@ -369,7 +369,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Create a random number generator
+    # Create a random set of mode weights
     modes_random_state = np.random.RandomState()
     rand = modes_random_state.normal(0, 1, sigmas.shape[0])
     random_weights = sigmas * rand
