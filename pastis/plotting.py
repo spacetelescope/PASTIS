@@ -565,7 +565,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set x-axis formatter to x10^{-10}
     ax1.xaxis.offsetText.set_fontsize(30)  # set x-axis formatter font size
     plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
-    if segments:
+    if stddev:
         plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
     plt.tight_layout()

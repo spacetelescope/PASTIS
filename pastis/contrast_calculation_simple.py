@@ -204,19 +204,8 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     filename = 'PASTISmatrix_num_piston_Noll1'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
-    # Create random aberration coefficients
-    aber = np.random.random([nb_seg])   # piston values in input units
-    log.info(f'PISTON ABERRATIONS: {aber}')
-
-    # Normalize to the RMS value I want
-    rms_init = util.rms(aber)
-    aber *= rms.value / rms_init
-    calc_rms = util.rms(aber) * u.nm
-    aber *= u.nm    # making sure the aberration has the correct units
-    log.info(f"Calculated WFE RMS: {calc_rms}")
-
-    # Remove global piston
-    aber -= np.mean(aber)
+    # Create random aberration coefficients on segments, scaled to total rms
+    aber = util.create_random_rms_values(nb_seg, rms)
 
     ### E2E HiCAT sim
     start_e2e = time.time()
@@ -284,19 +273,8 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     filename = 'PASTISmatrix_num_piston_Noll1'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
-    # Create random aberration coefficients
-    aber = np.random.random([nb_seg])   # piston values in input units
-    log.info(f'PISTON ABERRATIONS: {aber}')
-
-    # Normalize to the WFE RMS value I want
-    rms_init = util.rms(aber)
-    aber *= rms.value / rms_init
-    calc_rms = util.rms(aber) * u.nm
-    aber *= u.nm    # making sure the aberration has the correct units
-    log.info(f"Calculated WFE RMS: {calc_rms}")
-
-    # Remove global piston
-    aber -= np.mean(aber)
+    # Create random aberration coefficients on segments, scaled to total rms
+    aber = util.create_random_rms_values(nb_seg, rms)
 
     start_e2e = time.time()
     # Coronagraph parameters

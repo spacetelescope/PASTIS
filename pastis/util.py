@@ -298,6 +298,35 @@ def rms(ar):
     return rms
 
 
+def create_random_rms_values(nb_seg, total_rms):
+    """
+    Calculate a set of random segment aberration values scaled to a total WFE rms (input: total_rms).
+    Also subtracts global piston.
+
+    :param nb_seg: int, number of segments in the pupil
+    :param rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
+    :return: aber: array of segment aberration values in nm (astropy units) of WFE rms, scaled to input rms value (total_rms)
+    """
+    # Create own random state
+    rms_random_state = np.random.RandomState()
+
+    # Create random aberration coefficients
+    aber = rms_random_state.random_sample([nb_seg])  # piston values in input units
+    log.info(f'PISTON ABERRATIONS: {aber}')
+
+    # Normalize to the WFE RMS value I want
+    rms_init = rms(aber)
+    aber *= total_rms.value / rms_init
+    calc_rms = rms(aber) * u.nm
+    aber *= u.nm  # making sure the aberration has the correct units
+    log.info(f"Calculated WFE RMS: {calc_rms}")
+
+    # Remove global piston
+    aber -= np.mean(aber)
+
+    return aber
+
+
 def aber_to_opd(aber_rad, wvln):
     """
     Convert phase aberration in rad to OPD in meters.
