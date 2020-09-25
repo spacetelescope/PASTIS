@@ -325,35 +325,28 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Draw a normal distribution where the stddev gets scaled to mu later on
+    # Create a random set of segment weights with mus as stddevs in the normal distribution
     segments_random_state = np.random.RandomState()
-    rand = segments_random_state.normal(0, 1, mus.shape[0])
+    random_weights = segments_random_state.normal(0, mus) * u.nm
 
-    random_map = []
-
-    # Multiply each segment mu by one of these random numbers,
-    # put that on the simulator and calculate the PSF and mean contrast.
+    # Apply random aberration to E2E simulator
     if instrument == "LUVOIR":
         sim_instance.flatten()
-        for seg, (mu, randval) in enumerate(zip(mus, rand)):
-            random_seg = mu * randval
-            random_map.append(random_seg.to(u.m).value)
-            sim_instance.set_segment(seg+1, random_seg.to(u.m).value/2, 0, 0)
+        for seg in range(mus.shape[0]):
+            sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
     if instrument == 'HiCAT':
         sim_instance.iris_dm.flatten()
-        for seg, (mu, randval) in enumerate(zip(mus, rand)):
-            random_seg = mu * randval
-            random_map.append(random_seg.to(u.m).value)
-            sim_instance.iris_dm.set_actuator(seg, random_seg.to(u.m).value, 0, 0)
+        for seg in range(mus.shape[0]):
+            sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
-    return random_map, rand_contrast
+    return random_weights.value, rand_contrast
 
 
 def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
