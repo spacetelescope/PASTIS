@@ -567,7 +567,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
-        ppl.plot_mu_map(instrument, mus, sim_instance, out_dir=os.path.join(workdir, 'results'), design=design, c_target=c_target, save=True)
+        ppl.plot_mu_map(instrument, mus, sim_instance, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
 
         # Apply mu map directly and run through E2E simulator
         mus *= u.nm
