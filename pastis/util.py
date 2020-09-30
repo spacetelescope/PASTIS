@@ -579,7 +579,7 @@ def collect_title_page(datadir, c_target):
                 read_this = file.read()
             read_list.append(read_this)
         except FileNotFoundError:
-            log.info(f"No {os.path.basename(os.path.normpath(one_file))} found, won't include.")
+            log.info(f"No {os.path.basename(os.path.normpath(one_file))} found, won't include in PDF title page.")
 
     return read_list
 
