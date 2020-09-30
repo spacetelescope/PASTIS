@@ -629,3 +629,21 @@ def create_pdf_report(datadir, c_target):
 
     merger.write(os.path.join(datadir, 'full_report.pdf'))
     merger.close()
+
+
+def read_mean_and_variance(filename):
+    """
+    Read one of the custom text files that contain a mean value and variance from a custom text file
+    and return the mean and variance.
+    :param filename: str, full path including file name of the txt file to be read
+    :return: floats, mean and variance
+    """
+
+    with open(filename, 'r') as file:
+        mean_string = file.readline()
+        variance_string = file.readline()
+
+    mean_value = float(mean_string.split(': ')[-1])
+    variance_value = float(variance_string.split(': ')[-1])
+
+    return mean_value, variance_value
