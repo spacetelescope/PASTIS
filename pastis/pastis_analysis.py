@@ -367,7 +367,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     random_weights = modes_random_state.normal(0, sigmas)
 
     # Sum up all modes with randomly scaled sigmas to make total OPD
-    opd = np.nansum(pmodes[:, :] * random_weights, axis=1)
+    opd = np.nansum(pmodes * random_weights, axis=1)
     opd *= u.nm
 
     # Apply random aberration to E2E simulator
