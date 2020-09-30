@@ -393,14 +393,13 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_mu_map(instrument, mus, sim_instance, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
+def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
     :param instrument: string, "LUVOIR" or "HiCAT"
     :param mus: array or list, segment requirements (standard deviations) in nm
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
-    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design for which the mus have been calculated
     :param c_target: float, target contrast for which the segment requirements have been calculated
     :param limits: tuple, colorbar limirs, deault is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
