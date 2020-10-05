@@ -127,7 +127,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
     :param apodizer_choice: string, needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
     :param resultdir: string, Path to directory where results will be saved.
@@ -179,6 +179,8 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
                 c_e2e, c_matrix = consim.contrast_luvoir_num(contrast_floor, norm, apodizer_choice, matrix_dir=matrixdir, rms=rms)
             if instrument == 'HiCAT':
                 c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
+            if instrument == 'JWST':
+                c_e2e, c_matrix = consim.contrast_jwst_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
