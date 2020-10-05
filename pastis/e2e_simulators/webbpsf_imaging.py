@@ -166,6 +166,28 @@ def set_up_nircam():
     return nircam, ote
 
 
+def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PSF", **kwargs):
+    """
+    Display OTE and PSF of a JWST instrument next to each other.
+
+    Adapted from:
+    https://github.com/spacetelescope/webbpsf/blob/develop/notebooks/Simulated%20OTE%20Mirror%20Move%20Demo.ipynb
+    :param inst: WebbPSF instrument instance, e.g. webbpsf.NIRCam()
+    :param ote: OTE of inst, usually obtained with: instrument, ote = webbpsf.enable_adjustable_ote(instrument)
+    :param opd_vmax: float, max display value for the OPD
+    :param psf_vmax: float, max display valued for PSF
+    :param title: string, plot title
+    :param kwargs:
+    """
+    psf = inst.calc_psf(nlambda=1)
+    plt.figure(figsize=(12, 8))
+    ax1 = plt.subplot(121)
+    ote.display_opd(ax=ax1, vmax=opd_vmax, colorbar_orientation='horizontal', title='OPD with aberrated segments')
+    ax2 = plt.subplot(122)
+    webbpsf.display_psf(psf, ext=1, vmax=psf_vmax, vmin=psf_vmax/1e4, colorbar_orientation='horizontal', title="PSF simulation")
+    plt.suptitle(title, fontsize=16)
+
+
 if __name__ == '__main__':
 
     pass
