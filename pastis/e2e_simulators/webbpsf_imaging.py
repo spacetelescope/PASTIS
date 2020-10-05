@@ -161,7 +161,7 @@ def set_up_nircam():
     nircam.pupil_mask = CONFIG_PASTIS.get('JWST', 'pupil_plane_stop')
 
     nircam, ote = webbpsf.enable_adjustable_ote(nircam)
-    ote.zero()
+    ote.zero(zero_original=True)    # https://github.com/spacetelescope/webbpsf/blob/96537c459996f682ac6e9af808809ca13fb85e87/webbpsf/opds.py#L1125
 
     return nircam, ote
 
