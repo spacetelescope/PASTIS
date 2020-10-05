@@ -519,7 +519,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: float, calibration aberration per segment in nm
+    :param wfe_aber: float, calibration aberration per segment in m
     :param zern_mode: Zernike mode object, local Zernike aberration
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
@@ -572,7 +572,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     """
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in nm
+    :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
