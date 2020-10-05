@@ -482,9 +482,9 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     # Put aberration on correct segments. If i=j, apply only once!
     jwst_ote.zero()
-    jwst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='nm')
+    jwst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='m')
     if segment_pair[0] != segment_pair[1]:
-        jwst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='nm')
+        jwst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='m')
 
     log.info('Calculating coro image...')
     image = jwst_instrument.calc_psf(nlambda=1)
