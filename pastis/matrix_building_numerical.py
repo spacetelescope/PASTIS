@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
 import hcipy
+import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
@@ -465,6 +466,54 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         return contrast_floor, norm
 
 
+def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+
+    # Set up JWST simulator in coronagraphic state
+    jwst_instrument, jwst_ote = set_up_nircam()
+    jwst_instrument[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+
+    # Identify the correct JWST segments
+    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
+    seg_i = wss_segs[segment_pair[0]].split('-')[0]
+    seg_j = wss_segs[segment_pair[1]].split('-')[0]
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    jwst_ote.zero()
+    jwst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='nm')
+    if segment_pair[0] != segment_pair[1]:
+        jwst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='nm')
+
+    log.info('Calculating coro image...')
+    image = jwst_instrument.calc_psf(nlambda=1)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot segmented mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.figure(figsize=(8, 8))
+        ax2 = plt.subplot(111)
+        jwst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf, dh_mask)
+
+    return contrast, segment_pair
+
+
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
@@ -724,6 +773,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
 
         calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+
+    if instrument == 'JWST':
+        calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
