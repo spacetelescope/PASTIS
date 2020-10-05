@@ -146,36 +146,26 @@ def nircam_nocoro(filter, Aber_WSS):
     return psf_webbpsf
 
 
-def setup_coro(filter, fpm, ppm):
+def set_up_nircam():
     """
-    Set up a NIRCam coronagraph object.
-    :param filter: str, filter name
-    :param fpm: focal plane mask
-    :param ppm: pupil plane mask - Lyot stop
-    :return:
-    """
-    nc = webbpsf.NIRCam()
-    nc.filter = filter
-    nc.image_mask = fpm
-    nc.pupil_mask = ppm
+    Return a configured instance of the NIRCam simulator on JWST.
 
-    return nc
+    Sets up the Lyots stop and filter from the configfile, turns of science insturment (SI) internal WFE and zeros
+    the OTE.
+    :return: Tuple of NIRCam instance, and its OTE
+    """
+
+    nircam = webbpsf.NIRCam()
+    nircam.include_si_wfe = False
+    nircam.filter = CONFIG_PASTIS.get('JWST', 'filter_name')
+    nircam.pupil_mask = CONFIG_PASTIS.get('JWST', 'pupil_plane_stop')
+
+    nircam, ote = webbpsf.enable_adjustable_ote(nircam)
+    ote.zero()
+
+    return nircam, ote
 
 
 if __name__ == '__main__':
 
-    nc_coro = setup_coro('F335M', 'MASK335R', 'CIRCLYOT')
-    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)
-
-    ote_coro.zero()
-    #ote_coro._apply_hexikes_to_seg('A1', [1e-6])
-    #ote_coro._apply_hexikes_to_seg('A3', [1e-6])
-    #ote_coro.move_seg_local('A6', xtilt=0.5)
-    psf = nc_coro.calc_psf(oversample=1)
-    psf = psf[1].data
-
-    plt.subplot(1,2,1)
-    ote_coro.display_opd()
-    plt.subplot(1,2,2)
-    plt.imshow(psf, norm=LogNorm())
-    plt.show()
+    pass
