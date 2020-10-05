@@ -470,7 +470,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     # Set up JWST simulator in coronagraphic state
     jwst_instrument, jwst_ote = set_up_nircam()
-    jwst_instrument[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+    jwst_instrument.image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
 
     # Put aberration on correct segments. If i=j, apply only once!
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
