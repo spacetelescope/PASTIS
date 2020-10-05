@@ -184,7 +184,7 @@ def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PS
     ax1 = plt.subplot(121)
     ote.display_opd(ax=ax1, vmax=opd_vmax, colorbar_orientation='horizontal', title='OPD with aberrated segments')
     ax2 = plt.subplot(122)
-    webbpsf.display_psf(psf, ext=1, vmax=psf_vmax, vmin=psf_vmax/1e4, colorbar_orientation='horizontal', title="PSF simulation")
+    webbpsf.display_psf(psf, ext=2, vmax=psf_vmax, vmin=psf_vmax/1e4, colorbar_orientation='horizontal', title="PSF simulation")
     plt.suptitle(title, fontsize=16)
 
 
