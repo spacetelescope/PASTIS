@@ -24,6 +24,7 @@ from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
 import pastis.plotting as ppl
 
 log = logging.getLogger()
@@ -353,7 +354,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
@@ -402,6 +403,30 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
+
+    if instrument == 'JWST':
+
+        # Instantiate NIRCAM object
+        jwst_sim = set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+
+        # Calculate direct reference images for contrast normalization
+        jwst_sim[0].image_mask = None
+        direct = jwst_sim[0].calc_psf(nlambda=1)
+        direct_psf = direct[0].data
+        norm = direct_psf.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+        coro_image = jwst_sim[0].calc_psf(nlambda=1)
+        coro_psf = coro_image[0].data / norm
+
+        iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
+
+        # Return the coronagraphic simulator (a tuple in the JWST case!)
+        coro_simulator = jwst_sim
 
     # Calculate coronagraph floor in dark hole
     contrast_floor = util.dh_mean(coro_psf, dh_mask)
@@ -606,7 +631,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param instrument: str, what instrument (LUVOIR, HiCAT) to generate the PASTIS matrix for
+    :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
