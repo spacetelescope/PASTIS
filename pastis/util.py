@@ -191,16 +191,19 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
 
 def get_segment_list(instrument):
     """
-    Horribly hacky function to get correct segment number list for an instrument (LUVOIR or HiCAT).
+    Horribly hacky function to get correct segment number list for an instrument (LUVOIR, or HiCAT and JWST).
 
-    We can assume that both implemented instruments start their numbering at 0, at the center segment. LUVOIR doesn't
-    use the center segment though, so we start at 1 and go until 120, for a total of 120 segments. HiCAT does use it,
-    so we start at 0 and go to 36 for a total of 37 segments.
-    :param instrument: string, "HiCAT" or "LUVOIR"
-    :return: seglist, array of segment numbers (names!)
+    We can assume that all implemented instruments start their numbering at 0, at the center segment.
+    LUVOIR doesn't use the center segment though, so we start at 1 and go until 120, for a total of 120 segments.
+    HiCAT does use it, so we start at 0 and go to 36 for a total of 37 segments.
+    JWST does not have a center segment, but it uses custom segment names anyway, so we start the numbering with zero,
+    at the first segment that is actually controllable (A1).
+
+    :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
+    :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
-    if instrument not in ['LUVOIR', 'HiCAT']:
-        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR" or "HiCAT" instead.')
+    if instrument not in ['LUVOIR', 'HiCAT', 'JWST']:
+        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
 
