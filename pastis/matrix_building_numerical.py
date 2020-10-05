@@ -467,6 +467,19 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_luvoir_multiprocess().
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: calibration aberration per segment in m
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how JWST segments start numbering at 0 just because that's python indexing, with 0 being
+                         the segment A1.
+    :return: contrast as float, and segment pair as tuple
+    """
 
     # Set up JWST simulator in coronagraphic state
     jwst_instrument, jwst_ote = set_up_nircam()
