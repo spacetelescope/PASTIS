@@ -33,6 +33,8 @@ log = logging.getLogger()
 def num_matrix_jwst():
     """
     Generate a numerical PASTIS matrix for a JWST coronagraph.
+    -- Depracated function, the LUVOIR PASTIS matrix is better calculated with num_matrix_multiprocess(), which can
+    do this for your choice of one of the implemented instruments (LUVOIR, HiCAT, JWST). --
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     """
@@ -204,6 +206,8 @@ def num_matrix_jwst():
 def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
+    -- Depracated function, the LUVOIR PASTIS matrix is better calculated with num_matrix_multiprocess(), which can
+    do this for your choice of one of the implemented instruments (LUVOIR, HiCAT, JWST). --
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
