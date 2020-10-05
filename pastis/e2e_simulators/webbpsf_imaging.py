@@ -25,17 +25,13 @@ except ImportError:
 os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
 
 
-which_tel = CONFIG_PASTIS.get('telescope', 'name')
-nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
-flat_to_flat = CONFIG_PASTIS.getfloat(which_tel, 'flat_to_flat')
-wvl = CONFIG_PASTIS.getfloat(which_tel, 'lambda') * u.nm
-im_size_pupil = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
-flat_diam = CONFIG_PASTIS.getfloat(which_tel, 'flat_diameter') * u.m
-wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-im_size_e2e = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
-fpm = CONFIG_PASTIS.get(which_tel, 'focal_plane_mask')  # focal plane mask
-lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')  # Lyot stop
-filter = CONFIG_PASTIS.get(which_tel, 'filter_name')
+NB_SEG = CONFIG_PASTIS.getint('JWST', 'nb_subapertures')
+FLAT_TO_FLAT = CONFIG_PASTIS.getfloat('JWST', 'flat_to_flat')
+WVLN = CONFIG_PASTIS.getfloat('JWST', 'lambda') * u.nm
+IM_SIZE_PUPIL = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+FLAT_DIAM = CONFIG_PASTIS.getfloat('JWST', 'flat_diameter') * u.m
+WSS_SEGS = webbpsf.constants.SEGNAMES_WSS_ORDER
+IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
 
 
 def get_jwst_coords(outDir):
@@ -44,11 +40,11 @@ def get_jwst_coords(outDir):
 
     # Use poppy to create JWST aperture without spiders
     log.info('Creating and saving aperture')
-    jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=flat_to_flat)   # Create JWST pupil without spiders
+    jwst_pup = poppy.MultiHexagonAperture(rings=2, flattoflat=FLAT_TO_FLAT)   # Create JWST pupil without spiders
     jwst_pup.display(colorbar=False)   # Show pupil (will be saved to file)
     plt.title('JWST telescope pupil')
     # Number the segments
-    for i in range(nb_seg+1):
+    for i in range(NB_SEG+1):
         ycen, xcen = jwst_pup._hex_center(i)
         plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
     # Save a PDF version of the pupil
@@ -61,7 +57,7 @@ def get_jwst_coords(outDir):
     jwst_pup.display(colorbar=False)   # Show pupil
     plt.title('JWST telescope exit pupil')
     # Number the segments
-    for i in range(nb_seg+1):
+    for i in range(NB_SEG+1):
         ycen, xcen = jwst_pup._hex_center(i)
         ycen *= -1
         plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the number labels closer to the segment centers
@@ -69,14 +65,14 @@ def get_jwst_coords(outDir):
     plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
 
     # Get pupil as fits image
-    pupil_dir = jwst_pup.sample(wavelength=wvl, npix=im_size_pupil, grid_size=flat_diam, return_scale=True)
+    pupil_dir = jwst_pup.sample(wavelength=WVLN, npix=IM_SIZE_PUPIL, grid_size=FLAT_DIAM, return_scale=True)
     # If the image size is equivalent to the total diameter of the telescope, we don't have to worry about sampling later
     # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
     util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
 
     #-# Get the coordinates of the central pixel of each segment
-    seg_position = np.zeros((nb_seg, 2))   # holds x and y position of each central pixel
-    for i in range(nb_seg+1):   # our pupil is still counting the central segment as seg 0, so we need to include it
+    seg_position = np.zeros((NB_SEG, 2))   # holds x and y position of each central pixel
+    for i in range(NB_SEG+1):   # our pupil is still counting the central segment as seg 0, so we need to include it
                                 # in the loop, however, we will just discard the values for the center
         if i == 0:     # Segment 0 is the central segment, which we want to skip and not put into seg_position
             continue   # Continues with the next iteration of the loop
@@ -90,6 +86,8 @@ def get_jwst_coords(outDir):
 
 def nircam_coro(filter, fpm, ppm, Aber_WSS):
     """
+    -- Deprecated function still used in analytical PASTIS and some notebooks. --
+
     Create NIRCam image with specified filter and coronagraph, and aberration input.
     :param filter: str, filter name
     :param fpm: focal plane mask
@@ -109,12 +107,12 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
     nc.include_si_wfe = False  # set SI internal WFE to zero
     ote.reset()
     ote.zero()
-    for i in range(nb_seg):
-        seg = wss_segs[i].split('-')[0]
+    for i in range(NB_SEG):
+        seg = WSS_SEGS[i].split('-')[0]
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
     # Calculate PSF
-    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size_e2e), nlambda=1)
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(IM_SIZE_E2E), nlambda=1)
     psf_webbpsf = psf_nc[1].data
 
     return psf_webbpsf
@@ -122,7 +120,7 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
 def nircam_nocoro(filter, Aber_WSS):
     """
-    Create PSF
+    -- Deprecated function still used in analytical PASTIS and some notebooks. --
     :param filter:
     :param Aber_WSS:
     :return:
@@ -137,12 +135,12 @@ def nircam_nocoro(filter, Aber_WSS):
     nc.include_si_wfe = False  # set SI internal WFE to zero
     ote.reset()
     ote.zero()
-    for i in range(nb_seg):
-        seg = wss_segs[i].split('-')[0]
+    for i in range(NB_SEG):
+        seg = WSS_SEGS[i].split('-')[0]
         ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
 
     # Calculate PSF
-    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(im_size_e2e), nlambda=1)
+    psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(IM_SIZE_E2E), nlambda=1)
     psf_webbpsf = psf_nc[1].data
 
     return psf_webbpsf
