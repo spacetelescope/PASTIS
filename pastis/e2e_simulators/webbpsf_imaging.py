@@ -16,13 +16,14 @@ log = logging.getLogger()
 
 try:
     import webbpsf
+
+    # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
+    # webbpsf.utils.get_webbpsf_data_path()
+    # --> e.g.: >>source activate pastis   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
+    os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
+
 except ImportError:
     log.info('WebbPSF was not imported.')
-
-# Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
-# webbpsf.utils.get_webbpsf_data_path()
-# --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
-os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
 
 
 NB_SEG = CONFIG_PASTIS.getint('JWST', 'nb_subapertures')
