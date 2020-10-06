@@ -322,8 +322,17 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
 
 
 def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
+    """
+    Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
+    :param matrix_dir: str, directory of saved matrix
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
+    :return: 2x float, E2E and matrix contrast
+    """
     # Keep track of time
-    start_time = time.time()  # runtime currently is around 12 min
+    start_time = time.time()
 
     # Parameters
     nb_seg = CONFIG_PASTIS.getint('JWST', 'nb_subapertures')
