@@ -8,6 +8,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
+import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
@@ -396,7 +397,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
 def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
-    :param instrument: string, "LUVOIR" or "HiCAT"
+    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
     :param mus: array or list, segment requirements (standard deviations) in nm
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
@@ -414,6 +415,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         sim_instance.flatten()
         wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
+
     if instrument == 'HiCAT':
         sim_instance.iris_dm.flatten()
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
@@ -423,6 +425,19 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
         hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
+
+    if instrument == 'JWST':
+        sim_instance[1].zero()
+        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+            seg_name = wss_segs[segnum].split('-')[0]
+            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
+
+        psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
+        wf_sm = inter[1].phase
+
+        jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
 
     map_small = np.ma.masked_where(map_small == 0, map_small)
     cmap_brev.set_bad(color='black')

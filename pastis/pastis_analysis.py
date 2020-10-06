@@ -276,6 +276,15 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             im_data = sim_instance.calc_psf()
             psf = im_data[0].data
 
+        if instrument == 'JWST':
+            wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
+            sim_instance[1].zero()
+            for seg, val in enumerate(opd):
+                seg_num = wss_segs[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1)
+            psf = im_data[0].data
+
         # Calculate the contrast from that PSF
         contrast = util.dh_mean(psf/norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
@@ -338,10 +347,10 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
 def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param instrument: str, "LUVOIR" or "HiCAT"
+    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
     :param sim_instance: class instance of the simulator for "instrument"
     :param mus: array, segment-based PASTIS constraints in nm
-    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by LuvoirAPLC instance
+    :param dh_mask: array, dark hole mask for PSF produced by/for instrument
     :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
@@ -366,6 +375,15 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
+    if instrument == 'JWST':
+        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
+        sim_instance[1].zero()
+        for seg in range(mus.shape[0]):
+            seg_num = wss_segs[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1)
+        psf = im_data[0].data
+
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights.value, rand_contrast
@@ -374,11 +392,11 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
 def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
-    :param instrument: str, "LUVOIR" or "HiCAT"
+    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
     :param pmodes: array, pastis mode matrix [nseg, nmodes]
     :param sim_instance: class instance of the simulator for "instrument"
     :param sigmas: array, mode-based PASTIS constraints
-    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
+    :param dh_mask: array, dark hole mask for PSF produced by instrument
     :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_weights: array, random weights used in this PSF calculation
              rand_contrast: float, mean contrast of the calculated PSF
@@ -405,6 +423,15 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         for seg, aber in enumerate(opd):
             sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
         im_data = sim_instance.calc_psf()
+        psf = im_data[0].data
+
+    if instrument == 'JWST':
+        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
+        sim_instance[1].zero()
+        for seg, aber in enumerate(opd):
+            seg_num = wss_segs[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
@@ -621,11 +648,21 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
                 sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf_pure_mu_map = im_data.shaped
+
         if instrument == 'HiCAT':
             sim_instance.iris_dm.flatten()
             for seg, mu in enumerate(mus):
                 sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
             im_data = sim_instance.calc_psf()
+            psf_pure_mu_map = im_data[0].data
+
+        if instrument == 'JWST':
+            wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
+            sim_instance[1].zero()
+            for seg, mu in enumerate(mus):
+                seg_num = wss_segs[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
 
         contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
