@@ -255,6 +255,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
+        log.info(f'Working on mode {maxmode+1}/{pmodes.shape[0]}.')
 
         if individual:
             opd = pmodes[:, maxmode] * sigmas[maxmode]
