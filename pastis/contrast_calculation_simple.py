@@ -16,12 +16,11 @@ import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam, WSS_SEGS
 import pastis.image_pastis as impastis
 import pastis.util as util
 
@@ -355,10 +354,9 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
     log.info('Calculating E2E contrast...')
     # Put aberration on OTE
-    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER    # TODO: this can probably be put in a better place so to not repeat it
     jwst_sim[1].zero()
     for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
-        seg_num = wss_segs[nseg].split('-')[0]
+        seg_num = WSS_SEGS[nseg].split('-')[0]
         jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value, trans_unit='nm')
 
     image = jwst_sim[0].calc_psf(nlambda=1)

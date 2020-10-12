@@ -17,7 +17,7 @@ import webbpsf
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam, WSS_SEGS
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import pastis.plotting as ppl
 import pastis.util as util
@@ -120,9 +120,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'JWST':
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance[1].zero()
-            wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
             for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
-                seg_name = wss_segs[segnum].split('-')[0]
+                seg_name = WSS_SEGS[segnum].split('-')[0]
                 sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
 
             psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
@@ -278,10 +277,9 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             psf = im_data[0].data
 
         if instrument == 'JWST':
-            wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
             sim_instance[1].zero()
             for seg, val in enumerate(opd):
-                seg_num = wss_segs[seg].split('-')[0]
+                seg_num = WSS_SEGS[seg].split('-')[0]
                 sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
@@ -377,10 +375,9 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         psf = im_data[0].data
 
     if instrument == 'JWST':
-        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
         sim_instance[1].zero()
         for seg in range(mus.shape[0]):
-            seg_num = wss_segs[seg].split('-')[0]
+            seg_num = WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
@@ -427,10 +424,9 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         psf = im_data[0].data
 
     if instrument == 'JWST':
-        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
         sim_instance[1].zero()
         for seg, aber in enumerate(opd):
-            seg_num = wss_segs[seg].split('-')[0]
+            seg_num = WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
@@ -658,10 +654,9 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             psf_pure_mu_map = im_data[0].data
 
         if instrument == 'JWST':
-            wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
-                seg_num = wss_segs[seg].split('-')[0]
+                seg_num = WSS_SEGS[seg].split('-')[0]
                 sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
