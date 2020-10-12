@@ -8,10 +8,10 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
-import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.webbpsf_imaging import WSS_SEGS
 from pastis.util import apply_mode_to_luvoir
 
 cmap_brev = cm.get_cmap('Blues_r')
@@ -428,9 +428,8 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
     if instrument == 'JWST':
         sim_instance[1].zero()
-        wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER  # TODO: this can probably be put in a better place so to not repeat it
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
-            seg_name = wss_segs[segnum].split('-')[0]
+            seg_name = WSS_SEGS[segnum].split('-')[0]
             sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
 
         psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
