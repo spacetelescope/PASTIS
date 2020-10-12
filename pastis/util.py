@@ -199,10 +199,10 @@ def get_segment_list(instrument):
     JWST does not have a center segment, but it uses custom segment names anyway, so we start the numbering with zero,
     at the first segment that is actually controllable (A1).
 
-    :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
+    :param instrument: string, "HiCAT", "HiCAT_continuous", "LUVOIR" or "JWST"
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
-    if instrument not in ['LUVOIR', 'HiCAT', 'JWST']:
+    if instrument not in ['LUVOIR', 'HiCAT', 'HiCAT_continuous', 'JWST']:
         raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
