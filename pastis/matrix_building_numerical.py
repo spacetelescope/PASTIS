@@ -19,11 +19,13 @@ import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
 import hcipy
+import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
 import pastis.plotting as ppl
 
 log = logging.getLogger()
@@ -32,6 +34,8 @@ log = logging.getLogger()
 def num_matrix_jwst():
     """
     Generate a numerical PASTIS matrix for a JWST coronagraph.
+    -- Depracated function, the LUVOIR PASTIS matrix is better calculated with num_matrix_multiprocess(), which can
+    do this for your choice of one of the implemented instruments (LUVOIR, HiCAT, JWST). --
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     """
@@ -203,6 +207,8 @@ def num_matrix_jwst():
 def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
+    -- Depracated function, the LUVOIR PASTIS matrix is better calculated with num_matrix_multiprocess(), which can
+    do this for your choice of one of the implemented instruments (LUVOIR, HiCAT, JWST). --
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
@@ -353,7 +359,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
@@ -403,6 +409,30 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
 
+    if instrument == 'JWST':
+
+        # Instantiate NIRCAM object
+        jwst_sim = set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+
+        # Calculate direct reference images for contrast normalization
+        jwst_sim[0].image_mask = None
+        direct = jwst_sim[0].calc_psf(nlambda=1)
+        direct_psf = direct[0].data
+        norm = direct_psf.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+        coro_image = jwst_sim[0].calc_psf(nlambda=1)
+        coro_psf = coro_image[0].data / norm
+
+        iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
+
+        # Return the coronagraphic simulator (a tuple in the JWST case!)
+        coro_simulator = jwst_sim
+
     # Calculate coronagraph floor in dark hole
     contrast_floor = util.dh_mean(coro_psf, dh_mask)
     log.info(f'contrast floor: {contrast_floor}')
@@ -436,12 +466,73 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         return contrast_floor, norm
 
 
+def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_luvoir_multiprocess().
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: calibration aberration per segment in m
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how JWST segments start numbering at 0 just because that's python indexing, with 0 being
+                         the segment A1.
+    :return: contrast as float, and segment pair as tuple
+    """
+
+    # Set up JWST simulator in coronagraphic state
+    jwst_instrument, jwst_ote = set_up_nircam()
+    jwst_instrument.image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+
+    # Identify the correct JWST segments
+    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
+    seg_i = wss_segs[segment_pair[0]].split('-')[0]
+    seg_j = wss_segs[segment_pair[1]].split('-')[0]
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    jwst_ote.zero()
+    jwst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='m')
+    if segment_pair[0] != segment_pair[1]:
+        jwst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='m')
+
+    log.info('Calculating coro image...')
+    image = jwst_instrument.calc_psf(nlambda=1)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot segmented mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.figure(figsize=(8, 8))
+        ax2 = plt.subplot(111)
+        jwst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf, dh_mask)
+
+    return contrast, segment_pair
+
+
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: float, calibration aberration per segment in nm
+    :param wfe_aber: float, calibration aberration per segment in m
     :param zern_mode: Zernike mode object, local Zernike aberration
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
@@ -494,7 +585,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     """
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in nm
+    :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
@@ -606,7 +697,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param instrument: str, what instrument (LUVOIR, HiCAT) to generate the PASTIS matrix for
+    :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
@@ -695,6 +786,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
 
         calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+
+    if instrument == 'JWST':
+        calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)

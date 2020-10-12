@@ -16,10 +16,12 @@ import astropy.units as u
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
 import pastis.image_pastis as impastis
 import pastis.util as util
 
@@ -317,6 +319,78 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     return contrast_luvoir, contrast_matrix
+
+
+def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
+    """
+    Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
+    :param matrix_dir: str, directory of saved matrix
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
+    :return: 2x float, E2E and matrix contrast
+    """
+    # Keep track of time
+    start_time = time.time()
+
+    # Parameters
+    nb_seg = CONFIG_PASTIS.getint('JWST', 'nb_subapertures')
+    iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+
+    # Import numerical PASTIS matrix
+    filename = 'PASTISmatrix_num_piston_Noll1'
+    matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
+
+    # Create random aberration coefficients on segments, scaled to total rms
+    aber = util.create_random_rms_values(nb_seg, rms)
+
+    ### E2E JWST sim
+    start_e2e = time.time()
+
+    jwst_sim = set_up_nircam()
+    jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+
+    log.info('Calculating E2E contrast...')
+    # Put aberration on OTE
+    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER    # TODO: this can probably be put in a better place so to not repeat it
+    jwst_sim[1].zero()
+    for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
+        seg_num = wss_segs[nseg].split('-')[0]
+        jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value, trans_unit='nm')
+
+    image = jwst_sim[0].calc_psf(nlambda=1)
+    psf_jwst = image[0].data / norm
+
+    # Create DH
+    dh_mask = util.create_dark_hole(psf_jwst, iwa=iwa, owa=owa, samp=sampling)
+    # Get the mean contrast
+    contrast_jwst = util.dh_mean(psf_jwst, dh_mask)
+    end_e2e = time.time()
+
+    ## MATRIX PASTIS
+    log.info('Generating contrast from matrix-PASTIS')
+    start_matrixpastis = time.time()
+    # Get mean contrast from matrix PASTIS
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
+    end_matrixpastis = time.time()
+
+    ## Outputs
+    log.info('\n--- CONTRASTS: ---')
+    log.info(f'Mean contrast from E2E: {contrast_jwst}')
+    log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
+
+    log.info('\n--- RUNTIMES: ---')
+    log.info(f'E2E: {end_e2e-start_e2e}sec = {(end_e2e-start_e2e)/60}min')
+    log.info(f'Matrix PASTIS: {end_matrixpastis-start_matrixpastis}sec = {(end_matrixpastis-start_matrixpastis)/60}min')
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
+
+    return contrast_jwst, contrast_matrix
 
 
 if __name__ == '__main__':
