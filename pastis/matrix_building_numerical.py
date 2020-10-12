@@ -19,13 +19,12 @@ import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
 import hcipy
-import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam
+from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam, WSS_SEGS
 import pastis.plotting as ppl
 
 log = logging.getLogger()
@@ -489,9 +488,8 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
 
     # Identify the correct JWST segments
-    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-    seg_i = wss_segs[segment_pair[0]].split('-')[0]
-    seg_j = wss_segs[segment_pair[1]].split('-')[0]
+    seg_i = WSS_SEGS[segment_pair[0]].split('-')[0]
+    seg_j = WSS_SEGS[segment_pair[1]].split('-')[0]
 
     # Put aberration on correct segments. If i=j, apply only once!
     jwst_ote.zero()

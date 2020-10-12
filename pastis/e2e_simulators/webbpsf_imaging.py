@@ -21,6 +21,7 @@ try:
     # webbpsf.utils.get_webbpsf_data_path()
     # --> e.g.: >>source activate pastis   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
     os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
+    WSS_SEGS = webbpsf.constants.SEGNAMES_WSS_ORDER
 
 except ImportError:
     log.info('WebbPSF was not imported.')
@@ -31,7 +32,6 @@ FLAT_TO_FLAT = CONFIG_PASTIS.getfloat('JWST', 'flat_to_flat')
 WVLN = CONFIG_PASTIS.getfloat('JWST', 'lambda') * u.nm
 IM_SIZE_PUPIL = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
 FLAT_DIAM = CONFIG_PASTIS.getfloat('JWST', 'flat_diameter') * u.m
-WSS_SEGS = webbpsf.constants.SEGNAMES_WSS_ORDER
 IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
 
 
