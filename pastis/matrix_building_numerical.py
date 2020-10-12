@@ -663,7 +663,7 @@ def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds
     if instrument == "HiCAT":
         plane = 1
     elif instrument == "HiCAT_continuous":
-        plane = 3
+        plane = 4
     if saveopds:
         opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
         plt.clf()
