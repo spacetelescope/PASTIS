@@ -368,10 +368,11 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
+    only_instrument = instrument.split("_")[0]
 
-    if instrument == 'LUVOIR':
+    if only_instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
-        sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
         optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
         if design is None:
             design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
@@ -387,7 +388,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = luvoir
         dh_mask = luvoir.dh_mask.shaped
 
-    if instrument == 'HiCAT':
+    if only_instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
         hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
 
@@ -410,7 +411,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
 
         # Instantiate NIRCAM object
         jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
@@ -583,6 +584,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
 
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
+    -- DEPRECATED FUNCIONT - USE _hicat_matrix_element() instead! --
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_luvoir_multiprocess().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
@@ -630,6 +632,78 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
+
+
+def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+
+    # Set up HiCAT simulator in correct state
+    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim.include_fpm = True
+
+    # Put aberration on segment/actuator pair of correct mirror (IrisAO or Boston DM1)
+    # TODO: I think I don't have to pass the simulator instance around, as it's the same object anyway
+    if instrument == "HiCAT":
+        # Aberrate segment pair on IrisAO
+        hicat_sim = _hicat_aberrate_segment_pair(hicat_sim, wfe_aber, segment_pair)
+    elif instrument == "HiCAT_continuous":
+        # Aberrate actuator pair on Boston DM1
+        hicat_sim = _hicat_aberrate_actuator_pair(hicat_sim, wfe_aber, segment_pair)
+
+    # Calculate coronagraphic image
+    log.info('Calculating coro image...')
+    image, inter = hicat_sim.calc_psf(display=False, return_intermediates=True)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot actuated mirror WFE and save to disk
+    if instrument == "HiCAT":
+        plane = 1
+    elif instrument == "HiCAT_continuous":
+        plane = 3
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.imshow(inter[plane].phase)
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf, dh_mask)
+
+    return contrast, segment_pair
+
+
+def _hicat_aberrate_segment_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
+
+    # Put aberration on correct segments of IrisAO. If i=j, apply only once!
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+    hicat_sim_aberrate.iris_dm.flatten()
+    hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    if segment_pair[0] != segment_pair[1]:
+        hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+
+    return hicat_sim_aberrate
+
+
+def _hicat_aberrate_actuator_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
+
+    # Put aberration on correct actuators of Boston DM1. If i=j, apply only once!
+    # This will require poking one actuator on top of strokemin solution on DM1.
+    log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+    #hicat_sim_aberrate.iris_dm.flatten()
+    #hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    if segment_pair[0] != segment_pair[1]:
+        pass
+        #hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+
+    return hicat_sim_aberrate
 
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
@@ -697,7 +771,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
+    :param instrument: str, what instrument (LUVOIR, HiCAT, HiCAT_continuous, JWST) to generate the PASTIS matrix for
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
@@ -707,6 +781,9 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 150 minutes
+
+    # Differentiate between actual instrument and PASTIS model (segmented vs. continuous)
+    only_instrument = instrument.split("_")[0]
 
     ### Parameters
 
@@ -736,7 +813,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # General telescope parameters
     nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
     seglist = util.get_segment_list(instrument)
-    wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
+    wvln = CONFIG_PASTIS.getfloat(only_instrument, 'lambda') * 1e-9  # m
     wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9   # m
 
     # Record some of the defined parameters
@@ -777,17 +854,16 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     log.info(f"Multiprocess PASTIS matrix for {instrument} will use {num_processes} processes (with {num_core_per_process} threads per process)")
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
-    if instrument == 'LUVOIR':
+    if only_instrument == 'LUVOIR':
         calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, zern_mode, resDir,
                                                   savepsfs, saveopds)
 
-    if instrument == 'HiCAT':
+    if only_instrument == 'HiCAT':
         # Copy used BostonDM maps to matrix folder
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
+        calculate_matrix_pair = functools.partial(_hicat_matrix_element, instrument, norm, wfe_aber, resDir, savepsfs, saveopds)
 
-        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
-
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
