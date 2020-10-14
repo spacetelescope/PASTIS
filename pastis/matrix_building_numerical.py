@@ -24,7 +24,7 @@ import hcipy
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+from pastis.e2e_simulators.hicat_imaging import set_up_hicat, read_continuous_dm_maps_hicat, ACTUATOR_GRID, DM_ACTUATORS_TO_SURFACE
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
@@ -700,14 +700,23 @@ def _hicat_aberrate_segment_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
 
 def _hicat_aberrate_actuator_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
 
-    # Put aberration on correct actuators of Boston DM1. If i=j, apply only once!
-    # This will require poking one actuator on top of strokemin solution on DM1.
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
-    #hicat_sim_aberrate.iris_dm.flatten()
-    #hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[0], wfe_aber, 0, 0)
+    # Create actuator vector to hold the PASTIS poke of one single actuator
+    dm1_poke_vector = np.zeros(952)
+
+    # Put aberration on correct actuators of Boston DM1. If i=j, apply only once!
+    dm1_poke_vector[segment_pair[0]] += wfe_aber  # meters
     if segment_pair[0] != segment_pair[1]:
-        pass
-        #hicat_sim_aberrate.iris_dm.set_actuator(segment_pair[1], wfe_aber, 0, 0)
+        dm1_poke_vector[segment_pair[1]] += wfe_aber
+
+    # Reshape actuator poke vector to DM command shape
+    dm1_poke_array = DM_ACTUATORS_TO_SURFACE(dm1_poke_vector).reshape(ACTUATOR_GRID.shape)
+
+    # Combine the poked actuators with the strokemin solution on DM1 and apply to DM
+    path_to_dh_solution = CONFIG_PASTIS.get('HiCAT', 'dm_maps_path')
+    dm1_strokemin, _dm2_strokemin = read_continuous_dm_maps_hicat(path_to_dh_solution)
+    dm1_final_command_to_load = dm1_strokemin + dm1_poke_array
+    hicat_sim_aberrate.dm1.set_surface(dm1_final_command_to_load)
 
     return hicat_sim_aberrate
 
