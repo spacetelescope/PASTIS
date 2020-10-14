@@ -26,7 +26,7 @@ from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam, WSS_SEGS
+import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
 
 log = logging.getLogger()
@@ -413,7 +413,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     if instrument == 'JWST':
 
         # Instantiate NIRCAM object
-        jwst_sim = set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+        jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
 
         # Calculate direct reference images for contrast normalization
         jwst_sim[0].image_mask = None
@@ -483,15 +483,15 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     """
 
     # Set up JWST simulator in coronagraphic state
-    jwst_instrument, jwst_ote = set_up_nircam()
+    jwst_instrument, jwst_ote = webbpsf_imaging.set_up_nircam()
     jwst_instrument.image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
 
     # Put aberration on correct segments. If i=j, apply only once!
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
 
     # Identify the correct JWST segments
-    seg_i = WSS_SEGS[segment_pair[0]].split('-')[0]
-    seg_j = WSS_SEGS[segment_pair[1]].split('-')[0]
+    seg_i = webbpsf_imaging.WSS_SEGS[segment_pair[0]].split('-')[0]
+    seg_j = webbpsf_imaging.WSS_SEGS[segment_pair[1]].split('-')[0]
 
     # Put aberration on correct segments. If i=j, apply only once!
     jwst_ote.zero()
