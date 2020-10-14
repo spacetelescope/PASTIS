@@ -24,7 +24,7 @@ import hcipy
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat, read_continuous_dm_maps_hicat, ACTUATOR_GRID, DM_ACTUATORS_TO_SURFACE
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
@@ -390,7 +390,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
     if only_instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
-        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+        hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
 
         # Calculate direct reference images for contrast normalization
         hicat_sim.include_fpm = False
@@ -603,7 +603,7 @@ def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds
     """
 
     # Set up HiCAT simulator in correct state
-    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
     hicat_sim.include_fpm = True
 
     # Put aberration on segment/actuator pair of correct mirror (IrisAO or Boston DM1)
@@ -697,11 +697,11 @@ def _hicat_aberrate_actuator_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
         dm1_poke_vector[segment_pair[1]] += wfe_aber
 
     # Reshape actuator poke vector to DM command shape
-    dm1_poke_array = DM_ACTUATORS_TO_SURFACE(dm1_poke_vector).reshape(ACTUATOR_GRID.shape)
+    dm1_poke_array = hicat_imaging.DM_ACTUATORS_TO_SURFACE(dm1_poke_vector).reshape(hicat_imaging.ACTUATOR_GRID.shape)
 
     # Combine the poked actuators with the strokemin solution on DM1 and apply to DM
     path_to_dh_solution = CONFIG_PASTIS.get('HiCAT', 'dm_maps_path')
-    dm1_strokemin, _dm2_strokemin = read_continuous_dm_maps_hicat(path_to_dh_solution)
+    dm1_strokemin, _dm2_strokemin = hicat_imaging.read_continuous_dm_maps_hicat(path_to_dh_solution)
     dm1_final_command_to_load = dm1_strokemin + dm1_poke_array
     hicat_sim_aberrate.dm1.set_surface(dm1_final_command_to_load)
 
