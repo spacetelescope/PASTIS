@@ -254,7 +254,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param instrument: string, 'LUVOIR', 'HiCAT', 'HiCAT_continuous' or 'JWST'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param sigmas: array, weights per PASTIS mode
     :param sim_instance: class instance of the simulator for "instrument"
@@ -263,6 +263,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
     :return: cont_cum_e2e, list of cumulative or individual contrasts
     """
+    only_instrument = instrument.split("_")[0]
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
@@ -274,21 +275,27 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
-        if instrument == 'LUVOIR':
+        if only_instrument == 'LUVOIR':
             sim_instance.flatten()
             for seg, val in enumerate(opd):
                 sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf = im_data.shaped
 
-        if instrument == 'HiCAT':
-            sim_instance.iris_dm.flatten()
-            for seg, val in enumerate(opd):
-                sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+        if only_instrument == 'HiCAT':
+            if instrument == 'HiCAT':
+                # Apply OPD to IrisAO
+                sim_instance.iris_dm.flatten()
+                for seg, val in enumerate(opd):
+                    sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+            elif instrument == 'HiCAT_continuous':
+                # Apply OPD to DM1
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(opd.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                sim_instance.dm1.set_surface(mode_command)
             im_data = sim_instance.calc_psf()
             psf = im_data[0].data
 
-        if instrument == 'JWST':
+        if only_instrument == 'JWST':
             sim_instance[1].zero()
             for seg, val in enumerate(opd):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
