@@ -307,7 +307,7 @@ def create_random_rms_values(nb_seg, total_rms):
     Also subtracts global piston.
 
     :param nb_seg: int, number of segments in the pupil
-    :param rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
+    :param total_rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
     :return: aber: array of segment aberration values in nm (astropy units) of WFE rms, scaled to input rms value (total_rms)
     """
     # Create own random state

@@ -409,7 +409,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
 def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: str, "LUVOIR", "HiCAT", "HiCAT_continuous" or "JWST"
     :param pmodes: array, pastis mode matrix [nseg, nmodes]
     :param sim_instance: class instance of the simulator for "instrument"
     :param sigmas: array, mode-based PASTIS constraints
@@ -418,6 +418,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     :return: random_weights: array, random weights used in this PSF calculation
              rand_contrast: float, mean contrast of the calculated PSF
     """
+    only_instrument = instrument.split("_")[0]
 
     # Create a random set of mode weights with sigmas as stddevs in the normal distribution
     modes_random_state = np.random.RandomState()
@@ -428,21 +429,27 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     opd *= u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if only_instrument == "LUVOIR":
         sim_instance.flatten()
         for seg, aber in enumerate(opd):
             sim_instance.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for seg, aber in enumerate(opd):
-            sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+    if only_instrument == 'HiCAT':
+        if instrument == 'HiCAT':
+            # Apply OPD to IrisAO
+            sim_instance.iris_dm.flatten()
+            for seg, aber in enumerate(opd):
+                sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+        elif instrument == 'HiCAT_continuous':
+            # Apply OPD to DM1
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(opd.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command)
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
         for seg, aber in enumerate(opd):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
