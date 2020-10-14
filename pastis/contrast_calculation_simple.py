@@ -181,22 +181,24 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     return contrast_webbpsf, contrast_am, contrast_matrix
 
 
-def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
+def contrast_hicat_num(coro_floor, norm, matrix_dir, segmented=True, rms=1*u.nm):
     """
-    Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
+    Compute the contrast for a random IrisAO or Boston DM1 misalignment on the HiCAT simulator.
 
     :param coro_floor: float, coronagraph contrast floor
     :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :param segmented: bool, if True will run on IrisAO, if False will run on DM1
+    :param rms: astropy quantity, rms wfe to be put randomly on the DM (IrisAO or Boston DM)
     :return: E2E and matrix contrast, both floats
     """
+    seg_or_cont_mode = 'HiCAT' if segmented else 'HiCAT_continuous'
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
 
     # Parameters
-    nb_seg = CONFIG_PASTIS.getint('HiCAT', 'nb_subapertures')
+    nb_seg = CONFIG_PASTIS.getint(seg_or_cont_mode, 'nb_subapertures')
     iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
     owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
     sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
@@ -216,9 +218,14 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     hicat_sim.include_fpm = True
 
     log.info('Calculating E2E contrast...')
-    # Put aberration on Iris AO
-    for nseg in range(nb_seg):
-        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
+    if segmented:
+        # Put aberration on Iris AO
+        for nseg in range(nb_seg):
+            hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
+    else:
+        # Put aberration on DM1
+        mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(aber).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+        hicat_sim.dm1.set_surface(mode_command)
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
     psf_hicat = psf_hicat[0].data / norm
