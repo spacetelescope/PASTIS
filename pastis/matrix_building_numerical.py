@@ -635,6 +635,24 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 
 def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+    """
+    Function to calculate HiCAT mean contrast of one aberrated segment/actuator pair; for num_matrix_luvoir_multiprocess().
+
+    This function will automaticlaly call the appropriate function that either aberrates the IrisAO (segmented PASTIS)
+    or Boston DM1 in the HiCAT simulator (continuous PASTIS). If running on the Boston DM, the actuator pokes required
+    to calculate the PASTIS matrix will be added on top of a potentially loaded stroke minimization solution.
+    :param instrument: string, will be either "HiCAT" or "HiCAT_continuous", which will trigger the distinctino between
+                       segmented and continuous PASTIS
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: float, calibration aberration per segment in m
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how HiCAT IrisAO segments start numbering at 0, with 0 being the center segment.
+    :return: contrast as float, and segment pair as tuple
+    """
 
     # Set up HiCAT simulator in correct state
     hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
@@ -687,6 +705,16 @@ def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds
 
 
 def _hicat_aberrate_segment_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
+    """
+    Aberrate a pair of IrisAO segments with a given WF aberration. If the segment pair refers to only one single
+    segment, aberrate it only with 1*wfe_aber, not with 2*wfe_aber.
+    :param hicat_sim_aberrate: instance of HiCAT simulator
+    :param wfe_aber: float, calibration aberration per segment in m
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how HiCAT IrisAO segments start numbering at 0, with 0 being the center segment.
+    :return: the same simulator instance as passed in, but with the aberrated segment pair on the IrisAO
+    """
 
     # Put aberration on correct segments of IrisAO. If i=j, apply only once!
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
@@ -699,6 +727,17 @@ def _hicat_aberrate_segment_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
 
 
 def _hicat_aberrate_actuator_pair(hicat_sim_aberrate, wfe_aber, segment_pair):
+    """
+    Aberrate a pair of Boston DM actuators on DM1 in HiCAT with a given WF aberration. If the actuator pair refers to
+    only one single actuator, aberrate it only with 1*wfe_aber, not with 2*wfe_aber.
+    :param hicat_sim_aberrate: instance of HiCAT simulator
+    :param wfe_aber: float, calibration aberration per segment in m
+    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
+                         entries, the segment will be aberrated only once.
+                         Note how the Boston DM actuator numbering in their own docs starts at 1, while in the code we
+                         start at 0 due to the Python indexing.
+    :return: the same simulator instance as passed in, but with the aberrated actuator pair on the Boston DM1
+    """
 
     log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
     # Create actuator vector to hold the PASTIS poke of one single actuator
