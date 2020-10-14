@@ -668,6 +668,12 @@ def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds
         opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
         plt.clf()
         plt.imshow(inter[plane].phase)
+        # Alternatively for DM1:
+        # hicat_sim.dm1.display_actuators(opd_vmax=20e-9, colorbar_orientation='vertical')
+        # or:
+        # hicat_sim.dm1.display(opd_vmax=20e-9, colorbar_orientation='vertical')
+        # Alternative for IrisAO:
+        # hicat_sim.iris_dm.display(what='opd', colorbar_orientation='vertical')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
