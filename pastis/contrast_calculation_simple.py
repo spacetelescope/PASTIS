@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.image_pastis as impastis
@@ -212,7 +212,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     start_e2e = time.time()
 
     # Set HiCAT simulator to coro mode
-    hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
     hicat_sim.include_fpm = True
 
     log.info('Calculating E2E contrast...')

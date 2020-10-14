@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import hcipy
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
@@ -501,7 +501,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         sim_instance = luvoir
 
     if instrument == 'HiCAT':
-        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+        hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
 
         # Generate reference PSF and unaberrated coronagraphic image
         hicat_sim.include_fpm = False
