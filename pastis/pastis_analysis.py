@@ -12,7 +12,6 @@ import logging
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
-import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
