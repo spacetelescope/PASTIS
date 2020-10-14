@@ -12,6 +12,8 @@ log = logging.getLogger()
 
 try:
     import hicat.simulators
+    from hicat.wfc_algorithms.wfsc_utils import actuator_grid as ACTUATOR_GRID
+    from hicat.wfc_algorithms.wfsc_utils import dm_actuators_to_surface as DM_ACTUATORS_TO_SURFACE
 except ImportError:
     log.info('HiCAT simulator not imported.')
 
