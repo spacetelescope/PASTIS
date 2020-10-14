@@ -368,9 +368,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
-    only_instrument = instrument.split("_")[0]
 
-    if only_instrument == 'LUVOIR':
+    if instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
         optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
@@ -388,7 +387,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = luvoir
         dh_mask = luvoir.dh_mask.shaped
 
-    if only_instrument == 'HiCAT':
+    if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
         hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
 
@@ -411,7 +410,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
 
-    if only_instrument == 'JWST':
+    if instrument == 'JWST':
 
         # Instantiate NIRCAM object
         jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
@@ -831,7 +830,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False,
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(only_instrument, design, return_coro_simulator=False,
                                                                             save_coro_floor=True, save_psfs=False, outpath=overall_dir)
 
     # Figure out how many processes is optimal and create a Pool.
