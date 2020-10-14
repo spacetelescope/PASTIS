@@ -122,12 +122,12 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     """
     Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for one particular instrument.
 
-    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    The aberration range is a fixed parameter in the configfile since it depends on the coronagraph (and telescope)
     used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
+    :param instrument: string, 'LUVOIR', 'HiCAT', 'HiCAT_continuous' or 'JWST'
     :param apodizer_choice: string, needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
     :param resultdir: string, Path to directory where results will be saved.
@@ -136,6 +136,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
                                 is used in the plot
     :return:
     """
+    only_instrument = instrument.split("_")[0]
 
     if instrument == 'LUVOIR' and apodizer_choice is None:
         raise ValueError('Need to specify apodizer_choice when working with LUVOIR instrument.')
@@ -152,7 +153,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     os.makedirs(resultdir, exist_ok=True)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice, return_coro_simulator=False)
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(only_instrument, apodizer_choice, return_coro_simulator=False)
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
@@ -174,11 +175,13 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
             log.info(f"Random realization: {j+1}/{no_realizations}")
             log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}")
 
-            # Chose correct contrast propagation function for chose instrument
+            # Chose correct contrast propagation function for chosen instrument
             if instrument == 'LUVOIR':
                 c_e2e, c_matrix = consim.contrast_luvoir_num(contrast_floor, norm, apodizer_choice, matrix_dir=matrixdir, rms=rms)
             if instrument == 'HiCAT':
                 c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
+            if instrument == 'HiCAT_continuous':
+                c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, segmented=False, rms=rms)
             if instrument == 'JWST':
                 c_e2e, c_matrix = consim.contrast_jwst_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
 
@@ -196,7 +199,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     # Plot
     plt.clf()
     ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
-                                wvln=CONFIG_PASTIS.getfloat(instrument, 'lambda'),
+                                wvln=CONFIG_PASTIS.getfloat(only_instrument, 'lambda'),
                                 out_dir=resultdir,
                                 fname_suffix=f'{no_realizations}_realizations_each',
                                 save=True)
