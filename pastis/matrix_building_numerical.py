@@ -581,7 +581,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     return float(contrast), segment_pair
 
 
-def _hicat_matrix_element(instrument, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+def _hicat_matrix_one_pair(instrument, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate HiCAT mean contrast of one aberrated segment/actuator pair; for num_matrix_luvoir_multiprocess().
 
@@ -862,7 +862,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     if only_instrument == 'HiCAT':
         # Copy used BostonDM maps to matrix folder
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
-        calculate_matrix_pair = functools.partial(_hicat_matrix_element, instrument, norm, wfe_aber, resDir, savepsfs, saveopds)
+        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, instrument, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     if only_instrument == 'JWST':
         calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
