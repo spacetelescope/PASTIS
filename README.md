@@ -235,7 +235,12 @@ To  mitigate this, go to your `matplotlibrc` file and make sure to uncomment and
 ```bash
 pdf.fonttype       : 42
 ```
-This will make it use Type 42 fonts instead.
+This will make it use Type 42 fonts instead. Instead of permanently editing you rc file, you can also drop in these two
+lines in the scripts concerned:
+```python
+import matplotlib
+matplotlib.rc('pdf', fonttype=42)
+```
 
 #### On MacOS Mojave 10.14.6 - backend
 The `tkagg` backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you

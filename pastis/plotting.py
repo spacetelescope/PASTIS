@@ -154,9 +154,9 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
         plt.legend(prop={'size': 20})
     plt.tight_layout()
 
-    plt.annotate(s='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
+    plt.annotate(text='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
                  fontweight='bold', size=25)
-    plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
+    plt.annotate(text='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
     if save:
@@ -570,7 +570,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ans = np.ceil(np.log10(len(random_contrasts)))
     binsize = np.power(10, ans-1) if ans <= 3 else np.power(10, ans-2)
 
-    n, bins, patches = plt.hist(random_contrasts, int(binsize), color=base_color)
+    n, bins, patches = plt.hist(np.array(random_contrasts), int(binsize), color=base_color)
     plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
     plt.xlabel('Mean contrast in dark hole', size=30)
     plt.ylabel('Frequency', size=30)

@@ -14,6 +14,8 @@ import functools
 import shutil
 import astropy.units as u
 import logging
+import matplotlib
+matplotlib.rc('pdf', fonttype=42)
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import multiprocessing
