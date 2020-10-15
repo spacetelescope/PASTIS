@@ -365,7 +365,7 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
 def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: str, "LUVOIR", "HiCAT", "HiCAT_continuous" or "JWST"
     :param sim_instance: class instance of the simulator for "instrument"
     :param mus: array, segment-based PASTIS constraints in nm
     :param dh_mask: array, dark hole mask for PSF produced by/for instrument
@@ -373,27 +373,34 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
+    only_instrument = instrument.split("_")[0]
 
     # Create a random set of segment weights with mus as stddevs in the normal distribution
     segments_random_state = np.random.RandomState()
     random_weights = segments_random_state.normal(0, mus) * u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if only_instrument == "LUVOIR":
         sim_instance.flatten()
         for seg in range(mus.shape[0]):
             sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for seg in range(mus.shape[0]):
-            sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
+    if only_instrument == 'HiCAT':
+        if instrument == 'HiCAT':
+            # Apply OPD to IrisAO
+            sim_instance.iris_dm.flatten()
+            for seg in range(mus.shape[0]):
+                sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
+        elif instrument == 'HiCAT_continuous':
+            # Apply OPD to DM1
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(random_weights.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command)   # needed in meters
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
         for seg in range(mus.shape[0]):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
@@ -667,21 +674,28 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         # Apply mu map directly and run through E2E simulator
         mus *= u.nm
 
-        if instrument == 'LUVOIR':
+        if only_instrument == 'LUVOIR':
             sim_instance.flatten()
             for seg, mu in enumerate(mus):
                 sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf_pure_mu_map = im_data.shaped
 
-        if instrument == 'HiCAT':
-            sim_instance.iris_dm.flatten()
-            for seg, mu in enumerate(mus):
-                sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+        if only_instrument == 'HiCAT':
+            if instrument == 'HiCAT':
+                # Apply mu map to IrisAO
+                sim_instance.iris_dm.flatten()
+                for seg, mu in enumerate(mus):
+                    sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+            elif instrument == 'HiCAT_continuous':
+                # Apply mu map to DM1
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mu).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                sim_instance.dm1.set_surface(mode_command / 1e9)  # /1e9 converts to meters
+
             im_data = sim_instance.calc_psf()
             psf_pure_mu_map = im_data[0].data
 
-        if instrument == 'JWST':
+        if only_instrument == 'JWST':
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
