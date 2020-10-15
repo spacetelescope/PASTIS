@@ -397,7 +397,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
 def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
-    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: string, "LUVOIR", "HiCAT", 'HiCAT_continuous' or "JWST"
     :param mus: array or list, segment requirements (standard deviations) in nm
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
@@ -411,24 +411,36 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    if instrument == 'LUVOIR':
+    only_instrument = instrument.split("_")[0]
+
+    if only_instrument == 'LUVOIR':
         sim_instance.flatten()
         wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
-            sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
-        psf, inter = sim_instance.calc_psf(return_intermediates=True)
-        wf_sm = inter[1].phase
+    if only_instrument == 'HiCAT':
+
+        if instrument == 'HiCAT':
+            # Apply mu map to IrisAO
+            sim_instance.iris_dm.flatten()
+            for segnum in range(CONFIG_PASTIS.getint(only_instrument, 'nb_subapertures')):
+                sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)    # /1e9 converts to meters
+            psf, inter = sim_instance.calc_psf(return_intermediates=True)
+            wf_sm = inter[1].phase
+
+        elif instrument == 'HiCAT_continuous':
+            # Apply mu map to DM1
+            mode_command = sim_instance.DM_ACTUATORS_TO_SURFACE(mus).reshape(sim_instance.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command / 1e9)    # /1e9 converts to meters
+            psf, inter = sim_instance.calc_psf(return_intermediates=True)
+            wf_sm = inter[4].phase
 
         hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
-        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+        for segnum in range(CONFIG_PASTIS.getint(only_instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
             seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
             sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
 
