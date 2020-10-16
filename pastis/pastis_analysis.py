@@ -703,7 +703,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
                     sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
             elif instrument == 'HiCAT_continuous':
                 # Apply mu map to DM1
-                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mu).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mus).reshape(hicat_imaging.ACTUATOR_GRID.shape)
                 sim_instance.dm1.set_surface(mode_command / 1e9)  # /1e9 converts to meters
 
             im_data = sim_instance.calc_psf()
