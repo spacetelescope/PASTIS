@@ -31,7 +31,7 @@ def set_up_hicat(apply_continuous_dm_maps=False):
     hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
     hicat_sim.use_wfe_from = CONFIG_PASTIS.get('HiCAT', 'use_wfe_from')
 
-    hicat_sim.pupil_maskmask = CONFIG_PASTIS.get('HiCAT', 'pupil_mask')  # I will likely have to implement a new pupil mask
+    hicat_sim.pupil_mask = CONFIG_PASTIS.get('HiCAT', 'pupil_mask')  # I will likely have to implement a new pupil mask
     hicat_sim.iris_ao = CONFIG_PASTIS.get('HiCAT', 'iris_ao')
     hicat_sim.apodizer = CONFIG_PASTIS.get('HiCAT', 'apodizer')
     hicat_sim.lyot_stop = CONFIG_PASTIS.get('HiCAT', 'lyot_stop')
