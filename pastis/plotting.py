@@ -10,6 +10,7 @@ from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.util import apply_mode_to_luvoir
@@ -430,7 +431,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
         elif instrument == 'HiCAT_continuous':
             # Apply mu map to DM1
-            mode_command = sim_instance.DM_ACTUATORS_TO_SURFACE(mus).reshape(sim_instance.ACTUATOR_GRID.shape)
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mus).reshape(hicat_imaging.ACTUATOR_GRID.shape)
             sim_instance.dm1.set_surface(mode_command / 1e9)    # /1e9 converts to meters
             psf, inter = sim_instance.calc_psf(return_intermediates=True)
             wf_sm = inter[4].phase
