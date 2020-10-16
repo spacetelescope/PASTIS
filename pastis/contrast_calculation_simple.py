@@ -224,7 +224,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, segmented=True, rms=1*u.nm)
             hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
     else:
         # Put aberration on DM1
-        mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(aber).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+        mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(aber.to(u.m)).reshape(hicat_imaging.ACTUATOR_GRID.shape)
         hicat_sim.dm1.set_surface(mode_command)
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)

@@ -91,7 +91,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     only_instrument = instrument.split("_")[0]
 
     nseg = pmodes.shape[0]
-    seglist = util.get_segment_list(only_instrument)
+    seglist = util.get_segment_list(instrument)
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
@@ -121,7 +121,10 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
 
-            phase_sm = inter[1].phase
+            if instrument == 'HiCAT':
+                phase_sm = inter[1].phase
+            elif instrument == 'HiCAT_continuous':
+                phase_sm = inter[4].phase
             hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_sm / hicat_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
