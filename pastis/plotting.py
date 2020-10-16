@@ -154,9 +154,9 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
         plt.legend(prop={'size': 20})
     plt.tight_layout()
 
-    plt.annotate(text='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
+    plt.annotate(s='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
                  fontweight='bold', size=25)
-    plt.annotate(text='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
+    plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
     if save:
