@@ -192,6 +192,16 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
     ### Plot all modes together and save as PDF (focal plane)
     log.info('Saving all PASTIS modes together as PDF (focal plane)...')
+
+    # Create DH mask to show only DH in output image
+    if only_instrument in ('JWST', 'HiCAT'):
+        iwa = CONFIG_PASTIS.getfloat(only_instrument, 'IWA')
+        owa = CONFIG_PASTIS.getfloat(only_instrument, 'OWA')
+        sampling = CONFIG_PASTIS.getfloat(only_instrument, 'sampling')
+        dh_mask = util.create_dark_hole(all_modes_focal_plane[0], iwa, owa, sampling).astype('bool')
+    elif only_instrument == 'LUVOIR':
+        dh_mask = sim_instance.dh_mask.shaped
+
     plt.figure(figsize=(36, 30))
     for i, thismode in enumerate(seglist):
         if instrument == 'LUVOIR':
@@ -202,7 +212,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             plt.subplot(34, 28, i + 1)
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
-        plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
+
+        plt.imshow(all_modes_focal_plane[i] * dh_mask, cmap='inferno', norm=LogNorm())
         plt.axis('off')
         plt.title(f'Mode {thismode}')
     plt.savefig(os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'))
