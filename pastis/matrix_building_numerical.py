@@ -511,11 +511,14 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     # Plot segmented mirror WFE and save to disk
     if saveopds:
         opd_name = f'opd_piston_Noll1_segs_{segment_pair[0]}-{segment_pair[1]}'
+        # PDF
         plt.clf()
         plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(111)
         jwst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+        # fits
+        # not implemented to save OTE images as fits for JWST
 
     log.info('Calculating mean contrast in dark hole')
     iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
@@ -569,9 +572,12 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
     # Plot segmented mirror WFE and save to disk
     if saveopds:
         opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
+        # PDF
         plt.clf()
         hcipy.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
-        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+        plt.savefig(os.path.join(resDir, 'OTE_images', 'pdf', opd_name + '.pdf'))
+        # fits
+        hcipy.write_fits(inter['seg_mirror'], os.path.join(resDir, 'OTE_images', 'fits', opd_name + '.fits'))
 
     log.info('Calculating mean contrast in dark hole')
     dh_intensity = psf * luv.dh_mask
@@ -639,7 +645,10 @@ def _hicat_matrix_one_pair(instrument, norm, wfe_aber, resDir, savepsfs, saveopd
         # hicat_sim.dm1.display(opd_vmax=20e-9, colorbar_orientation='vertical')
         # Alternative for IrisAO:
         # hicat_sim.iris_dm.display(what='opd', colorbar_orientation='vertical')
-        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+        plt.savefig(os.path.join(resDir, 'OTE_images', 'pdf', opd_name + '.pdf'))
+
+        # fits
+        hcipy.write_fits(inter[plane].phase, os.path.join(resDir, 'OTE_images', 'fits', opd_name + '.fits'))
 
     log.info('Calculating mean contrast in dark hole')
     iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
@@ -799,9 +808,12 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
     # Create necessary directories if they don't exist yet
-    os.makedirs(resDir, exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+    subdirs = [os.path.join(resDir, 'OTE_images', 'fits'),
+               os.path.join(resDir, 'OTE_images', 'pdf'),
+               os.path.join(resDir, 'psfs')]
+    for place in subdirs:
+        if not os.path.isdir(place):
+            os.makedirs(place, exist_ok=True)
 
     # Set up logger
     util.setup_pastis_logging(resDir, f'pastis_matrix_{tel_suffix}')
