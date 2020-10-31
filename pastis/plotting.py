@@ -2,16 +2,17 @@
 Plotting functions for the PASTIS code.
 """
 import os
-import hcipy as hc
+import hcipy
 import matplotlib
 from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
-from config import CONFIG_INI
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis_analysis import apply_mode_to_sm
+from pastis.config import CONFIG_PASTIS
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.webbpsf_imaging import WSS_SEGS
+from pastis.util import apply_mode_to_luvoir
 
 cmap_brev = cm.get_cmap('Blues_r')
 
@@ -153,9 +154,9 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
         plt.legend(prop={'size': 20})
     plt.tight_layout()
 
-    plt.annotate(s='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
+    plt.annotate(text='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
                  fontweight='bold', size=25)
-    plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
+    plt.annotate(text='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
     if save:
@@ -393,38 +394,13 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def create_luvoir_and_wf_at_mirror(design, wvln):
-    """
-    Instantiate a LuvoirAPLC simulator and create the wavefront at the segmented primary mirror plane.
-    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
-    :param wvln: float, wavelength at which to instantiate the simulator with, in nm
-    :return: luvoir (LuvoirAPLC), wf_aper (hcipy.wavefront)
-    """
-    # Create wavefront in aperture plane
-    optics_path = CONFIG_INI.get('LUVOIR', 'optics_path')
-
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    aper_read = hc.read_fits(os.path.join(optics_path, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(optics_path, aper_ind_path))
-
-    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
-    aper = hc.Field(aper_read.ravel(), pupil_grid)
-    wf_aper = hc.Wavefront(aper, wvln * 1e-9)
-
-    # Create LUVOIR instance and wavefront in the segmented mirror plane
-    luvoir = LuvoirAPLC(optics_path, design, samp=4)
-
-    return luvoir, wf_aper
-
-
-def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix='', save=False):
+def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
+    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
     :param mus: array or list, segment requirements (standard deviations) in nm
-    :param wvln: float, operating wavelength in nm
+    :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
-    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design for which the mus have been calculated
     :param c_target: float, target contrast for which the segment requirements have been calculated
     :param limits: tuple, colorbar limirs, deault is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
@@ -435,19 +411,40 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
-    wf_constraints = apply_mode_to_sm(mus, luvoir.sm, wf_aper)
+    if instrument == 'LUVOIR':
+        sim_instance.flatten()
+        wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
+        map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
 
-    plt.figure(figsize=(10, 10))
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
+            sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
+        psf, inter = sim_instance.calc_psf(return_intermediates=True)
+        wf_sm = inter[1].phase
 
-    map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
+        hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
+
+    if instrument == 'JWST':
+        sim_instance[1].zero()
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+            seg_name = WSS_SEGS[segnum].split('-')[0]
+            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
+
+        psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
+        wf_sm = inter[1].phase
+
+        jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
+
     map_small = np.ma.masked_where(map_small == 0, map_small)
     cmap_brev.set_bad(color='black')
 
+    plt.figure(figsize=(10, 10))
     plt.imshow(map_small, cmap=cmap_brev)
     cbar = plt.colorbar(fraction=0.046,
-                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+                        pad=0.04)  # no clue what these numbers mean but they did the job of adjusting the colorbar size to the actual plot size
     cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
     cbar.ax.yaxis.offsetText.set(size=25)  # this changes the base of ten on the colorbar
     cbar.set_label('picometers', size=30)
@@ -461,30 +458,30 @@ def plot_mu_map(mus, wvln, out_dir, design, c_target, limits=None, fname_suffix=
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def calculate_mode_phases(pastis_modes, wvln, design):
+def calculate_mode_phases(pastis_modes, design):
     """
     Calculate the phase maps in radians of a set of PASTIS modes.
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :return: all_modes, array of phase pupil images
     """
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    # Create luvoir instance
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Calculate phases of all modes
     all_modes = []
     for mode in range(len(pastis_modes)):
-        all_modes.append(apply_mode_to_sm(pastis_modes[:, mode], luvoir.sm, wf_aper).phase)
+        all_modes.append(apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
 
     return all_modes
 
 
-def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=False):
+def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
     """
     Plot all PATIS modes onto a grid.
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :param fname_suffix: str, optional, suffix to add to the saved file name
@@ -496,12 +493,12 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=Fa
         fname += f'_{fname_suffix}'
 
     # Calculate phases of all modes
-    all_modes = calculate_mode_phases(pastis_modes, wvln, design)
+    all_modes = calculate_mode_phases(pastis_modes, design)
 
     # Plot them
     fig, axs = plt.subplots(12, 10, figsize=(20, 24))
     for i, ax in enumerate(axs.flat):
-        im = hc.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
+        im = hcipy.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
         ax.axis('off')
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
@@ -510,12 +507,11 @@ def plot_all_modes(pastis_modes, wvln, out_dir, design, fname_suffix='', save=Fa
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
     """
     Plot a single PASTIS mode.
     :param mode_nr: int, mode index
     :param pastis_modes: array, PASTIS modes [seg, mode] in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
     :param figsize: tuple, size of figure, default=(8.5,8.5)
@@ -529,12 +525,14 @@ def plot_single_mode(mode_nr, pastis_modes, wvln, out_dir, design, figsize=(8.5,
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Create wavefront in aperture plane and luvoir instance
-    luvoir, wf_aper = create_luvoir_and_wf_at_mirror(design, wvln)
+    # Create luvoir instance
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)
-    one_mode = apply_mode_to_sm(pastis_modes[:, mode_nr - 1], luvoir.sm, wf_aper)
-    hc.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
+    one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
+    hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
     cbar = plt.colorbar(fraction=0.046,
@@ -572,7 +570,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ans = np.ceil(np.log10(len(random_contrasts)))
     binsize = np.power(10, ans-1) if ans <= 3 else np.power(10, ans-2)
 
-    n, bins, patches = plt.hist(random_contrasts, int(binsize), color=base_color)
+    n, bins, patches = plt.hist(np.array(random_contrasts), int(binsize), color=base_color)
     plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
     plt.xlabel('Mean contrast in dark hole', size=30)
     plt.ylabel('Frequency', size=30)
@@ -580,7 +578,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set x-axis formatter to x10^{-10}
     ax1.xaxis.offsetText.set_fontsize(30)  # set x-axis formatter font size
     plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
-    if segments:
+    if stddev:
         plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
     plt.tight_layout()

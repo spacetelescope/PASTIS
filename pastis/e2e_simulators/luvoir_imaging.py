@@ -1,15 +1,22 @@
 """
 This is a module containing functions and classes for imaging propagation with HCIPy, for now LUVOIR A.
 """
+import logging
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from astropy.io import fits
-import hcipy as hc
-from hcipy.optics.segmented_mirror import SegmentedMirror
+import hcipy
 
-from config import CONFIG_INI
+from pastis.config import CONFIG_PASTIS
+
+log = logging.getLogger()
+
+try:
+    from hcipy.optics.segmented_mirror import SegmentedMirror
+except ImportError:
+    log.info('SegmentedMirror simulator from hcipy@980f39c was not imported.')
 
 
 class SegmentedTelescopeAPLC:
@@ -47,10 +54,10 @@ class SegmentedTelescopeAPLC:
         self.imlamD = params['imlamD']
         self.fpm_rad = params['fpm_rad']
         self.lamDrad = self.wvln / self.diam
-        self.coro = hc.LyotCoronagraph(indexed_aperture.grid, fpm, lyotst)
-        self.prop = hc.FraunhoferPropagator(indexed_aperture.grid, focal_grid)
-        self.coro_no_ls = hc.LyotCoronagraph(indexed_aperture.grid, fpm)
-        self.wf_aper = hc.Wavefront(aper, wavelength=self.wvln)
+        self.coro = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm, lyotst)
+        self.prop = hcipy.FraunhoferPropagator(indexed_aperture.grid, focal_grid)
+        self.coro_no_ls = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm)
+        self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
         self.focal_det = focal_grid
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
@@ -83,10 +90,10 @@ class SegmentedTelescopeAPLC:
         """
 
         # Create fake FPM for plotting
-        fpm_plot = 1 - hc.circular_aperture(2 * self.fpm_rad * self.lamDrad)(self.focal_det)
+        fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lamDrad)(self.focal_det)
 
-        # Create apodozer as hc.Apodizer() object to be able to propagate through it
-        apod_prop = hc.Apodizer(self.apodizer)
+        # Create apodozer as hcipy.Apodizer() object to be able to propagate through it
+        apod_prop = hcipy.Apodizer(self.apodizer)
 
         # Calculate all wavefronts of the full propagation
         wf_sm = self.sm(self.wf_aper)
@@ -100,7 +107,7 @@ class SegmentedTelescopeAPLC:
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Wavefronts of the reference propagation
-        wf_ref_pup = hc.Wavefront(self.aper * self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_ref_pup = hcipy.Wavefront(self.aper * self.apodizer * self.lyotstop, wavelength=self.wvln)
         wf_im_ref = self.prop(wf_ref_pup)
 
         # Display intermediate planes
@@ -109,33 +116,33 @@ class SegmentedTelescopeAPLC:
             plt.figure(figsize=(15, 15))
 
             plt.subplot(331)
-            hc.imshow_field(wf_sm.phase, mask=self.aper, cmap='RdBu')
+            hcipy.imshow_field(wf_sm.phase, mask=self.aper, cmap='RdBu')
             plt.title('Seg aperture phase')
 
             plt.subplot(332)
-            hc.imshow_field(wf_apod.intensity, cmap='inferno')
+            hcipy.imshow_field(wf_apod.intensity, cmap='inferno')
             plt.title('Apodizer')
 
             plt.subplot(333)
-            hc.imshow_field(wf_before_fpm.intensity / wf_before_fpm.intensity.max(), norm=LogNorm(), cmap='inferno')
+            hcipy.imshow_field(wf_before_fpm.intensity / wf_before_fpm.intensity.max(), norm=LogNorm(), cmap='inferno')
             plt.title('Before FPM')
 
             plt.subplot(334)
-            hc.imshow_field(int_after_fpm / wf_before_fpm.intensity.max(), cmap='inferno')
+            hcipy.imshow_field(int_after_fpm / wf_before_fpm.intensity.max(), cmap='inferno')
             plt.title('After FPM')
 
             plt.subplot(335)
-            hc.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
+            hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
                             cmap='inferno')
             plt.title('Before Lyot stop')
 
             plt.subplot(336)
-            hc.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
+            hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
                             cmap='inferno', mask=self.lyotstop)
             plt.title('After Lyot stop')
 
             plt.subplot(337)
-            hc.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(), norm=LogNorm(vmin=1e-10, vmax=1e-3),
+            hcipy.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(), norm=LogNorm(vmin=1e-10, vmax=1e-3),
                             cmap='inferno')
             plt.title('Final image')
             plt.colorbar()
@@ -203,9 +210,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = 120   # FIXME: this should not be hard-coded
-        self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = 15.  # m   # FIXME: this should not be hard-coded
+        self.nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
+        self.wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9    # m
+        self.diam = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
@@ -214,26 +221,26 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                                      'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
                           'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
-        self.imlamD = 1.2*self.apod_dict[apod_design]['owa']
+        self.imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
         # Pupil plane optics
-        aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-        aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-        apod_path = os.path.join(input_dir, 'luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
+        aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
+        aper_ind_path = CONFIG_PASTIS.get('LUVOIR', 'indexed_aperture_path_in_optics')
+        apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
                                  self.apod_dict[apod_design]['fname'])
-        ls_fname = 'inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits'
+        ls_fname = CONFIG_PASTIS.get('LUVOIR', 'lyot_stop_path_in_optics')
 
-        pup_read = hc.read_fits(os.path.join(input_dir, aper_path))
-        aper_ind_read = hc.read_fits(os.path.join(input_dir, aper_ind_path))
-        apod_read = hc.read_fits(os.path.join(input_dir, apod_path))
-        ls_read = hc.read_fits(os.path.join(input_dir, ls_fname))
+        pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
+        aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
+        apod_read = hcipy.read_fits(os.path.join(input_dir, apod_path))
+        ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
 
-        pupil_grid = hc.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
+        pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
 
-        self.aperture = hc.Field(pup_read.ravel(), pupil_grid)
-        self.aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
-        self.apod = hc.Field(apod_read.ravel(), pupil_grid)
-        self.ls = hc.Field(ls_read.ravel(), pupil_grid)
+        self.aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
+        self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
+        self.apod = hcipy.Field(apod_read.ravel(), pupil_grid)
+        self.ls = hcipy.Field(ls_read.ravel(), pupil_grid)
 
         # Load segment positions from fits header
         hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
@@ -246,16 +253,16 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
             poslist.append((xin, yin))
 
         poslist = np.transpose(np.array(poslist))
-        self.seg_pos = hc.CartesianGrid(poslist)
+        self.seg_pos = hcipy.CartesianGrid(poslist)
 
         # Focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
-        focal_grid_fpm = hc.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
+        focal_grid_fpm = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
                                             num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=self.wvln)
-        self.fpm = 1 - hc.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
+        self.fpm = 1 - hcipy.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
 
         # Final focal plane grid (detector)
-        self.focal_det = hc.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
+        self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
 
         luvoir_params = {'wavelength': self.wvln, 'diameter': self.diam, 'imlamD': self.imlamD,
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
@@ -265,15 +272,15 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                          lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
         # Make dark hole mask
-        dh_outer = hc.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
+        dh_outer = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
             self.focal_det)
-        dh_inner = hc.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
+        dh_inner = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
             self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
         # Propagators
-        self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
-        self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
-        self.coro_no_ls = hc.LyotCoronagraph(pupil_grid, self.fpm)
+        self.coro = hcipy.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
+        self.prop = hcipy.FraunhoferPropagator(pupil_grid, self.focal_det)
+        self.coro_no_ls = hcipy.LyotCoronagraph(pupil_grid, self.fpm)
         #TODO: these three propagators should actually happen in the super init
         # -> how are self.aper_ind and pupil_grid connected?

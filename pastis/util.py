@@ -2,16 +2,22 @@
 Helper functions for PASTIS.
 """
 
+import glob
 import os
 import datetime
+import itertools
 import time
 from shutil import copy
 import sys
 from astropy.io import fits
 import astropy.units as u
+import fpdf
 import logging
 import logging.handlers
 import numpy as np
+from PyPDF2 import PdfFileMerger
+
+from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
 
@@ -54,6 +60,24 @@ def write_fits(data, filepath, header=None, metadata=None):
 
     #print('Wrote ' + filepath)
     return filepath
+
+
+def write_all_fits_to_cube(path):
+    """
+    Write all fits files in a directory to an image cube.
+
+    Directory can *only* contain fits files, and only files that you want in the cube. Subdirectories will be ignored.
+    :param path: string, path to directory that contains all fits files that should be put into cube; cube gets saved
+                 into that same directory
+    """
+    # Collect all filenames
+    all_file_names = [fname for fname in os.listdir(path) if os.path.isfile(os.path.join(path, fname))]
+    # Read all files into list
+    allfiles = []
+    for fname in all_file_names:
+        allfiles.append(fits.getdata(os.path.join(path, fname)))
+    cube = np.array(allfiles)
+    write_fits(cube, os.path.join(path, 'psf_cube.fits'))
 
 
 def circle_mask(im, xc, yc, rcirc):
@@ -122,11 +146,11 @@ def dh_mean(im, dh):
 
     Calculate the mean intensity in the dark hole area dh of the image im.
     im and dh have to have the same array size and shape.
-    :param im: array, image
+    :param im: array, normalized (by direct PSF peak pixel) image
     :param dh: array, dark hole mask
     """
     darkh = im * dh
-    con = np.mean(darkh[np.where(darkh != 0)])
+    con = np.mean(darkh[np.where(dh != 0)])
     return con
 
 
@@ -165,6 +189,108 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
     return var
 
 
+def get_segment_list(instrument):
+    """
+    Horribly hacky function to get correct segment number list for an instrument (LUVOIR, or HiCAT and JWST).
+
+    We can assume that all implemented instruments start their numbering at 0, at the center segment.
+    LUVOIR doesn't use the center segment though, so we start at 1 and go until 120, for a total of 120 segments.
+    HiCAT does use it, so we start at 0 and go to 36 for a total of 37 segments.
+    JWST does not have a center segment, but it uses custom segment names anyway, so we start the numbering with zero,
+    at the first segment that is actually controllable (A1).
+
+    :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
+    :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
+    """
+    if instrument not in ['LUVOIR', 'HiCAT', 'JWST']:
+        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
+
+    seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
+
+    # Drop the center segment with label '0' when working with LUVOIR
+    if instrument == 'LUVOIR':
+        seglist += 1
+
+    return seglist
+
+
+def apply_mode_to_luvoir(pmode, luvoir):
+    """
+    Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
+
+    This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
+    one by one to the segmented mirror.
+    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
+    :param luvoir: LuvoirAPLC
+    :return: hcipy.Wavefront of the segmented mirror, hcipy.Wavefront of the detector plane
+    """
+
+    # Flatten SM to be sure we have no residual aberrations
+    luvoir.flatten()
+
+    # Loop through all segments to put them on the segmented mirror one by one
+    for seg, val in enumerate(pmode):
+        val *= u.nm  # the LUVOIR modes come out in units of nanometers
+        luvoir.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
+
+    # Propagate the aperture wavefront through the SM
+    psf, planes = luvoir.calc_psf(return_intermediate='efield')
+
+    return planes['seg_mirror'], psf
+
+
+def segment_pairs_all(nseg):
+    """
+    Return a generator with all possible segment pairs, including repeating ones.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 10, 11, 12, 20, 21, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.product(np.arange(nseg), np.arange(nseg))
+
+
+def segment_pairs_non_repeating(nseg):
+    """
+    Return a generator with all possible non-repeating segment pairs.
+
+    E.g. if segments are 0, 1, 2, then the returned pairs will be:
+    00, 01, 02, 11, 12, 22
+    :param nseg: int, number of segments
+    :return:
+    """
+    return itertools.combinations_with_replacement(np.arange(nseg), r=2)
+
+
+def symmetrize(array):
+    """
+    Return a symmetrized version of NumPy array a.
+
+    Values 0 are replaced by the array value at the symmetric
+    position (with respect to the diagonal), i.e. if a_ij = 0,
+    then the returned array a' is such that a'_ij = a_ji.
+    Diagonal values are left untouched.
+    :param array: square NumPy array, such that a_ij = 0 or a_ji = 0,
+    for i != j.
+
+    Source:
+    https://stackoverflow.com/a/2573982/10112569
+    """
+    return array + array.T - np.diag(array.diagonal())
+
+
+def read_coro_floor_from_txt(datadir):
+    """
+    Read the coro floor as float from the output file in the data directory.
+    :param datadir: str, path to data directory
+    :return: coronagraph floor as float
+    """
+    with open(os.path.join(datadir, 'coronagraph_floor.txt'), 'r') as file:
+        full = file.read()
+    return float(full[19:])
+
+
 def rms(ar):
     """
     Manual root-mean-square calculation, assuming a zero-mean
@@ -173,6 +299,35 @@ def rms(ar):
     """
     rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
     return rms
+
+
+def create_random_rms_values(nb_seg, total_rms):
+    """
+    Calculate a set of random segment aberration values scaled to a total WFE rms (input: total_rms).
+    Also subtracts global piston.
+
+    :param nb_seg: int, number of segments in the pupil
+    :param rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
+    :return: aber: array of segment aberration values in nm (astropy units) of WFE rms, scaled to input rms value (total_rms)
+    """
+    # Create own random state
+    rms_random_state = np.random.RandomState()
+
+    # Create random aberration coefficients
+    aber = rms_random_state.random_sample([nb_seg])  # piston values in input units
+    log.info(f'PISTON ABERRATIONS: {aber}')
+
+    # Normalize to the WFE RMS value I want
+    rms_init = rms(aber)
+    aber *= total_rms.value / rms_init
+    calc_rms = rms(aber) * u.nm
+    aber *= u.nm  # making sure the aberration has the correct units
+    log.info(f"Calculated WFE RMS: {calc_rms}")
+
+    # Remove global piston
+    aber -= np.mean(aber)
+
+    return aber
 
 
 def aber_to_opd(aber_rad, wvln):
@@ -309,15 +464,15 @@ def create_data_path(initial_path, telescope="", suffix=""):
 
 def copy_config(outdir):
     """
-    Copy the config_local, or if non-existent, config.ini to outdir
+    Copy the config_local, or if non-existent, config_pastis.ini to outdir
     :param outdir: string, target location of copied configfile
     :return: 
     """
     print('Saving the configfile to outputs folder.')
     try:
-        copy('config_local.ini', outdir)
+        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_local.ini'), outdir)
     except IOError:
-        copy('config.ini', outdir)
+        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_pastis.ini'), outdir)
 
 
 def setup_pastis_logging(experiment_path, name):
@@ -351,3 +506,147 @@ def setup_pastis_logging(experiment_path, name):
     log.addHandler(experiment_hander)
     log.info("LOG SETUP: Experiment log will save messages of {} or higher to {}".format(logging.getLevelName(experiment_hander.level),
                                                                                          experiment_logfile_path))
+
+
+class PDF(fpdf.FPDF):
+    """
+    Subclass from fpdf.FPDF to be able to add a header and footer.
+    :param instrument: str, 'LUVOIR' or 'HiCAT'
+    """
+    def __init__(self, instrument):
+        super().__init__()
+        self.instrument = instrument
+
+    def header(self):
+        # Arial bold 15
+        self.set_font('Arial', 'B', 15)
+        # Move to the right
+        self.cell(80)
+        # Title
+        self.cell(30, 10, self.instrument, 1, 0, 'C')
+        # Line break
+        self.ln(20)
+
+    # Page footer
+    def footer(self):
+        # Position at 1.5 cm from bottom
+        self.set_y(-15)
+        # Arial italic 8
+        self.set_font('Arial', 'I', 8)
+        # Page number, on the right
+        #self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'R')
+        # Date, centered
+        self.cell(0, 10, str(datetime.date.today()), 0, 0, 'C')
+
+
+def create_title_page(instrument, datadir, itemlist):
+    """
+    Write the title page as PDF to disk.
+    :param instrument:  str, 'LUVOIR' or 'HiCAT'
+    :param datadir: str, data location
+    :param itemlist: list of strings to add to the title page
+    :return:
+    """
+
+    pdf = PDF(instrument=instrument)
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_font('Times', '', 12)
+    pdf.cell(w=0, h=15, txt=os.path.basename(os.path.normpath(datadir)), border=0, ln=1, align='L')
+    for entry in itemlist:
+        pdf.multi_cell(0, 10, entry, 0, 1)
+    pdf.output(os.path.join(datadir, 'title_page.pdf'), 'F')
+
+
+def collect_title_page(datadir, c_target):
+    """
+    Collect all the items from the data directory and return as list of strings for title page.
+
+    Will skip README if none exists.
+    :param datadir:  str, data location
+    :param c_target: float, target contrast
+    :return:
+    """
+
+    # Define what txt file contents you want to include in the title page
+    txt_files = [os.path.join(datadir, 'README.txt'),
+                 os.path.join(datadir, 'coronagraph_floor.txt'),
+                 os.path.join(datadir, 'results', f'statistical_contrast_analytical_{c_target}.txt'),
+                 os.path.join(datadir, 'results', f'statistical_contrast_empirical_{c_target}.txt')]
+    read_list = []
+
+    # Read all files and add their contents as string to read_list
+    for one_file in txt_files:
+        try:
+            with open(one_file, 'r') as file:
+                read_this = file.read()
+            read_list.append(read_this)
+        except FileNotFoundError:
+            log.info(f"No {os.path.basename(os.path.normpath(one_file))} found, won't include in PDF title page.")
+
+    return read_list
+
+
+def create_pdf_report(datadir, c_target):
+    """
+    Create and write to disk PDF file with all PDF figures and title page.
+    :param datadir: str, data directory
+    :param c_target: float, target contrast - beware of formatting differences (usually good: e.g. 1e-07, 1e-10, etc.)
+    """
+
+    # The hockey stick plot has a variable filename... need to change that at some point
+    try:
+        hockey_filename_full_path = glob.glob(os.path.join(datadir, 'results', 'hockeystick*'))[0]
+    except:
+        hockey_filename_full_path = 'No hockey stick plot available.'
+
+    # Define in what order the PDFs should be merged
+    pdfs = [os.path.join(datadir, 'title_page.pdf'),
+            os.path.join(datadir, 'unaberrated_dh.pdf'),
+            os.path.join(datadir, 'matrix_numerical', 'pastis_matrix.pdf'),
+            os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'modes_piston.pdf'),
+            os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'),
+            os.path.join(datadir, 'results', f'eigenvalues.pdf'),
+            hockey_filename_full_path,
+            os.path.join(datadir, 'results', f'mode_requirements_{c_target}_uniform.pdf'),
+            os.path.join(datadir, 'results', f'monte_carlo_modes_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cumulative_contrast_accuracy_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'segment_requirements_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'segment_tolerance_map_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'monte_carlo_segments_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'mode_requirements_{c_target}_segment-based.pdf'),
+            os.path.join(datadir, 'results', f'mode_requirements_double_axis_{c_target}_segment-based-vs-uniform.pdf'),
+            os.path.join(datadir, 'results', f'contrast_per_mode_{c_target}.pdf'),
+            os.path.join(datadir, 'results', f'cumulative_contrast_allocation_{c_target}_segment-based-vs-uniform.pdf')
+            ]
+
+    merger = PdfFileMerger()
+
+    for pdf in pdfs:
+        try:
+            merger.append(pdf)
+        except FileNotFoundError:
+            log.info(f"{pdf} omitted from full report - it doesn't exist.")
+
+    merger.write(os.path.join(datadir, 'full_report.pdf'))
+    merger.close()
+
+
+def read_mean_and_variance(filename):
+    """
+    Read one of the custom text files that contain a mean value and variance from a custom text file
+    and return the mean and variance.
+    :param filename: str, full path including file name of the txt file to be read
+    :return: floats, mean and variance
+    """
+
+    with open(filename, 'r') as file:
+        mean_string = file.readline()
+        variance_string = file.readline()
+
+    mean_value = float(mean_string.split(': ')[-1])
+    variance_value = float(variance_string.split(': ')[-1])
+
+    return mean_value, variance_value
