@@ -10,18 +10,20 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
 
 import os
 import time
-import numpy as np
-import matplotlib.pyplot as plt
+import functools
+from shutil import copy
 from astropy.io import fits
 import astropy.units as u
+import logging
+import matplotlib.pyplot as plt
+import numpy as np
 import hcipy as hc
 
 from config import CONFIG_INI
 import util_pastis as util
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
 
-# Set WebbPSF environment variable
-os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
+log = logging.getLogger()
 
 
 def num_matrix_jwst():
@@ -33,13 +35,16 @@ def num_matrix_jwst():
 
     import webbpsf
     from e2e_simulators import webbpsf_imaging as webbim
+    # Set WebbPSF environment variable
+    os.environ['WEBBPSF_PATH'] = CONFIG_INI.get('local', 'webbpsf_data_path')
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 21 minutes
-    print('Building numerical matrix for JWST\n')
+    log.info('Building numerical matrix for JWST\n')
 
     # Parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='jwst')
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
     which_tel = CONFIG_INI.get('telescope', 'name')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
     im_size_e2e = CONFIG_INI.getint('numerical', 'im_size_px_webbpsf')
@@ -49,28 +54,19 @@ def num_matrix_jwst():
     fpm = CONFIG_INI.get(which_tel, 'focal_plane_mask')                 # focal plane mask
     lyot_stop = CONFIG_INI.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     filter = CONFIG_INI.get(which_tel, 'filter_name')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
+    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm
     wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
     wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
 
-    # If subfolder "matrix_numerical" doesn't exist yet, create it.
-    if not os.path.isdir(resDir):
-        os.mkdir(resDir)
-
-    # If subfolder "OTE_images" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
-        os.mkdir(os.path.join(resDir, 'OTE_images'))
-
-    # If subfolder "psfs" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'psfs')):
-        os.mkdir(os.path.join(resDir, 'psfs'))
-
-    # If subfolder "darkholes" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'darkholes')):
-        os.mkdir(os.path.join(resDir, 'darkholes'))
+    # Create necessary directories if they don't exist yet
+    os.makedirs(overall_dir, exist_ok=True)
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'darkholes'), exist_ok=True)
 
     # Create the dark hole mask.
     pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
@@ -98,12 +94,12 @@ def num_matrix_jwst():
     all_dhs = []
     all_contrasts = []
 
-    print('nm_aber: {}'.format(nm_aber))
+    log.info(f'nm_aber: {nm_aber}')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('\nSTEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            log.info(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Get names of segments, they're being addressed by their names in the ote functions.
             seg_i = wss_segs[i].split('-')[0]
@@ -136,7 +132,7 @@ def num_matrix_jwst():
             ote_coro.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-            print('Calculating WebbPSF image')
+            log.info('Calculating WebbPSF image')
             image = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
             psf = image[0].data / normp
 
@@ -145,10 +141,10 @@ def num_matrix_jwst():
             util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
             all_psfs.append(psf)
 
-            print('Calculating mean contrast in dark hole')
+            log.info('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_area
             contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-            print('contrast:', contrast)
+            log.info(f'contrast: {contrast}')
 
             # Save DH image to disk and put current contrast in list
             filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
@@ -173,7 +169,7 @@ def num_matrix_jwst():
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
     # Normalize matrix for the input aberration
     matrix_pastis /= np.square(nm_aber.value)
@@ -181,17 +177,17 @@ def num_matrix_jwst():
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
-    print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(resDir))
+    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info(f'Data saved to {resDir}')
 
     # -- Runtime notes: --
     #
@@ -201,63 +197,65 @@ def num_matrix_jwst():
     # runtime = 20 min
 
 
-def num_matrix_luvoir(design):
+def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     """
     Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
-    we can work with, so I will implement an easy way of making a choice between them.
-    small, medium and large
+    we can work with, you pick which of the three you want with the 'design' parameter.
+    :param design: string, what coronagraph design to use - 'small', 'medium' or 'large'
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files, additionally to the
+                     total PSF cube. If False, the total cube will still get saved at the very end of the script.
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
     """
 
     # Keep track of time
-    start_time = time.time()   # runtime is currently around 150 minutes
-    print('Building numerical matrix for LUVOIR\n')
+    start_time = time.time()
 
     ### Parameters
 
     # System parameters
-    resDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active', 'matrix_numerical')
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope='luvoir-'+design)
+    os.makedirs(overall_dir, exist_ok=True)
+    resDir = os.path.join(overall_dir, 'matrix_numerical')
+
+    # Create necessary directories if they don't exist yet
+    os.makedirs(resDir, exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
+    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
+
+    # Set up logger
+    util.setup_pastis_logging(resDir, f'pastis_matrix_{design}')
+    log.info('Building numerical matrix for LUVOIR\n')
+
+    # Read calibration aberration
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
     wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9  # m
     diam = CONFIG_INI.getfloat('LUVOIR', 'diameter')  # m
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * 1e-9   # m
+    wfe_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * 1e-9   # m
 
     # Image system parameters
-    im_lamD = 30  # image size in lambda/D
-    sampling = 4
+    im_lamD = CONFIG_INI.getfloat('numerical', 'im_size_lamD_hcipy')  # image size in lambda/D
+    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
 
-    # Print some of the defined parameters
-    print('LUVOIR apodizer design: {}'.format(design))
-    print()
-    print('Wavelength: {} m'.format(wvln))
-    print('Telescope diameter: {} m'.format(diam))
-    print('Number of segments: {}'.format(nb_seg))
-    print()
-    print('Image size: {} lambda/D'.format(im_lamD))
-    print('Sampling: {} px per lambda/D'.format(sampling))
+    # Record some of the defined parameters
+    log.info(f'LUVOIR apodizer design: {design}')
+    log.info(f'Wavelength: {wvln} m')
+    log.info(f'Telescope diameter: {diam} m')
+    log.info(f'Number of segments: {nb_seg}')
+    log.info(f'Image size: {im_lamD} lambda/D')
+    log.info(f'Sampling: {sampling} px per lambda/D')
 
-    ### Setting up the paths
-
-    # If subfolder "matrix_numerical" doesn't exist yet, create it.
-    if not os.path.isdir(resDir):
-        os.mkdir(resDir)
-
-    # If subfolder "OTE_images" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'OTE_images')):
-        os.mkdir(os.path.join(resDir, 'OTE_images'))
-
-    # If subfolder "psfs" doesn't exist yet, create it.
-    if not os.path.isdir(os.path.join(resDir, 'psfs')):
-        os.mkdir(os.path.join(resDir, 'psfs'))
+    #  Copy configfile to resulting matrix directory
+    util.copy_config(resDir)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### Dark hole mask
@@ -269,49 +267,51 @@ def num_matrix_luvoir(design):
     unaberrated_coro_psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
     norm = np.max(ref)
 
-    dh_intensity = unaberrated_coro_psf / norm * dh_mask
-    contrast_floor = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-    print(contrast_floor)
+    dh_intensity = (unaberrated_coro_psf / norm) * dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    log.info(f'contrast floor: {contrast_floor}')
 
     ### Generating the PASTIS matrix and a list for all contrasts
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
     all_psfs = []
     all_contrasts = []
 
-    print('nm_aber: {} m'.format(nm_aber))
+    log.info(f'wfe_aber: {wfe_aber} m')
 
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('\nSTEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            log.info(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
 
             # Put aberration on correct segments. If i=j, apply only once!
             luvoir.flatten()
-            luvoir.set_segment(i+1, nm_aber/2, 0, 0)
+            luvoir.set_segment(i+1, wfe_aber/2, 0, 0)
             if i != j:
-                luvoir.set_segment(j+1, nm_aber/2, 0, 0)
+                luvoir.set_segment(j+1, wfe_aber/2, 0, 0)
 
-            print('Calculating coro image...')
+            log.info('Calculating coro image...')
             image, inter = luvoir.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
             # Normalize PSF by reference image
             psf = image / norm
+            all_psfs.append(psf.shaped)
 
             # Save image to disk
-            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
-            hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
-            all_psfs.append(psf)
+            if savepsfs:   # TODO: I might want to change this to matplotlib images since I save the PSF cube anyway.
+                filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+                hc.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
             # Save OPD images for testing (are these actually surface images, not OPD?)
-            opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
-                i + 1) + '-' + str(j + 1)
-            plt.clf()
-            hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
-            plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+            if saveopds:
+                opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(
+                    i + 1) + '-' + str(j + 1)
+                plt.clf()
+                hc.imshow_field(inter['seg_mirror'], mask=luvoir.aperture, cmap='RdBu')
+                plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-            print('Calculating mean contrast in dark hole')
+            log.info('Calculating mean contrast in dark hole')
             dh_intensity = psf * dh_mask
-            contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-            print('contrast:', contrast)
+            contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+            log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
             all_contrasts.append(contrast)
 
             # Fill according entry in the matrix and subtract baseline contrast
@@ -320,6 +320,10 @@ def num_matrix_luvoir(design):
     # Transform saved lists to arrays
     all_psfs = np.array(all_psfs)
     all_contrasts = np.array(all_contrasts)
+
+    # Save the PSF image *cube* as well (as opposed to each one individually)
+    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Filling the off-axis elements
     matrix_two_N = np.copy(matrix_direct)      # This is just an intermediary copy so that I don't mix things up.
@@ -330,30 +334,30 @@ def num_matrix_luvoir(design):
             if i != j:
                 matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
 
-    # Normalize matrix for the input aberration - the whole code is set up to be normalized to 1 nm, and even if
-    # the units entered are in m for the sake of HCIPy, everything else is assuming the baseline is 1nm, so the
-    # normalization can be taken out if we're working with exactly 1 nm for the aberration, even if entered in meters.
-    #matrix_pastis /= np.square(nm_aber)
+    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
+    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
+    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
+    matrix_pastis /= np.square(wfe_aber * 1e9)    #  1e9 converts the calibration aberration back to nanometers
 
     # Save matrix to file
     filename_matrix = 'PASTISmatrix_num_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
-    print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
-
-    # Save the PSF image *cube* as well (as opposed to each one individually)
-    hc.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'),)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(resDir))
+    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info(f'Data saved to {resDir}')
+    
+    return overall_dir
 
 
 if __name__ == '__main__':
 
         # Pick the function of the telescope you want to run
         #num_matrix_jwst()
-        num_matrix_luvoir(design='small')
+
+        coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
+        num_matrix_luvoir(design=coro_design)

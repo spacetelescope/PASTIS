@@ -12,26 +12,30 @@ HiCAT and LUVOIR only have an E2E vs numerical PASTIS comparison (1 + 3).
 
 import os
 import time
+import astropy.units as u
+import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import astropy.units as u
-import matplotlib.pyplot as plt
 
 from config import CONFIG_INI
 import contrast_calculation_simple as consim
+import plotting as ppl
+
+log = logging.getLogger()
 
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for JWST.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. rms phase error.
 
-    :param range_points: int, How many points of rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
+    :param range_points: int, How many points of rms error (OPD) to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per rms error (OPD) should be calculated; the mean of the realizations
                                 is used.
     :param matrix_mode: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :return:
@@ -49,19 +53,16 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     # Set up path for results
     outDir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
-    if not os.path.isdir(outDir):
-        os.mkdir(outDir)
-
-    if not os.path.isdir(os.path.join(outDir, 'dh_images_'+matrix_mode)):
-        os.mkdir(os.path.join(outDir, 'dh_images_'+matrix_mode))
+    os.makedirs(outDir, exist_ok=True)
+    os.makedirs(os.path.join(outDir, 'dh_images_'+matrix_mode), exist_ok=True)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
     am_contrasts = []         # contrasts from image PASTIS
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {}".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    log.info("RMS range: {}".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -72,11 +73,11 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
         matrix_rand = []
 
         for j in range(realiz):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"RMS {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{realiz}")
+            log.info(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_am, c_matrix = consim.contrast_jwst_ana_num(matdir=WORKDIRECTORY, matrix_mode=matrix_mode, rms=rms,
                                                                  im_pastis=True, plotting=True)
@@ -95,7 +96,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     # Save results to txt file
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
-    df.to_csv(os.path.join(outDir, "contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
+    df.to_csv(os.path.join(outDir, "hockey_contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
 
     # Plot
     plt.clf()
@@ -105,7 +106,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
     plt.semilogx()
     plt.semilogy()
-    plt.xlabel("Surface RMS in " + str(u.nm))
+    plt.xlabel("WFE RMS (OPD) in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
     #plt.show()
@@ -113,24 +114,23 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'Runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for HiCAT.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. rms phase error.
 
     :param matrixdir: string, Path to matrix that should be used.
     :param resultsdir: string, Path to directory where results will be saved.
-    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
     :param range_points: int, How many points of rms error to use in the predefined aberration range.
     :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
-                                is used.
+                                is used in the plot.
     :return:
     """
 
@@ -146,8 +146,8 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {}".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    log.info("RMS range: {}".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {realiz}")
 
     for i, rms in enumerate(rms_range):
 
@@ -157,11 +157,11 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         matrix_rand = []
 
         for j in range(realiz):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"RMS {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{realiz}")
+            log.info(f"Total: {(i*realiz)+(j+1)}/{len(rms_range)*realiz}\n")
 
             c_e2e, c_matrix = consim.contrast_hicat_num(matrix_dir=matrixdir, rms=rms,)
 
@@ -172,9 +172,9 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
         matrix_contrasts.append(np.mean(matrix_rand))
 
     # Save contrasts and rms range
-    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
-    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
-    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'hockey_e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_matrix_contrasts.txt'), matrix_contrasts)
 
     # Plot
     plt.clf()
@@ -190,24 +190,24 @@ def hockeystick_hicat(matrixdir, resultdir='', range_points=3, no_realizations=3
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3, no_realizations=3):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for LUVOIR.
 
-    The aberration range is a fixed parameter since it depends on the coronagraph (and telescope) used. We define how
-    many realizations of a specific rms error we want to run through, and also how many points we want to fill the
-    aberration range with. At each point we calculate the contrast for all realizations and plot the mean of this set
-    of results in a figure that shows contrast vs. rms phase error.
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
+    :param apodizer_choice: string, use "small", "medium" or "large" FPM coronagraph
     :param matrixdir: string, Path to matrix that should be used.
-    :param resultsdir: string, Path to directory where results will be saved.
-    :param matrixdir: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
-    :param range_points: int, How many points of rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error should be calculated; the mean of the realizations
-                                is used.
+    :param resultdir: string, Path to directory where results will be saved.
+    :param range_points: int, How many points of WFE rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per WFE rms error should be calculated; the mean of the realizations
+                                is used in the plot
     :return:
     """
 
@@ -215,16 +215,18 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
     start_time = time.time()
 
     ##########################
-    rms_range = np.logspace(-4, 4, range_points)      # Create range of RMS values to test
-    realiz = no_realizations                             # how many random realizations per RMS values to do
+    rms_range = np.logspace(-4, 4, range_points)      # Create range of WFE RMS values to test
     ##########################
+
+    # Create results directory if it doesn't exist yet
+    os.makedirs(resultdir, exist_ok=True)
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
     matrix_contrasts = []     # contrasts from matrix PASTIS
 
-    print("RMS range: {} nm".format(rms_range, fmt="%e"))
-    print("Random realizations: {}".format(realiz))
+    log.info("RMS range: {} nm".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {no_realizations}")
 
     for i, rms in enumerate(rms_range):
 
@@ -233,12 +235,12 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         e2e_rand = []
         matrix_rand = []
 
-        for j in range(realiz):
-            print("\n#####################################")
-            print("CALCULATING CONTRAST FOR {:.4f}".format(rms))
-            print("RMS {}/{}".format(i + 1, len(rms_range)))
-            print("Random realization: {}/{}".format(j+1, realiz))
-            print("Total: {}/{}\n".format((i*realiz)+(j+1), len(rms_range)*realiz))
+        for j in range(no_realizations):
+            log.info("\n#####################################")
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"WFE RMS number {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{no_realizations}")
+            log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}\n")
 
             c_e2e, c_matrix = consim.contrast_luvoir_num(apodizer_choice, matrix_dir=matrixdir, rms=rms)
 
@@ -249,25 +251,21 @@ def hockeystick_luvoir(apodizer_choice, matrixdir, resultdir='', range_points=3,
         matrix_contrasts.append(np.mean(matrix_rand))
 
     # Save contrasts and rms range
-    np.savetxt(os.path.join(resultdir, 'rms_range.txt'), rms_range)
-    np.savetxt(os.path.join(resultdir, 'e2e_contrasts.txt'), e2e_contrasts)
-    np.savetxt(os.path.join(resultdir, 'matrix_contrasts.txt'), matrix_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'hockey_e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_matrix_contrasts.txt'), matrix_contrasts)
 
     # Plot
     plt.clf()
-    plt.title("Contrast calculation with " + str(realiz) + " realizations each")
-    plt.plot(rms_range, e2e_contrasts, label="E2E")
-    plt.plot(rms_range, matrix_contrasts, label="Matrix PASTIS")
-    plt.semilogx()
-    plt.semilogy()
-    plt.xlabel("Surface RMS in " + str(u.nm))
-    plt.ylabel("Contrast")
-    plt.legend()
-    plt.savefig(os.path.join(resultdir, 'hockeystick_contrasts.pdf'))
+    ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
+                                wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
+                                out_dir=resultdir,
+                                fname_suffix=f'{no_realizations}_realizations_each',
+                                save=True)
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 
 if __name__ == '__main__':
@@ -277,8 +275,8 @@ if __name__ == '__main__':
     #hockeystick_hicat(matrixdir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT')
 
     # LUVOIR
-    run_choice = 'active'
-    apod_design = 'small'
+    run_choice = CONFIG_INI.get('numerical', 'current_analysis')
+    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
     result_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'results')
     matrix_dir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice, 'matrix_numerical')
-    hockeystick_luvoir(apodizer_choice=apod_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=50, no_realizations=10)
+    hockeystick_luvoir(apodizer_choice=coro_design, matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=10)

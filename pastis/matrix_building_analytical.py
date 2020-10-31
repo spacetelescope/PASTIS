@@ -9,25 +9,28 @@ import os
 import time
 import numpy as np
 import astropy.units as u
+import logging
 
 from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
+
+log = logging.getLogger()
 
 
 def ana_matrix_jwst():
 
     # Keep track of time
     start_time = time.time()   # runtime is currently around 11 minutes
-    print('Building analytical matrix for JWST\n')
+    log.info('Building analytical matrix for JWST\n')
 
     # Parameters
     datadir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), 'active')
     which_tel = CONFIG_INI.get('telescope', 'name')
     resDir = os.path.join(datadir, 'matrix_analytical')
     nb_seg = CONFIG_INI.getint(which_tel, 'nb_subapertures')
-    nm_aber = CONFIG_INI.getfloat('calibration', 'single_aberration') * u.nm
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')       # Noll convention!
+    nm_aber = CONFIG_INI.getfloat('calibration', 'calibration_aberration') * u.nm
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')       # Noll convention!
     zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # If subfolder "matrix_analytical" doesn't exist yet, create it.
@@ -43,7 +46,7 @@ def ana_matrix_jwst():
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            print('STEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            log.info('STEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
 
             # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
@@ -64,7 +67,7 @@ def ana_matrix_jwst():
 
             contrast = np.mean(temp_im_am[np.where(temp_im_am != 0)])
             matrix_direct[i,j] = contrast
-            print('contrast =', contrast)
+            log.info(f'contrast = {contrast}')
             all_contrasts.append(contrast)
 
     all_ims = np.array(all_ims)
@@ -80,7 +83,7 @@ def ana_matrix_jwst():
             if i != j:
                 matrix_off_val = (matrix_two_N[i, j] - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
                 matrix_pastis[i,j] = matrix_off_val
-                print('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                log.info('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
 
     # Normalize matrix for the input aberration
     matrix_pastis /= np.square(nm_aber.value)
@@ -88,17 +91,17 @@ def ana_matrix_jwst():
     # Save matrix to file
     filename = 'PASTISmatrix_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     util.write_fits(matrix_pastis, os.path.join(resDir, filename + '.fits'), header=None, metadata=None)
-    print('Matrix saved to:', os.path.join(resDir, filename + '.fits'))
+    log.info(f'Matrix saved to: {os.path.join(resDir, filename + ".fits")}')
 
     # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
     util.write_fits(all_ims, os.path.join(resDir, 'psfs', 'psf_cube' + '.fits'), header=None, metadata=None)
     util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube' + '.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'contrasts.txt'), all_contrasts, fmt='%e')
+    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for matrix_building.py:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
-    print('Data saved to {}'.format(resDir))
+    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    log.info('Data saved to {}'.format(resDir))
 
 
 if __name__ == '__main__':

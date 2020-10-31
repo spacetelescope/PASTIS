@@ -188,4 +188,5 @@ dependencies:
     - smmap2==2.0.5
     - webbpsf==0.8.0
     - zwoasi==0.0.21
+    - git+https://github.com/ehpor/hcipy.git@980f39c7f309f799fd418b4f6a0657295b52c43e
 

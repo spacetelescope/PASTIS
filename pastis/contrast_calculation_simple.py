@@ -13,6 +13,7 @@ import time
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import hcipy as hc
@@ -21,6 +22,8 @@ from config import CONFIG_INI
 import util_pastis as util
 import image_pastis as impastis
 from e2e_simulators.luvoir_imaging import LuvoirAPLC
+
+log = logging.getLogger()
 
 
 @u.quantity_input(rms=u.nm)
@@ -36,7 +39,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     """
     from e2e_simulators import webbpsf_imaging as webbim
 
-    print("THIS ONLY WORKS FOR PISTON FOR NOW")
+    log.warning("THIS ONLY WORKS FOR PISTON FOR NOW")
 
     # Keep track of time
     start_time = time.time()   # runtime currently is around 12 min
@@ -53,7 +56,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     tel_size_px = CONFIG_INI.getint('numerical', 'tel_size_px')
     sampling = CONFIG_INI.getfloat('numerical', 'sampling')
     #real_samp = sampling * tel_size_px / im_size
-    zern_number = CONFIG_INI.getint('calibration', 'zernike')
+    zern_number = CONFIG_INI.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_INI.getint('zernikes', 'max_zern')
 
@@ -68,14 +71,14 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     # Create random aberration coefficients
     aber = np.random.random([nb_seg])   # piston values in input units
-    #print('PISTON ABERRATIONS:', aber)
+    #log.info(f'PISTON ABERRATIONS: {aber}')
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
     aber *= rms.value / rms_init
     calc_rms = util.rms(aber) * u.nm
     aber *= u.nm    # making sure the aberration has the correct units
-    print("Calculated RMS:", calc_rms)
+    log.info(f"Calculated RMS: {calc_rms}")
 
     # Remove global piston
     aber -= np.mean(aber)
@@ -85,13 +88,13 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
+    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
     psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
-    print('Generating E2E coro contrast')
+    log.info('Generating E2E coro contrast')
     start_webb = time.time()
     # Set up NIRCam and coronagraph, get PSF
     psf_webbpsf = webbim.nircam_coro(filter, fpm, lyot_stop, Aber_WSS)
@@ -107,24 +110,24 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     # Load in baseline contrast
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    contrast_base = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
+    coro_floor = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
 
     ### IMAGE PASTIS
     contrast_am = np.nan
     if im_pastis:
-        print('Generating contrast from image-PASTIS')
+        log.info('Generating contrast from image-PASTIS')
         start_impastis = time.time()
         # Create calibrated image from analytical model
         psf_am, full_psf = impastis.analytical_model(zern_number, aber, cali=True)
         # Get the mean contrast from image PASTIS
-        contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + contrast_base
+        contrast_am = np.mean(psf_am[np.where(psf_am != 0)]) + coro_floor
         end_impastis = time.time()
 
     ### MATRIX PASTIS
-    print('Generating contrast from matrix-PASTIS')
+    log.info('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ratio = None
@@ -132,21 +135,21 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
         ratio = contrast_am / contrast_matrix
 
     # Outputs
-    print('\n--- CONTRASTS: ---')
-    print('Mean contrast from E2E:', contrast_webbpsf)
-    print('Mean contrast with image PASTIS:', contrast_am)
-    print('Contrast from matrix PASTIS:', contrast_matrix)
-    print('Ratio image PASTIS / matrix PASTIS:', ratio)
+    log.info('\n--- CONTRASTS: ---')
+    log.info(f'Mean contrast from E2E: {contrast_webbpsf}')
+    log.info(f'Mean contrast with image PASTIS: {contrast_am}')
+    log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
+    log.info(f'Ratio image PASTIS / matrix PASTIS: {ratio}')
 
-    print('\n--- RUNTIMES: ---')
-    print('E2E: ', end_webb-start_webb, 'sec =', (end_webb-start_webb)/60, 'min')
+    log.info('\n--- RUNTIMES: ---')
+    log.info(f'E2E: {end_webb-start_webb}sec = {(end_webb-start_webb)/60}min')
     if im_pastis:
-        print('Image PASTIS: ', end_impastis-start_impastis, 'sec =', (end_impastis-start_impastis)/60, 'min')
-    print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
+        log.info(f'Image PASTIS: {end_impastis-start_impastis}sec = {(end_impastis-start_impastis)/60}min')
+    log.info(f'Matrix PASTIS: {end_matrixpastis-start_matrixpastis}sec = {(end_matrixpastis-start_matrixpastis)/60}min')
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     # Save the PSFs
     if im_pastis:
@@ -201,20 +204,20 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
 
     # Create random aberration coefficients
     aber = np.random.random([nb_seg])   # piston values in input units
-    print('PISTON ABERRATIONS:', aber)
+    log.info(f'PISTON ABERRATIONS: {aber}')
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
     aber *= rms.value / rms_init
     calc_rms = util.rms(aber) * u.nm
     aber *= u.nm    # making sure the aberration has the correct units
-    print("Calculated RMS:", calc_rms)
+    log.info(f"Calculated RMS: {calc_rms}")
 
     # Remove global piston
     aber -= np.mean(aber)
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
-    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
+    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     hc = hicat.simulators.hicat_sim.HICAT_Sim()
     hc.iris_ao = 'iris_ao'
     hc.apodizer = 'cnt1_apodizer'
@@ -237,7 +240,7 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     psf_coro = psf_coro[0].data / normp
 
 
-    print('Calculating E2E contrast...')
+    log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
     for nseg in range(nb_seg):
         hc.iris_dm.set_actuator(nseg+1, aber[nseg], 0, 0)
@@ -253,44 +256,43 @@ def contrast_hicat_num(matrix_dir, matrix_mode='hicat', rms=1*u.nm):
     end_e2e = time.time()
 
     ###
-    # Calculate baseline contrast
+    # Calculate coronagraph contrast floor
     baseline_dh = psf_coro * dh_mask
-    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
 
     ## MATRIX PASTIS
-    print('Generating contrast from matrix-PASTIS')
+    log.info('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ## Outputs
-    print('\n--- CONTRASTS: ---')
-    print('Mean contrast from E2E:', contrast_hicat)
-    print('Contrast from matrix PASTIS:', contrast_matrix)
+    log.info('\n--- CONTRASTS: ---')
+    log.info(f'Mean contrast from E2E: {contrast_hicat}')
+    log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
 
-    print('\n--- RUNTIMES: ---')
-    print('E2E: ', end_e2e-start_e2e, 'sec =', (end_e2e-start_e2e)/60, 'min')
-    print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
+    log.info('\n--- RUNTIMES: ---')
+    log.info(f'E2E: {end_e2e-start_e2e}sec = {(end_e2e-start_e2e)/60}min')
+    log.info(f'Matrix PASTIS: {end_matrixpastis-start_matrixpastis}sec = {(end_matrixpastis-start_matrixpastis)/60}min')
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1*u.nm):
+def contrast_luvoir_num(apodizer_choice, matrix_dir, rms=1*u.nm):
     """
-    Compute the contrast for a random SM mislignment on the LUVOIR simulator.
+    Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
     :param matrix_dir: str, directory of saved matrix
-    :param matrix_mode: str, analytical or numerical; currently only numerical supported
-    :param rms: astropy quantity, rms wfe to be put randomly on the SM
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
     :return: 2x float, E2E and matrix contrast
     """
 
     # Keep track of time
-    start_time = time.time()   # runtime currently is around ? min
+    start_time = time.time()
 
     # Parameters
     nb_seg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
@@ -302,14 +304,14 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
 
     # Create random aberration coefficients
     aber = np.random.random([nb_seg])   # piston values in input units
-    print('PISTON ABERRATIONS:', aber)
+    log.info(f'PISTON ABERRATIONS: {aber}')
 
-    # Normalize to the RMS value I want
+    # Normalize to the WFE RMS value I want
     rms_init = util.rms(aber)
     aber *= rms.value / rms_init
     calc_rms = util.rms(aber) * u.nm
     aber *= u.nm    # making sure the aberration has the correct units
-    print("Calculated RMS:", calc_rms)
+    log.info(f"Calculated WFE RMS: {calc_rms}")
 
     # Remove global piston
     aber -= np.mean(aber)
@@ -318,7 +320,7 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
     design = apodizer_choice
-    optics_input = '/Users/ilaginja/Documents/LabWork/ultra/LUVOIR_delivery_May2019/'
+    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
 
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)
@@ -326,13 +328,13 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     # and coro PSF without aberrations
     start_e2e = time.time()
-    print('Generating baseline PSF from E2E - no coronagraph, no aberrations')
-    print('Also generating coro PSF without aberrations')
+    log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
+    log.info('Also generating coro PSF without aberrations')
     psf_perfect, ref = luvoir.calc_psf(ref=True)
     normp = np.max(ref)
     psf_coro = psf_perfect / normp
 
-    print('Calculating E2E contrast...')
+    log.info('Calculating E2E contrast...')
     # Put aberrations on segmented mirror
     for nseg in range(nb_seg):
         luvoir.set_segment(nseg+1, aber[nseg].to(u.m).value/2, 0, 0)
@@ -351,30 +353,30 @@ def contrast_luvoir_num(apodizer_choice, matrix_dir, matrix_mode='luvoir', rms=1
     end_e2e = time.time()
 
     ###
-    # Calculate baseline contrast
+    # Calculate coronagraph contrast floor
     baseline_dh = psf_coro * dh_mask
-    contrast_base = np.mean(baseline_dh[np.where(baseline_dh != 0)])
-    print('Baseline contrast: {}'.format(contrast_base))
+    coro_floor = np.mean(baseline_dh[np.where(baseline_dh != 0)])
+    log.info(f'Baseline contrast: {coro_floor}')
 
     ## MATRIX PASTIS
-    print('Generating contrast from matrix-PASTIS')
+    log.info('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + contrast_base   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ## Outputs
-    print('\n--- CONTRASTS: ---')
-    print('Mean contrast from E2E:', contrast_luvoir)
-    print('Contrast from matrix PASTIS:', contrast_matrix)
+    log.info('\n--- CONTRASTS: ---')
+    log.info(f'Mean contrast from E2E: {contrast_luvoir}')
+    log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
 
-    print('\n--- RUNTIMES: ---')
-    print('E2E: ', end_e2e-start_e2e, 'sec =', (end_e2e-start_e2e)/60, 'min')
-    print('Matrix PASTIS: ', end_matrixpastis-start_matrixpastis, 'sec =', (end_matrixpastis-start_matrixpastis)/60, 'min')
+    log.info('\n--- RUNTIMES: ---')
+    log.info(f'E2E: {end_e2e-start_e2e}sec = {(end_e2e-start_e2e)/60}min')
+    log.info(f'Matrix PASTIS: {end_matrixpastis-start_matrixpastis}sec = {(end_matrixpastis-start_matrixpastis)/60}min')
 
     end_time = time.time()
     runtime = end_time - start_time
-    print('Runtime for contrast_calculation_simple.py: {} sec = {} min'.format(runtime, runtime/60))
+    log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
     return contrast_luvoir, contrast_matrix
 

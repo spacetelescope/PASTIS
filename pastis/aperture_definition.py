@@ -35,9 +35,12 @@ import os
 import time
 import numpy as np
 import astropy.units as u
+import logging
 
 import util_pastis as util
 from config import CONFIG_INI
+
+log = logging.getLogger()
 
 
 def make_aperture_nrp():
@@ -54,7 +57,7 @@ def make_aperture_nrp():
     im_size_pupil = CONFIG_INI.getint('numerical', 'tel_size_px')
     m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
-    print('Running aperture generation for {}\n'.format(telescope))
+    log.info('Running aperture generation for {}\n'.format(telescope))
 
     # If main subfolder "active" doesn't exist yet, create it.
     if not os.path.isdir(localDir):
@@ -65,7 +68,7 @@ def make_aperture_nrp():
         os.mkdir(outDir)
 
     #-# Get the coordinates of the central pixel of each segment and save aperture to disk
-    print('Getting segment centers')
+    log.info('Getting segment centers')
     seg_position = np.zeros((nb_seg, 2))
 
     if telescope == 'JWST':
@@ -108,7 +111,7 @@ def make_aperture_nrp():
     ap = 0
     rp = 0
 
-    print('Nulling redundant segment pairs')
+    log.info('Nulling redundant segment pairs')
     for i in range(longshape):
         for j in range(i):   # Since i starts at 0, the case with i=0 & j=0 never happens, we start at i=1 & j=0
                              # With this loop setup, in all cases we have i != k, which is the baseline between a
@@ -154,7 +157,7 @@ def make_aperture_nrp():
     NR_pairs_nb = np.count_nonzero(distance_list)   # Counting how many non-redundant (NR) pairs we have
     # Save for testing
     np.savetxt(os.path.join(outDir, 'NR_distance_list.txt'), NR_distance_list, fmt='%2.2f')
-    print('Number of non-redundant pairs: ' + str(NR_pairs_nb))
+    log.info(f'Number of non-redundant pairs: {NR_pairs_nb}')
 
     #-# Select non redundant vectors
     # NR_pairs_list is a [NRP number, seg1, seg2] vector to hold non-redundant vector information.
@@ -200,7 +203,7 @@ def make_aperture_nrp():
     matrix_long = Projection_Matrix_int.shape[0] * Projection_Matrix_int.shape[1]
     matrix_flat = np.reshape(Projection_Matrix_int, (matrix_long, 3))
 
-    print('Creating projection matrix')
+    log.info('Creating projection matrix')
     for i in range(np.square(nb_seg)):
         # Compare segment pair in i against all available NRPs.
         # Where it matches, record the NRP number in the matrix entry that corresponds to segments in i.
@@ -232,11 +235,11 @@ def make_aperture_nrp():
     util.write_fits(NR_pairs_list, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)
 
-    print('All outputs saved to {}'.format(outDir))
+    log.info('All outputs saved to {}'.format(outDir))
 
     # Tell us how long it took to finish.
     end_time = time.time()
-    print('Runtime for aperture_definition.py:', end_time - start_time, 'sec =', (end_time - start_time)/60, 'min')
+    log.info(f'Runtime for aperture_definition.py: {end_time - start_time}sec = {(end_time - start_time)/60}min')
 
 
 if __name__ == '__main__':

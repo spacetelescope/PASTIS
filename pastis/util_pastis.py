@@ -3,9 +3,17 @@ Helper functions for PASTIS.
 """
 
 import os
-import numpy as np
+import datetime
+import time
+from shutil import copy
+import sys
 from astropy.io import fits
 import astropy.units as u
+import logging
+import logging.handlers
+import numpy as np
+
+log = logging.getLogger()
 
 
 def write_fits(data, filepath, header=None, metadata=None):
@@ -65,7 +73,7 @@ def zoom_point(im, x, y, bb):
     :param bb: half-box size
     :return:
     """
-    return (im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)])
+    return im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)]
 
 
 def zoom_cen(im, bb):
@@ -99,7 +107,7 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     :param iwa: inner working angle in lambda/D
     :param owa: outer working angle in lambda/D
     :param samp: sampling factor
-    :return: dh_area, np.array
+    :return: dh_area: np.array
     """
     circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 converts from booleans to integers
     circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
@@ -114,6 +122,8 @@ def dh_mean(im, dh):
 
     Calculate the mean intensity in the dark hole area dh of the image im.
     im and dh have to have the same array size and shape.
+    :param im: array, image
+    :param dh: array, dark hole mask
     """
     darkh = im * dh
     con = np.mean(darkh[np.where(darkh != 0)])
@@ -124,15 +134,43 @@ def dh_mean(im, dh):
 def pastis_contrast(aber, matrix_pastis):
     """
     Calculate the contrast with PASTIS matrix model.
-    :param aber: aberration vector, its length is number of segments, aberration coefficients in NANOMETERS
-    :param matrix_pastis: PASTIS matrix
+    :param aber: aberration vector, its length is number of segments, WFE aberration coefficients in NANOMETERS
+    :param matrix_pastis: PASTIS matrix, in contrast/nm^2
     :return:
     """
     result = np.matmul(np.matmul(aber, matrix_pastis), aber)
     return result.value
 
 
+def calc_statistical_mean_contrast(pastismatrix, cov_segments, coro_floor):
+    """
+    Analytically calculate the *statistical* mean contrast for a set of segment requirements.
+    :param pastismatrix: array, PASTIS matrix [segs, modes]
+    :param cov_segments: array, segment-space covariance matrix Ca
+    :param coro_floor: float, coronagrpah contrast in absence of aberrations
+    :return: mean_c_stat, float
+    """
+    mean_c_stat = np.trace(np.matmul(cov_segments, pastismatrix)) + coro_floor
+    return mean_c_stat
+
+
+def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
+    """
+    Analytically calculate the variance of the *statistical* mean contrast for a set of segment requirements.
+    :param pastismatrix: array, PASTIS matrix [segs, modes]
+    :param cov_segments: array, segment-space covariance matrix Ca
+    :return: var, float
+    """
+    var = 2 * np.trace(np.matmul(pastismatrix, np.matmul(cov_segments, (np.matmul(pastismatrix, cov_segments)))))
+    return var
+
+
 def rms(ar):
+    """
+    Manual root-mean-square calculation, assuming a zero-mean
+    :param ar: quantity to calculate the rms for
+    :return:
+    """
     rms = np.sqrt(np.mean(np.square(ar)) - np.square(np.mean(ar)))
     return rms
 
@@ -142,8 +180,7 @@ def aber_to_opd(aber_rad, wvln):
     Convert phase aberration in rad to OPD in meters.
     :param aber_rad: float, phase aberration in radians
     :param wvln: float, wavelength
-    :return:
-    aber_m: float, OPD in meters
+    :return: aber_m: float, OPD in meters
     """
     aber_m = aber_rad * wvln / (2 * np.pi)
     return aber_m
@@ -180,7 +217,12 @@ def wss_to_noll(zern):
 
 
 def zernike_name(index, framework='Noll'):
-    """Get the name of the Zernike with input index in inpit framework (Noll or WSS)."""
+    """
+    Get the name of the Zernike with input index in input framework (Noll or WSS).
+    :param index: int, Zernike index
+    :param framework: str, 'Noll' or 'WSS' for Zernike ordering framework
+    :return zern_name: str, name of the Zernike in the chosen framework
+    """
     noll_names = {1: 'piston', 2: 'tip', 3: 'tilt', 4: 'defocus', 5: 'astig45', 6: 'astig0', 7: 'ycoma', 8: 'xcoma',
                   9: 'ytrefoil', 10: 'xtrefoil', 11: 'spherical'}
     wss_names = {1: 'piston', 2: 'tip', 3: 'tilt', 5: 'defocus', 4: 'astig45', 6: 'astig0', 8: 'ycoma', 7: 'xcoma',
@@ -204,6 +246,9 @@ class ZernikeMode:
     It initializes with framework = 'Noll', but needs an index given.
     If you change ZernikeMode.convention directly, you screw things up... there are methods to change naming convention
     which are capable of changing everything that comes with that.
+
+    :param index: int, Zernike mode index
+    :param framework: 'Noll' or 'WSS' for Zernike ordering framework, default is Noll
     """
 
     def __init__(self, index, framework='Noll'):
@@ -235,3 +280,74 @@ class ZernikeMode:
     def name(self):
         zern_name = zernike_name(self.index, self.convention)
         return zern_name
+
+
+def create_data_path(initial_path, telescope="", suffix=""):
+    """
+    Will create a timestamp and join it to the output_path found in the INI.
+    :param initial_path: str, output directory as defined in the configfile
+    :param telescope: str, telescope name that gets added to data path name; somewhat redundant with suffix
+    :param suffix: str, appends this to the end of the timestamp (ex: 2017-06-15T121212_suffix), also read from config
+    :return: A path with the final folder containing a timestamp of the current datetime.
+    """
+
+    # Create a string representation of the current timestamp.
+    time_stamp = time.time()
+    date_time_string = datetime.datetime.fromtimestamp(time_stamp).strftime("%Y-%m-%dT%H-%M-%S")
+
+    if suffix != "":
+        suffix = "_" + suffix
+    if telescope != "":
+        telescope = "_" + telescope
+
+    # Return the full path.
+    print(initial_path)
+    print(suffix)
+    full_path = os.path.join(initial_path, date_time_string + telescope + suffix)
+    return full_path
+
+
+def copy_config(outdir):
+    """
+    Copy the config_local, or if non-existent, config.ini to outdir
+    :param outdir: string, target location of copied configfile
+    :return: 
+    """
+    print('Saving the configfile to outputs folder.')
+    try:
+        copy('config_local.ini', outdir)
+    except IOError:
+        copy('config.ini', outdir)
+
+
+def setup_pastis_logging(experiment_path, name):
+    ### General logger
+    log = logging.getLogger()
+
+    log.setLevel(logging.NOTSET)    # set logger to pass all messages, then filter in handlers
+    suffix = ".log"
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    ### Set up the console log to stdout (not stderr since some messages are info)
+    consoleHandler = logging.StreamHandler(sys.stdout)
+
+    # add formatter, set logging level and add the handler
+    consoleHandler.setFormatter(formatter)
+    console_level = logging.INFO
+    consoleHandler.setLevel(console_level)
+
+    log.addHandler(consoleHandler)
+    log.info("LOG SETUP: Console will display messages of {} or higher".format(logging.getLevelName(consoleHandler.level)))
+
+    ### Set up the experiment log
+    experiment_logfile_path = os.path.join(experiment_path, name + suffix)
+    experiment_hander = logging.handlers.WatchedFileHandler(experiment_logfile_path)
+
+    # add formatter, set logging level and add the handler
+    experiment_hander.setFormatter(formatter)
+    experiment_level = logging.INFO
+    experiment_hander.setLevel(experiment_level)
+
+    log.addHandler(experiment_hander)
+    log.info("LOG SETUP: Experiment log will save messages of {} or higher to {}".format(logging.getLevelName(experiment_hander.level),
+                                                                                         experiment_logfile_path))

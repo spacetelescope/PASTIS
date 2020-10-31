@@ -9,6 +9,8 @@ from astropy.io import fits
 import hcipy as hc
 from hcipy.optics.segmented_mirror import SegmentedMirror
 
+from config import CONFIG_INI
+
 
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
@@ -39,7 +41,7 @@ class SegmentedTelescopeAPLC:
         self.aper = aper
         self.apodizer = apod
         self.lyotstop = lyotst
-        self.fpm = fpm
+        self.fpm = fpm   #TODO: this is not actually used inside this class
         self.wvln = params['wavelength']
         self.diam = params['diameter']
         self.imlamD = params['imlamD']
@@ -98,7 +100,7 @@ class SegmentedTelescopeAPLC:
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Wavefronts of the reference propagation
-        wf_ref_pup = hc.Wavefront(self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_ref_pup = hc.Wavefront(self.aper * self.apodizer * self.lyotstop, wavelength=self.wvln)
         wf_im_ref = self.prop(wf_ref_pup)
 
         # Display intermediate planes
@@ -201,9 +203,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = 120
-        self.wvln = 638e-9  # m
-        self.diam = 15.  # m
+        self.nseg = 120   # FIXME: this should not be hard-coded
+        self.wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9    # m
+        self.diam = 15.  # m   # FIXME: this should not be hard-coded
         self.sampling = samp
         self.lam_over_d = self.wvln / self.diam
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
@@ -262,7 +264,16 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         super().__init__(aper=self.aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
                          lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
+        # Make dark hole mask
+        dh_outer = hc.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
+            self.focal_det)
+        dh_inner = hc.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
+            self.focal_det)
+        self.dh_mask = (dh_outer - dh_inner).astype('bool')
+
         # Propagators
         self.coro = hc.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
         self.prop = hc.FraunhoferPropagator(pupil_grid, self.focal_det)
         self.coro_no_ls = hc.LyotCoronagraph(pupil_grid, self.fpm)
+        #TODO: these three propagators should actually happen in the super init
+        # -> how are self.aper_ind and pupil_grid connected?
