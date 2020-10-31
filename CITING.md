@@ -20,18 +20,17 @@ segment-level error budgeting of segmented telescopes."
 ```
 
 [2] The latest version of the package can be cited with this BibTeX entry. To find the appropriate entry for the 
-particular version you used, please pick the correct one on [Zenodo](https://zenodo.org/record/3382986).
+particular version you used, please pick the correct one on [Zenodo](https://zenodo.org/record/4170252).
 ```
-@software{pastis-v1.3.0,
-  author       = {{Laginja}, Iva and
-                  {Leboulleux}, Lucie},
-  title        = "{PASTIS v1.3.0}",
-  month        = sep,
-  year         = 2019,
+@software{pastis-v2.0.0,
+  author       = {{Laginja}, Iva},
+  title        = {PASTIS: v2.0.0 Semi-analytical PASTIS for LUVOIR},
+  month        = oct,
+  year         = 2020,
   publisher    = {Zenodo},
-  version      = {v1.3.0},
-  doi          = {10.5281/zenodo.3382986},
-  url          = {https://doi.org/10.5281/zenodo.3382986}
+  version      = {v2.0.0},
+  doi          = {10.5281/zenodo.4170252},
+  url          = {https://doi.org/10.5281/zenodo.4170252}
 }
 ```
 
