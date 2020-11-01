@@ -403,7 +403,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the segment requirements have been calculated
-    :param limits: tuple, colorbar limirs, deault is None
+    :param limits: tuple, colorbar limits in nm, default is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -515,6 +515,41 @@ def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
         ax.axis('off')
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+
+
+def plot_single_wf_map(wfe_mode, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+    """
+    Plot a single, arbitrary WFE map.
+    :param wfe_mode: array, WFE map (one number per segment) in nm
+    :param out_dir: str, output path to save the figure to if save=True
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :param figsize: tuple, size of figure, default=(8.5,8.5)
+    :param vmin: matplotlib min extent of image, default is None
+    :param vmax: matplotlib max extent of image, default is None
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
+    fname = f'wfe_map'
+    if fname_suffix != '':
+        fname += f'_{fname_suffix}'
+
+    # Create luvoir instance
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    plt.figure(figsize=figsize, constrained_layout=False)
+    one_mode = apply_mode_to_luvoir(wfe_mode, luvoir)[0]
+    hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
+    plt.axis('off')
+    cbar = plt.colorbar(fraction=0.046,
+                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+    cbar.ax.tick_params(labelsize=40)  # this changes the numbers on the colorbar
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
