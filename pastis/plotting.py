@@ -20,8 +20,8 @@ cmap_brev = cm.get_cmap('Blues_r')
 def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
     """
     Plot a PASTIS matrix.
-    :param pastis_matrix: array, PASTIS matrix
-    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param pastis_matrix: array, PASTIS matrix in units of contrast/nm**2
+    :param wvln: float, wavelength at which the PASTIS matrix was generated in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -88,7 +88,7 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
 def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
     """
     Plot PASTIS eigenvalues as function of PASTIS mode index.
-    :param eigenvalues: array or list of eigenvalues of the PASTIS matrix
+    :param eigenvalues: array or list of eigenvalues of the PASTIS matrix, in units of contrast/nm**2
     :param nseg: int, number of segments/modes
     :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True

@@ -819,7 +819,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
     hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
-    ppl.plot_pastis_matrix(matrix_pastis, wvln, out_dir=resDir, save=True)
+    ppl.plot_pastis_matrix(matrix_pastis, wvln*1e9, out_dir=resDir, save=True)    # convert wavelength to nm
     log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
