@@ -49,7 +49,7 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
 
 def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
     """
-    Plot a hockeystick curve comparting the optical propagation between semi-analytical PASTIS and end-to-end simulator.
+    Plot a hockeystick curve comparing the optical propagation between semi-analytical PASTIS and end-to-end simulator.
     :param rms_range: array or list of RMS values in nm
     :param pastis_matrix_contrasts: array or list, contrast values from SA PASTIS
     :param e2e_contrasts: array or list, contrast values from E2E simulator
