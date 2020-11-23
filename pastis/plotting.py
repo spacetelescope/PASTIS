@@ -11,7 +11,7 @@ import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import WSS_SEGS
+import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.util import apply_mode_to_luvoir
 
 cmap_brev = cm.get_cmap('Blues_r')
@@ -20,8 +20,8 @@ cmap_brev = cm.get_cmap('Blues_r')
 def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
     """
     Plot a PASTIS matrix.
-    :param pastis_matrix: array, PASTIS matrix
-    :param wvln: float, wavelength at which the PASTIS matrix was generated
+    :param pastis_matrix: array, PASTIS matrix in units of contrast/nm**2
+    :param wvln: float, wavelength at which the PASTIS matrix was generated in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -32,7 +32,7 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
         fname += f'_{fname_suffix}'
 
     plt.figure(figsize=(10, 10))
-    plt.imshow(pastis_matrix / wvln**2)
+    plt.imshow(pastis_matrix * wvln**2)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
@@ -49,7 +49,7 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
 
 def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
     """
-    Plot a hockeystick curve comparting the optical propagation between semi-analytical PASTIS and end-to-end simulator.
+    Plot a hockeystick curve comparing the optical propagation between semi-analytical PASTIS and end-to-end simulator.
     :param rms_range: array or list of RMS values in nm
     :param pastis_matrix_contrasts: array or list, contrast values from SA PASTIS
     :param e2e_contrasts: array or list, contrast values from E2E simulator
@@ -88,7 +88,7 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
 def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
     """
     Plot PASTIS eigenvalues as function of PASTIS mode index.
-    :param eigenvalues: array or list of eigenvalues of the PASTIS matrix
+    :param eigenvalues: array or list of eigenvalues of the PASTIS matrix, in units of contrast/nm**2
     :param nseg: int, number of segments/modes
     :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
     :param out_dir: str, output path to save the figure to if save=True
@@ -101,7 +101,7 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=Fal
         fname += f'_{fname_suffix}'
 
     plt.figure(figsize=(12, 8))
-    plt.plot(np.arange(1, nseg + 1), eigenvalues / wvln, linewidth=3, color='red')
+    plt.plot(np.arange(1, nseg + 1), eigenvalues * wvln**2, linewidth=3, color='red')
     plt.semilogy()
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.title('PASTIS matrix eigenvalues', size=30)
@@ -429,7 +429,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     if instrument == 'JWST':
         sim_instance[1].zero()
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
-            seg_name = WSS_SEGS[segnum].split('-')[0]
+            seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
             sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
 
         psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)

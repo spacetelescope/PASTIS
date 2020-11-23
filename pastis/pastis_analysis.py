@@ -12,12 +12,11 @@ import logging
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
-import webbpsf
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.e2e_simulators.webbpsf_imaging import set_up_nircam, WSS_SEGS
+import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import pastis.plotting as ppl
 import pastis.util as util
@@ -121,7 +120,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance[1].zero()
             for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
-                seg_name = WSS_SEGS[segnum].split('-')[0]
+                seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
                 sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
 
             psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
@@ -279,7 +278,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
         if instrument == 'JWST':
             sim_instance[1].zero()
             for seg, val in enumerate(opd):
-                seg_num = WSS_SEGS[seg].split('-')[0]
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
                 sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
@@ -377,7 +376,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     if instrument == 'JWST':
         sim_instance[1].zero()
         for seg in range(mus.shape[0]):
-            seg_num = WSS_SEGS[seg].split('-')[0]
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
@@ -426,7 +425,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     if instrument == 'JWST':
         sim_instance[1].zero()
         for seg, aber in enumerate(opd):
-            seg_num = WSS_SEGS[seg].split('-')[0]
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
@@ -522,7 +521,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         sim_instance = hicat_sim
 
     if instrument == 'JWST':
-        jwst_sim = set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+        jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
 
         # Generate reference PSF and unaberrated coronagraphic image
         jwst_sim[0].image_mask = None
@@ -656,7 +655,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         if instrument == 'JWST':
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
-                seg_num = WSS_SEGS[seg].split('-')[0]
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
                 sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
@@ -710,10 +709,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     if calculate_covariance_matrices:
         log.info('Calculating covariance matrices')
         Ca = np.diag(np.square(mus))
-        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Ca.value, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
 
         Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Cb.value, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
         ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
                                    fname_suffix='segment-based', save=True)
