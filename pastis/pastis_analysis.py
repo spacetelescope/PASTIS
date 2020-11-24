@@ -9,24 +9,28 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 import logging
-import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import hcipy as hc
-from hcipy.optics.segmented_mirror import SegmentedMirror
+import matplotlib.pyplot as plt
+import hcipy
 
-from config import CONFIG_INI
-from e2e_simulators.luvoir_imaging import LuvoirAPLC
-import plotting as ppl
-import util_pastis as util
+from pastis.config import CONFIG_PASTIS
+from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
+from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
+import pastis.plotting as ppl
+import pastis.util as util
 
 log = logging.getLogger(__name__)
 
 
-def modes_from_matrix(datadir, saving=True):
+def modes_from_matrix(instrument, datadir, saving=True):
     """
     Calculate mode basis and singular values from PASTIS matrix using an SVD. In the case of the PASTIS matrix,
     this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
-    modes and singular values in reverse order conpared to an eigendecomposition.
+    modes and singular values in reverse order compared to an eigendecomposition.
+
+    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param saving: string, whether to save singular values, modes and their plots or not; default=True
     :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
@@ -42,14 +46,14 @@ def modes_from_matrix(datadir, saving=True):
     if not os.path.isdir(os.path.join(datadir, 'results')):
         os.mkdir(os.path.join(datadir, 'results'))
 
-    # Save singular values and modes (singular vectors)
+    # Save singular values and pastis modes (singular vectors)
     if saving:
         np.savetxt(os.path.join(datadir, 'results', 'eigenvalues.txt'), svals)
         np.savetxt(os.path.join(datadir, 'results', 'pastis_modes.txt'), pmodes)
 
     # Plot singular values and save
     if saving:
-        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
+        ppl.plot_eigenvalues(svals, nseg=svals.shape[0], wvln=CONFIG_PASTIS.getfloat(instrument, 'lambda'),
                              out_dir=os.path.join(datadir, 'results'), save=True)
 
     return pmodes, svals
@@ -68,97 +72,131 @@ def modes_from_file(datadir):
     return pmodes, svals
 
 
-def full_modes_from_themselves(pmodes, datadir, sm, wf_aper, saving=False):
+def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving=False):
     """
-    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes.
+    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
 
     Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
-    in the pupil. This phase gets returned both as an array of hcipy.Fields, as well as a standard array of 2D arrays.
-    Optionally, save a PDF displaying all modes, a fits cube and individual PDF images.
-    :param pmodes: array of PASTIS modes [segnum, modenum]
+    in the pupil. This phase gets returned both as an array of 2D arrays.
+    Both the pupl plane and the focal plane modes get save into a PDF grid, and as a cube to fits. Optionally, you can
+    save the pupil plane modes individually to PDF files by setting saving=True.
+
+    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
+    :param pmodes: array of PASTIS modes [segnum, modenum], expected in nanometers
     :param datadir: string, path to overall data directory containing matrix and results folder
-    :param saving: bool, whether to save figure to disk or not, default=False
-    :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
+    :param sim_instance: class instance of the simulator for "instrument"
+    :param saving: bool, whether to save the individual pupil plane modes as PDFs to disk, default=False
+    :return: cube of pupil plane modes as array of 2D arrays
     """
 
     nseg = pmodes.shape[0]
+    seglist = util.get_segment_list(instrument)
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
-    for thismode in range(nseg):
-        log.info(f'Working on mode {thismode + 1}/{nseg}.')
+    all_modes_focal_plane = []
+    for i, thismode in enumerate(seglist):
 
-        wf_sm = apply_mode_to_sm(pmodes[:, thismode], sm, wf_aper)
-        all_modes.append(wf_sm.phase / wf_sm.wavenumber)    # wf.phase is in rad, so this converts it to meters
+        if instrument == 'LUVOIR':
+            log.info(f'Working on mode {thismode}/{nseg}.')
+            wf_sm, wf_detector = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
+            psf_detector = wf_detector.intensity.shaped
+            all_modes_focal_plane.append(psf_detector)
+            all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
+
+        if instrument == 'HiCAT':
+            log.info(f'Working on mode {thismode}/{nseg-1}.')
+            for segnum in range(nseg):
+                sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
+            psf_detector_data, inter = sim_instance.calc_psf(return_intermediates=True)
+            psf_detector = psf_detector_data[0].data
+            all_modes_focal_plane.append(psf_detector)
+
+            phase_sm = inter[1].phase
+            hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
+            all_modes.append(phase_sm / hicat_wavenumber)    # phase_sm is in rad, so this converts it to meters
+
+        if instrument == 'JWST':
+            log.info(f'Working on mode {thismode}/{nseg - 1}.')
+            sim_instance[1].zero()
+            for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+                seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
+                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
+
+            psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
+            psf_detector = psf_detector_data[0].data
+            all_modes_focal_plane.append(psf_detector)
+
+            phase_ote = inter[1].phase
+            jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)   # /1e9 converts to meters
+            all_modes.append(phase_ote / jwst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
-    if saving:
-        subdirs = [os.path.join(datadir, 'results'),
-                   os.path.join(datadir, 'results', 'modes'),
-                   os.path.join(datadir, 'results', 'modes', 'fits'),
-                   os.path.join(datadir, 'results', 'modes', 'pdf')]
-        for place in subdirs:
-            if not os.path.isdir(place):
-                os.mkdir(place)
+    log.info('Creating data directories')
+    subdirs = [os.path.join(datadir, 'results'),
+               os.path.join(datadir, 'results', 'modes'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane'),
+               os.path.join(datadir, 'results', 'modes', 'focal_plane'),
+               os.path.join(datadir, 'results', 'modes', 'focal_plane', 'fits'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits'),
+               os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'pdf')]
+    for place in subdirs:
+        if not os.path.isdir(place):
+            os.mkdir(place)
 
-    ### Plot all modes together and save
-    if saving:
-        log.info('Saving all PASTIS modes...')
-        plt.figure(figsize=(36, 30))
-        for thismode in range(nseg):
-            plt.subplot(12, 10, thismode + 1)
-            hc.imshow_field(all_modes[thismode], cmap='RdBu')
-            plt.axis('off')
-            plt.title(f'Mode {thismode + 1}')
-        plt.savefig(os.path.join(datadir, 'results', 'modes', 'modes_piston.pdf'))
-
-    ### Plot them individually and save as fits and pdf
-    mode_cube = []  # to save as a fits cube
-    for thismode in range(nseg):
-
-        # pdf
-        plt.clf()
-        hc.imshow_field(all_modes[thismode], cmap='RdBu')
+    ### Plot all modes together and save as PDF (pupil plane)
+    log.info('Saving all PASTIS modes together as PDF (pupil plane)...')
+    plt.figure(figsize=(36, 30))
+    for i, thismode in enumerate(seglist):
+        if instrument == 'LUVOIR':
+            plt.subplot(12, 10, i + 1)
+        if instrument == 'HiCAT':
+            plt.subplot(8, 5, i + 1)
+        if instrument == 'JWST':
+            plt.subplot(6, 3, i + 1)
+        plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
-        plt.title(f'Mode {thismode + 1}', size=30)
-        if saving:
-            plt.savefig(os.path.join(datadir, 'results', 'modes', 'pdf', f'mode_{thismode+1}.pdf'))
+        plt.title(f'Mode {thismode}')
+    plt.savefig(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'modes_piston.pdf'))
 
-        # for the fits cube
-        mode_cube.append(all_modes[thismode].shaped)
-
-    # fits cube
-    mode_cube = np.array(mode_cube)
+    ### Plot them individually and save as PDF (pupil plane)
     if saving:
-        hc.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
+        log.info('Saving all PASTIS modes into individual PDFs (pupil plane)...')
+        for i, thismode in enumerate(seglist):
+            # pdf
+            plt.clf()
+            plt.imshow(all_modes[i], cmap='RdBu')    # TODO: this is now super slow for LUVOIR, using hcipy was way faster. Change back in LUVOIR case?
+            plt.axis('off')
+            plt.title(f'Mode {thismode}', size=30)
+            if saving:
+                plt.savefig(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'pdf', f'mode_{thismode}.pdf'))
 
-    return all_modes, mode_cube
+    ### Save as fits cube (pupil plane)
+    log.info('Saving all PASTIS modes into fits cube (pupil plane)')
+    mode_cube = np.array(all_modes)
+    hcipy.write_fits(mode_cube, os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits', 'cube_modes.fits'))
 
+    ### Plot all modes together and save as PDF (focal plane)
+    log.info('Saving all PASTIS modes together as PDF (focal plane)...')
+    plt.figure(figsize=(36, 30))
+    for i, thismode in enumerate(seglist):
+        if instrument == 'LUVOIR':
+            plt.subplot(12, 10, i + 1)
+        if instrument == 'HiCAT':
+            plt.subplot(8, 5, i + 1)
+        if instrument == 'JWST':
+            plt.subplot(6, 3, i + 1)
+        plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
+        plt.axis('off')
+        plt.title(f'Mode {thismode}')
+    plt.savefig(os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'))
 
-def apply_mode_to_sm(pmode, sm, wf_aper):
-    """
-    Apply a PASTIS mode to the segmented mirror (SM) and return the propagated wavefront "through" the SM.
+    ### Save as fits cube (focal plane)
+    log.info('Saving all PASTIS modes into fits cube (focal plane)')
+    psf_cube = np.array(all_modes_focal_plane)
+    hcipy.write_fits(psf_cube, os.path.join(datadir, 'results', 'modes', 'focal_plane', 'fits', 'cube_modes.fits'))
 
-    This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
-    one by one to the segmented mirror.
-    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
-    :param sm: hcipy.SegmentedMirror
-    :param wf_aper: hcipy.Wavefront of the aperture
-    :return: wf_sm: hcipy.Wavefront of the segmented mirror propagation
-    """
-
-    # Flatten SM to be sure we have no residual aberrations
-    sm.flatten()
-
-    # Loop through all segments to put them on the segmented mirror one by one
-    for seg, val in enumerate(pmode):
-        val *= u.nm  # the LUVOIR modes come out in units of nanometers
-        sm.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)  # /2 because this SM works in surface, not OPD
-
-    # Propagate the aperture wavefront through the SM
-    wf_sm = sm(wf_aper)
-
-    return wf_sm
+    return mode_cube
 
 
 def full_modes_from_file(datadir):
@@ -168,8 +206,8 @@ def full_modes_from_file(datadir):
     :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
     """
 
-    mode_cube = hc.read_fits(os.path.join(datadir, 'results', 'modes', 'fits', 'cube_modes.fits'))
-    all_modes = hc.Field(mode_cube.ravel())
+    mode_cube = hcipy.read_fits(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits', 'cube_modes.fits'))
+    all_modes = hcipy.Field(mode_cube.ravel())
 
     return all_modes, mode_cube
 
@@ -199,37 +237,54 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(pmodes, sigmas, luvoir, dh_mask, individual=False):
+def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
+    :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param sigmas: array, weights per PASTIS mode
-    :param luvoir: LuvoirAPLC
+    :param sim_instance: class instance of the simulator for "instrument"
     :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
     :return: cont_cum_e2e, list of cumulative or individual contrasts
     """
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
+        log.info(f'Working on mode {maxmode+1}/{pmodes.shape[0]}.')
 
         if individual:
             opd = pmodes[:, maxmode] * sigmas[maxmode]
         else:
             opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+        opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
-        luvoir.flatten()
-        for seg, val in enumerate(opd):
-            val *= u.nm    # the LUVOIR modes come out in units of nanometers
-            luvoir.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
+        if instrument == 'LUVOIR':
+            sim_instance.flatten()
+            for seg, val in enumerate(opd):
+                sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf = im_data.shaped
 
-        # Get PSF from putting this WFE on the simulator
-        psf, ref = luvoir.calc_psf(ref=True)
-        norm = ref.max()
+        if instrument == 'HiCAT':
+            sim_instance.iris_dm.flatten()
+            for seg, val in enumerate(opd):
+                sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf = im_data[0].data
+
+        if instrument == 'JWST':
+            sim_instance[1].zero()
+            for seg, val in enumerate(opd):
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1)
+            psf = im_data[0].data
 
         # Calculate the contrast from that PSF
-        contrast = util.dh_mean(psf/norm, dh_mask)
+        contrast = util.dh_mean(psf/norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
 
     return cont_cum_e2e
@@ -282,80 +337,105 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
 
     # Calculate segment requirements
     mu_map = np.sqrt(
-        ((c_target - coronagraph_floor) / nmodes) / (np.dot(c_avg - coronagraph_floor, np.square(modestosegs))))
+        ((c_target - coronagraph_floor) / nmodes) / (np.dot(np.array(c_avg) - coronagraph_floor, np.square(modestosegs))))
 
     return mu_map
 
 
-def calc_random_segment_configuration(luvoir, mus, dh_mask):
+def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param luvoir: LuvoirAPLC
+    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param sim_instance: class instance of the simulator for "instrument"
     :param mus: array, segment-based PASTIS constraints in nm
-    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by LuvoirAPLC instance
+    :param dh_mask: array, dark hole mask for PSF produced by/for instrument
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Draw a normal distribution where the stddev gets scaled to mu later on
-    rand = np.random.normal(0, 1, mus.shape[0])
+    # Create a random set of segment weights with mus as stddevs in the normal distribution
+    segments_random_state = np.random.RandomState()
+    random_weights = segments_random_state.normal(0, mus) * u.nm
 
-    mus *= u.nm
+    # Apply random aberration to E2E simulator
+    if instrument == "LUVOIR":
+        sim_instance.flatten()
+        for seg in range(mus.shape[0]):
+            sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data.shaped
 
-    # Multiply each segment mu by one of these random numbers,
-    # put that on the LUVOIR SM and calculate the PSF.
-    luvoir.flatten()
-    random_map = []
-    for seg, (mu, randval) in enumerate(zip(mus, rand)):
-        random_seg = mu * randval
-        random_map.append(random_seg.to(u.m).value)
-        luvoir.set_segment(seg+1, (random_seg).to(u.m).value/2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for seg in range(mus.shape[0]):
+            sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data[0].data
 
-    # plt.figure()
-    # plt.subplot(1, 3, 1)
-    # hc.imshow_field(dh_mask)
-    # plt.subplot(1, 3, 2)
-    # hc.imshow_field(psf, norm=LogNorm(), mask=dh_mask)
-    # plt.subplot(1, 3, 3)
-    # hc.imshow_field(psf, norm=LogNorm())
-    # plt.show()
+    if instrument == 'JWST':
+        sim_instance[1].zero()
+        for seg in range(mus.shape[0]):
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1)
+        psf = im_data[0].data
 
-    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
+    rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
-    return random_map, rand_contrast
+    return random_weights.value, rand_contrast
 
 
-def calc_random_mode_configurations(pmodes, luvoir, sigmas, dh_mask):
+def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
+    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
     :param pmodes: array, pastis mode matrix [nseg, nmodes]
-    :param luvoir: LuvoirAPLC
+    :param sim_instance: class instance of the simulator for "instrument"
     :param sigmas: array, mode-based PASTIS constraints
-    :param dh_mask: hcipy.Field, dark hole mask for PSF produced by luvoir
+    :param dh_mask: array, dark hole mask for PSF produced by instrument
+    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
     :return: random_weights: array, random weights used in this PSF calculation
              rand_contrast: float, mean contrast of the calculated PSF
     """
 
-    # Create normal distribution
-    rand = np.random.normal(0, 1, sigmas.shape[0])
-    random_weights = sigmas * rand
+    # Create a random set of mode weights with sigmas as stddevs in the normal distribution
+    modes_random_state = np.random.RandomState()
+    random_weights = modes_random_state.normal(0, sigmas)
 
     # Sum up all modes with randomly scaled sigmas to make total OPD
-    opd = np.nansum(pmodes[:, :] * random_weights, axis=1)
+    opd = np.nansum(pmodes * random_weights, axis=1)
     opd *= u.nm
 
-    luvoir.flatten()
-    for seg, aber in enumerate(opd):
-        luvoir.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+    # Apply random aberration to E2E simulator
+    if instrument == "LUVOIR":
+        sim_instance.flatten()
+        for seg, aber in enumerate(opd):
+            sim_instance.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data.shaped
 
-    rand_contrast = util.dh_mean(psf / ref.max(), dh_mask)
+    if instrument == 'HiCAT':
+        sim_instance.iris_dm.flatten()
+        for seg, aber in enumerate(opd):
+            sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+        im_data = sim_instance.calc_psf()
+        psf = im_data[0].data
+
+    if instrument == 'JWST':
+        sim_instance[1].zero()
+        for seg, aber in enumerate(opd):
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1)
+        psf = im_data[0].data
+
+    rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -370,8 +450,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     8. analytically calculating the statistical mean contrast and its variance
     9. calculting segment-based error budget
 
-    :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
+    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
     :param run_choice: str, path to data and where outputs will be saved
+    :param design: str, optional, default=None, which means we read from the configfile (if running for LUVOIR):
+                   what coronagraph design to use - 'small', 'medium' or 'large'
     :param c_target: float, target contrast
     :param n_repeat: number of realizations in both Monte Carlo simulations (modes and segments), default=100
     """
@@ -388,74 +470,81 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     calculate_segment_based = True
 
     # Data directory
-    workdir = os.path.join(CONFIG_INI.get('local', 'local_data_path'), run_choice)
+    workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
 
-    # LUVOIR coronagraph parameters
-    sampling = CONFIG_INI.getfloat('numerical', 'sampling')
-
-    nseg = CONFIG_INI.getint('LUVOIR', 'nb_subapertures')
-    wvln = CONFIG_INI.getfloat('LUVOIR', 'lambda') * 1e-9   # [m]
+    nseg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
+    wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9   # [m]
 
     log.info('Setting up optics...')
     log.info(f'Data folder: {workdir}')
-    log.info(f'Coronagraph: {design}')
+    log.info(f'Instrument: {instrument}')
 
-    # Create SM
-    # Read pupil and indexed pupil
-    inputdir = CONFIG_INI.get('LUVOIR', 'optics_path')
-    aper_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits'
-    aper_ind_path = 'inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits'
-    aper_read = hc.read_fits(os.path.join(inputdir, aper_path))
-    aper_ind_read = hc.read_fits(os.path.join(inputdir, aper_ind_path))
+    # Set up simulator, calculate reference PSF and dark hole mask
+    # TODO: replace this section with calculate_unaberrated_contrast_and_normalization(). This will require to save out
+    # reference and unaberrated coronagraphic PSF already in matrix generation.
+    if instrument == "LUVOIR":
+        if design is None:
+            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+            log.info(f'Coronagraph design: {design}')
 
-    # Sample them on a pupil grid and make them hc.Fields
-    pupil_grid = hc.make_pupil_grid(dims=aper_ind_read.shape[0], diameter=15)
-    aper = hc.Field(aper_read.ravel(), pupil_grid)
-    aper_ind = hc.Field(aper_ind_read.ravel(), pupil_grid)
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+        optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
 
-    # Create the wavefront on the aperture
-    wf_aper = hc.Wavefront(aper, wvln)
+        # Generate reference PSF and unaberrated coronagraphic image
+        luvoir.flatten()
+        psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
+        norm = ref.max()
 
-    # Load segment positions from fits header
-    hdr = fits.getheader(os.path.join(inputdir, aper_ind_path))
-    poslist = []
-    for i in range(nseg):
-        segname = 'SEG' + str(i + 1)
-        xin = hdr[segname + '_X']
-        yin = hdr[segname + '_Y']
-        poslist.append((xin, yin))
-    poslist = np.transpose(np.array(poslist))
-    seg_pos = hc.CartesianGrid(poslist)
+        psf_unaber = psf_unaber.shaped / norm
+        dh_mask = luvoir.dh_mask.shaped
+        sim_instance = luvoir
 
-    # Instantiate segmented mirror
-    sm = SegmentedMirror(aper_ind, seg_pos)
+    if instrument == 'HiCAT':
+        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
 
-    # Instantiate LUVOIR
-    optics_input = CONFIG_INI.get('LUVOIR', 'optics_path')
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
+        # Generate reference PSF and unaberrated coronagraphic image
+        hicat_sim.include_fpm = False
+        direct = hicat_sim.calc_psf()
+        norm = direct[0].data.max()
 
-    # Generate reference PSF and coronagraph contrast floor
-    luvoir.flatten()
-    psf_unaber, ref = luvoir.calc_psf(ref=True, display_intermediate=False)
-    norm = ref.max()
+        hicat_sim.include_fpm = True
+        coro_image = hicat_sim.calc_psf()
+        psf_unaber = coro_image[0].data / norm
 
-    plt.figure()
-    plt.subplot(1, 3, 1)
-    plt.title("Dark hole mask")
-    hc.imshow_field(luvoir.dh_mask)
-    plt.subplot(1, 3, 2)
-    plt.title("Unaberrated PSF")
-    hc.imshow_field(psf_unaber, norm=LogNorm(), mask=luvoir.dh_mask)
-    plt.subplot(1, 3, 3)
-    plt.title("Unaberrated PSF (masked)")
-    hc.imshow_field(psf_unaber, norm=LogNorm())
-    plt.savefig(os.path.join(workdir, 'unaberrated_dh.pdf'))
+        # Create DH mask
+        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
+        dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
 
-    # Calculate coronagraph floor
-    coro_floor = util.dh_mean(psf_unaber/norm, luvoir.dh_mask)
+        sim_instance = hicat_sim
+
+    if instrument == 'JWST':
+        jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+
+        # Generate reference PSF and unaberrated coronagraphic image
+        jwst_sim[0].image_mask = None
+        direct = jwst_sim[0].calc_psf(nlambda=1)
+        direct_psf = direct[0].data
+        norm = direct_psf.max()
+
+        jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+        coro_image = jwst_sim[0].calc_psf(nlambda=1)
+        psf_unaber = coro_image[0].data / norm
+
+        # Create DH mask
+        iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+        dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
+
+        sim_instance = jwst_sim
+
+    # TODO: this would also be part of the refactor mentioned above
+    # Calculate coronagraph contrast floor
+    coro_floor = util.dh_mean(psf_unaber, dh_mask)
     log.info(f'Coronagraph floor: {coro_floor}')
-    with open(os.path.join(workdir, 'coronagraph_floor.txt'), 'w') as file:
-        file.write(f'{coro_floor}')
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
@@ -463,10 +552,10 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:
         log.info('Calculating all PASTIS modes')
-        pmodes, svals = modes_from_matrix(workdir)
+        pmodes, svals = modes_from_matrix(instrument, workdir)
 
         ### Get full 2D modes and save them
-        all_modes, mode_cube = full_modes_from_themselves(pmodes, workdir, sm, wf_aper, saving=True)
+        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
@@ -479,7 +568,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'),
+        ppl.plot_mode_weights_simple(sigmas, wvln,
                                      out_dir=os.path.join(workdir, 'results'),
                                      c_target=c_target,
                                      fname_suffix='uniform',
@@ -499,7 +588,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_random_weight_sets = []
         for rep in range(n_repeat):
             log.info(f'Mode realization {rep + 1}/{n_repeat}')
-            random_weights, one_contrast_mode = calc_random_mode_configurations(pmodes, luvoir, sigmas, luvoir.dh_mask)
+            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
             all_random_weight_sets.append(random_weights)
             all_contr_rand_modes.append(one_contrast_mode)
 
@@ -521,7 +610,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
-        cumulative_e2e = cumulative_contrast_e2e(pmodes, sigmas, luvoir, luvoir.dh_mask)
+        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm)
         cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'), cumulative_e2e)
@@ -543,15 +632,41 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
-        # Put mus on SM and plot
-        wf_constraints = apply_mode_to_sm(mus, sm, wf_aper)
-
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
-        ppl.plot_mu_map(mus, wvln=CONFIG_INI.getfloat('LUVOIR', 'lambda'), out_dir=os.path.join(workdir, 'results'),
-                        design=design, c_target=c_target, save=True)
+        ppl.plot_mu_map(instrument, mus, sim_instance, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
+
+        # Apply mu map directly and run through E2E simulator
+        mus *= u.nm
+
+        if instrument == 'LUVOIR':
+            sim_instance.flatten()
+            for seg, mu in enumerate(mus):
+                sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
+            im_data = sim_instance.calc_psf()
+            psf_pure_mu_map = im_data.shaped
+
+        if instrument == 'HiCAT':
+            sim_instance.iris_dm.flatten()
+            for seg, mu in enumerate(mus):
+                sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+            im_data = sim_instance.calc_psf()
+            psf_pure_mu_map = im_data[0].data
+
+        if instrument == 'JWST':
+            sim_instance[1].zero()
+            for seg, mu in enumerate(mus):
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1)
+            psf_pure_mu_map = im_data[0].data
+
+        contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
+        log.info(f'Contrast with pure mu-map: {contrast_mu}')
+
     else:
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
+        mus *= u.nm
 
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
@@ -563,7 +678,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         all_random_maps = []
         for rep in range(n_repeat):
             log.info(f'Segment realization {rep + 1}/{n_repeat}')
-            random_map, one_contrast_seg = calc_random_segment_configuration(luvoir, mus, luvoir.dh_mask)
+            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
@@ -593,11 +708,11 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
     ### Calculate covariance matrices
     if calculate_covariance_matrices:
         log.info('Calculating covariance matrices')
-        Ca = np.diag(np.square(mus))
-        hc.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        Ca = np.diag(np.square(mus.value))
+        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
 
         Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-        hc.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
         ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
                                    fname_suffix='segment-based', save=True)
@@ -606,14 +721,16 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
 
     else:
         log.info('Loading covariance matrices from disk.')
-        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}.fits'))
-        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}.fits'))
+        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
     ### Analytically calculate statistical mean contrast and its variance
     if analytical_statistics:
         log.info('Calculating analytical statistics.')
         mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
         var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
+        log.info(f'Analytical statistical mean: {mean_stat_c}')
+        log.info(f'Analytical standard deviation: {np.sqrt(var_c)}')
 
         with open(os.path.join(workdir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'w') as file:
             file.write(f'Analytical, statistical mean: {mean_stat_c}')
@@ -624,6 +741,7 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         log.info('Calculating segment-based error budget.')
 
         # Extract segment-based mode weights
+        log.info('Calculate segment-based mode weights')
         sigmas_opt = np.sqrt(np.diag(Cb))
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
         ppl.plot_mode_weights_simple(sigmas_opt, wvln, out_dir=os.path.join(workdir, 'results'), c_target=c_target,
@@ -634,14 +752,16 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
                                           alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
 
         # Calculate contrast per mode
-        per_mode_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask, individual=True)
+        log.info('Calculating contrast per mode')
+        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
         np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
                    per_mode_opt_e2e)
         ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
                                    os.path.join(workdir, 'results'), save=True)
 
         # Calculate segment-based cumulative contrast
-        cumulative_opt_e2e = cumulative_contrast_e2e(pmodes, sigmas_opt, luvoir, luvoir.dh_mask)
+        log.info('Calculating segment-based cumulative contrast')
+        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
                    cumulative_opt_e2e)
 
@@ -649,25 +769,21 @@ def run_full_pastis_analysis_luvoir(design, run_choice, c_target=1e-10, n_repeat
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
                                                         c_target, fname_suffix='segment-based-vs-uniform', save=True)
 
-    ### Apply mu map and run through E2E simulator
-    mus *= u.nm
-    luvoir.flatten()
-    for seg, mu in enumerate(mus):
-        luvoir.set_segment(seg+1, mu.to(u.m).value/2, 0, 0)
-    psf, ref = luvoir.calc_psf(ref=True, display_intermediate=True)
-    contrast_mu = util.dh_mean(psf/ref.max(), luvoir.dh_mask)
-    log.info(f'Contrast with mu-map: {contrast_mu}')
+    ### Write full PDF report
+    title_page_list = util.collect_title_page(workdir, c_target)
+    util.create_title_page(instrument, workdir, title_page_list)
+    util.create_pdf_report(workdir, c_target)
 
-    ###
+    ### DONE
     log.info(f"All saved in {os.path.join(workdir, 'results')}")
-    log.info('\nGood job')
+    log.info('Good job')
 
 
 if __name__ == '__main__':
 
-    coro_design = CONFIG_INI.get('LUVOIR', 'coronagraph_size')
-    run = CONFIG_INI.get('numerical', 'current_analysis')
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+    run = CONFIG_PASTIS.get('numerical', 'current_analysis')
     c_target = 1e-10
     mc_repeat = 100
 
-    run_full_pastis_analysis_luvoir(coro_design, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
+    run_full_pastis_analysis(instrument, run_choice=run, c_target=c_target, n_repeat=mc_repeat)

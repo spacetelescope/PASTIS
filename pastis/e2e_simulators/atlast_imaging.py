@@ -9,15 +9,15 @@ import logging
 import hcipy
 import poppy
 
-from config import CONFIG_INI
-import util_pastis as util
+from config import CONFIG_PASTIS
+import pastis.util as util
 
 log = logging.getLogger()
 
 # Configfile imports
-which_tel = CONFIG_INI.get('telescope', 'name')
-pupil_size = CONFIG_INI.getint('numerical', 'tel_size_px')
-PUP_DIAMETER = CONFIG_INI.getfloat(which_tel, 'diameter')
+which_tel = CONFIG_PASTIS.get('telescope', 'name')
+pupil_size = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+PUP_DIAMETER = CONFIG_PASTIS.getfloat(which_tel, 'diameter')
 
 
 def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transmissions=1, write_to_disk=False, outDir=None):
@@ -46,7 +46,7 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     pupil_diameter = PUP_DIAMETER
     segment_circum_diameter = 2 / np.sqrt(3) * pupil_diameter / 7
     num_rings = 3
-    segment_gap = CONFIG_INI.getfloat(which_tel, 'gaps')
+    segment_gap = CONFIG_PASTIS.getfloat(which_tel, 'gaps')
 
     if not with_segment_gaps:
         segment_gap = 0
@@ -254,11 +254,11 @@ def seg_mirror_test():
     """
 
     # Parameters
-    which_tel = CONFIG_INI.get('telescope', 'name')
-    NPIX = CONFIG_INI.getint('numerical', 'tel_size_px')
-    PUP_DIAMETER = CONFIG_INI.getfloat(which_tel, 'diameter')
-    GAPSIZE = CONFIG_INI.getfloat(which_tel, 'gaps')
-    FLATTOFLAT = CONFIG_INI.getfloat(which_tel, 'flat_to_flat')
+    which_tel = CONFIG_PASTIS.get('telescope', 'name')
+    NPIX = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+    PUP_DIAMETER = CONFIG_PASTIS.getfloat(which_tel, 'diameter')
+    GAPSIZE = CONFIG_PASTIS.getfloat(which_tel, 'gaps')
+    FLATTOFLAT = CONFIG_PASTIS.getfloat(which_tel, 'flat_to_flat')
 
     wvln = 638e-9
     lamD = 20
