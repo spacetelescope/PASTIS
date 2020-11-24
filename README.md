@@ -354,7 +354,7 @@ The code will copy the used configfile into this data folder, together with all 
 directory structure is as follows:
 
 ```bash
-|-- 2020-01-13T21-34-29_example
+|-- 2020-11-20T21-34-29_example
 |   |-- coronagraph_floor.txt                    # E2E DH average contrast for unaberrated pupil
 |   |-- full_report.pdf                          # a PDF file summarizing all results 
 |   |-- matrix_numerical
