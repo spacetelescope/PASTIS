@@ -22,7 +22,7 @@ about the code and other telescopes it suppoerts. For further info, contact the 
 * [Quickstart from template](#quickstart-from-template)
   * [Clone the repo and create conda environment](#clone-the-repo-and-create-conda-environment)
   * [Set up local configfile](#set-up-local-configfile)
-  * [Create a PASTIS matrix and run the analysis](#create-a-pastis-matrix-and-run-the-analysis)
+  * [Create a PASTIS matrix and run a full analysis](#create-a-pastis-matrix-and-run-a-full-analysis)
   * [Changing the input parameters](#changing-the-input-parameters)
 * [Full Requirements](#full-requirements)
   * [Git](#git)
@@ -34,7 +34,10 @@ about the code and other telescopes it suppoerts. For further info, contact the 
 * [Output directory](#output-directory)
 * [PASTIS analysis](#pastis-analysis)
   * [Rerunning just the analysis](#rerunning-just-the-analysis)
-  * [Other LUVOIR-A coronagraphs](#other-luvoir-a-coronagraphs)
+* [Supported Simulators](#supported-simulators)
+  * [LUVOIR-A](#luvoir-a)
+  * [JWST](#jwst)
+  * [HiCAT](#hicat)
 * [Jupyter notebooks](#jupyter-notebooks)
 * [About this repository](#about-this-repository)
   * [Contributing and code of conduct](#contributing-and-code-of-conduct)
@@ -393,17 +396,17 @@ within your output destination:
 
 If you now run `run_luvoir.py`, it will only rerun the analysis.
 
-### Supported Simulators
+## Supported Simulators
 `pastis` currently supports E2E simulators for three telescopes: LUVOIR-A, JWST and HiCAT. Only LUVOIR comes with a built-in
 E2E simulator within `pastis`. The simulator for JWST is `webbpsf` and can be installed additionally, while the HiCAT simulator
 is currently private. The analysis for each of them can be started with the respective launcher in `pastis/launchers`.
 
-#### LUVOIR-A
+### LUVOIR-A
 There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baselien APLC desings
 for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
-#### JWST
+### JWST
 The coronagraphs currently supported on JWST are the NIRCam coronagraphs. You will need to install `webbpsf`
 ([installation instructions here](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-with-conda-but-not-astroconda))
 in order to be able to use it with `pastis`, and don't forget that you also need to install the [required data files](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-the-required-data-files).
@@ -422,7 +425,7 @@ webbpsf_data_path = ...
 
 The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_jwst.py`.
 
-#### HiCAT
+### HiCAT
 The HiCAT simulator is private and its support is only provided for internal use.
 
 
