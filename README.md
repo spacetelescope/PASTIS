@@ -7,9 +7,15 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes,
+developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
 
-This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info about the code. For further info, contact the author under `iva.laginja@lam.fr`.
+This release brings significant updates especially in the PASTIS matrix calculations, which is now multiprocessed. We also
+take advantage of the fact that the PASTIS matrix is symmetrical, which allows us to calcualte only half of the contrast
+matrix, including the diagonal, before calculating the PASTIS matrix.
+
+This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info
+about the code and other telescopes it suppoerts. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
