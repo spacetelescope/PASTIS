@@ -708,11 +708,11 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     ### Calculate covariance matrices
     if calculate_covariance_matrices:
         log.info('Calculating covariance matrices')
-        Ca = np.diag(np.square(mus))
-        hcipy.write_fits(Ca.value, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        Ca = np.diag(np.square(mus.value))
+        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
 
         Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-        hcipy.write_fits(Cb.value, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
 
         ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
                                    fname_suffix='segment-based', save=True)

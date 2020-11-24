@@ -7,16 +7,22 @@
 # PASTIS
 Sweet liquor from the south of France.
 
-In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes, developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
+In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes,
+developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
 
-This release was specifically made to accompany the Laginja et al. (2020, submitted) paper and this readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope. For further info, contact the author under `iva.laginja@lam.fr`.
+This release brings significant updates especially in the PASTIS matrix calculations, which is now multiprocessed. We also
+take advantage of the fact that the PASTIS matrix is symmetrical, which allows us to calcualte only half of the contrast
+matrix, including the diagonal, before calculating the PASTIS matrix.
+
+This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info
+about the code and other telescopes it suppoerts. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
 * [Quickstart from template](#quickstart-from-template)
   * [Clone the repo and create conda environment](#clone-the-repo-and-create-conda-environment)
   * [Set up local configfile](#set-up-local-configfile)
-  * [Create a PASTIS matrix and run the analysis](#create-a-pastis-matrix-and-run-the-analysis)
+  * [Create a PASTIS matrix and run a full analysis](#create-a-pastis-matrix-and-run-a-full-analysis)
   * [Changing the input parameters](#changing-the-input-parameters)
 * [Full Requirements](#full-requirements)
   * [Git](#git)
@@ -28,7 +34,10 @@ This release was specifically made to accompany the Laginja et al. (2020, submit
 * [Output directory](#output-directory)
 * [PASTIS analysis](#pastis-analysis)
   * [Rerunning just the analysis](#rerunning-just-the-analysis)
-  * [Other LUVOIR-A coronagraphs](#other-luvoir-a-coronagraphs)
+* [Supported Simulators](#supported-simulators)
+  * [LUVOIR-A](#luvoir-a)
+  * [JWST](#jwst)
+  * [HiCAT](#hicat)
 * [Jupyter notebooks](#jupyter-notebooks)
 * [About this repository](#about-this-repository)
   * [Contributing and code of conduct](#contributing-and-code-of-conduct)
@@ -102,14 +111,14 @@ local_data_path = /Users/<user-name>/<path-to-data>
 ```
 **Save `config_local.ini` after these edits.**
 
-### Create a PASTIS matrix and run the analysis
+### Create a PASTIS matrix and run a full analysis
 
 - If not already activated, activate the `pastis` conda environment with `$ conda activate pastis` and get into the 
-`PASTIS/pastis` subfolder.
+`PASTIS/pastis/launchers` subfolder.
 
 - Create a PASTIS matrix and run the PASTIS analysis for the narrow-angle LUVOIR-A APLC design from the default template:
 ```bash
-$ python run_cases.py
+$ python run_luvoir.py
 ```
 **This will run for a couple of hours** as the first thing that is generated is the PASTIS matrix. On a 13-in MacBook 
 Pro 2020, the matrix gets calculated in about 80min, and the analysis runs in about 15 minutes.
@@ -125,7 +134,7 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 - local aberration = piston
 - calibration aberration per segment to generate the PASTIS matrix with: 1 nm
 
-If you want to change any of these, please refer to the section about the [configfile](#configuration-file). 
+If you want to change any of these, please refer to the section about the [configfile](#configuration-file) and [Supported Simulators](#supported-simulators). 
 
 ## Full Requirements
 
@@ -174,7 +183,11 @@ PASTIS relies heavily on the `hcipy` package, most importantly for its implement
 PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
 this reason, the installation with `environment.yml` installs `hcipy` from the commit hash `980f39c`.
 
-If you want to install the package manually from this commit, you can do so by following tehse steps:
+If you want to install the package manually from this commit, you can do so with this `pip` command:
+```bash
+$ pip install git+https://github.com/ehpor/hcipy.git@980f39c7f309f799fd418b4f6a0657295b52c43e
+```
+Alternatively, if you are installing from a local clone, you can follow these steps:
 1. Navigate to the location on disk that contains your repos and clone the `hcipy` repository:
 ```bash
 $ git clone https://github.com/ehpor/hcipy.git
@@ -268,8 +281,8 @@ local_data_path = /Users/<user-name>/data_from_repos/pastis_data
 local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
-In the next section, you make a selection of the telescope you want to run the analysis on. Currently, only LUVOIR-A is
-supported, although there exist other telescope sections in the configfile that were used for testing and setup.
+In the next section, you make a selection of the telescope you want to run the analysis on. See [Supported Simulators](#supported-simulators) to see
+what telescopes `pastis` currently supports.
 ```ini
 [telescope]
 name = LUVOIR
@@ -278,6 +291,12 @@ This name has to equal the section name of the configfile that specifies the tel
 we have some parameters for the telescope itself, and for the coronagraph, as well as the operating wavelength.
 ```ini
 [LUVOIR]
+; aberration for matrix calculation, in NANOMETERS
+calibration_aberration = 1.
+; log10 limits of PASTIS validity in nm WFE
+valid_range_lower = -4
+valid_range_upper = 4
+
 ; telescope
 nb_subapertures = 120
 diameter = 15.
@@ -297,6 +316,10 @@ the local repo path from `[local] -> local_path` and into the right location. Th
 with a small, medium and large FPM, and the key `coronagraph_size` lets you switch between them. Finally, `lambda` sets
 the wavelength in nanometers.
 
+The `calibration_aberration` is the local aberration coefficient that will be used when calculating the PASTIS matrix, and
+the two parameters below set the upper and lower log limits of the total pupil WFE rms value for which the hockey stick curve
+will be calcualted.
+
 The following section sets some image parameters:
 ```ini
 [numerical]
@@ -309,20 +332,16 @@ im_size_lamD_hcipy = 30
 current_analysis = 2020-01-13T21-34-29_luvoir-small
 ```
 The key `sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
-the dark hole images in units of lambda/D. The key `current_analysis` is *not* used in the main launcher script (`run_cases.py`),
+the dark hole images in units of lambda/D. The key `current_analysis` is *not* used in the main launcher scripts (e.g. `run_luvoir.py`),
 but lets you define a matrix directory for repeating an analysis with the main function in the modules `hockeystick_contrast_curve.py`, 
-`pastis_analysis.py` and `single_mode_error_budger.py`.
+`pastis_analysis.py` and `single_mode_error_budget.py`.
 
-Finally, the calibration section defines the local aberration used on each segment and the amplitude of the calibration
-aberration for the generation of the PASTIS matrix.
+Finally, there is a section defining how we count our Zernikes, and the calibration section defines the local aberration 
+used on each segment, by the numbering defined in the `[zernikes]` section (not shown in README).
 ```ini
 [calibration]
-;! Noll convention!  --- units are NANOMETERS
-calibration_aberration = 1.
 local_zernike = 1
 ```
-The key `local_zernike` refers to the local Zernike mode used on the segments as indexed in the section `[zernikes]` (not shown in README),
-`local_zernike = 1` means piston. The key `calibration_aberration` is the amplitude of the calibration aberration of the matrix, in nanometers.
 
 
 ## Output directory
@@ -335,23 +354,28 @@ The code will copy the used configfile into this data folder, together with all 
 directory structure is as follows:
 
 ```bash
-|-- 2020-01-13T21-34-29_example
+|-- 2020-11-20T21-34-29_example
 |   |-- coronagraph_floor.txt                    # E2E DH average contrast for unaberrated pupil
+|   |-- full_report.pdf                          # a PDF file summarizing all results 
 |   |-- matrix_numerical
-|      |-- config_local.ini                      # copy of the configfile used for matrix generation
-|      |-- OTE_images
-|          |-- opd[...].pdf                      # PDF images of each segment pair aberration in the pupil
-|          |-- ...
+|       |-- config_local.ini                     # copy of the configfile used for matrix generation
+|       |-- contrast_matrix.pdf                  # PDF image of the half-filled contrast matrix, before it is transformed into the PASTIS matrix
+|       |-- OTE_images
+|           |-- opd[...].pdf                     # PDF images of each segment pair aberration in the pupil
+|           |-- ...
 |      |-- pair-wise_contrasts.fits:             # contrast matrix - E2E DH average contrasts per aberrated segment pair (only half of it since it is symmetric), contrast floor is already subtracted
-|      |-- pastis_matrix.log                     # logging output of matrix calculation
+|      |-- pastis_matrix_example.log             # logging output of matrix calculation
+|      |-- pastis_matrix.pdf                     # PDF image of the calculated PASTIS matrix 
 |      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
 |      |-- psfs
 |          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
 |   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
-|   |--results
-|      |-- [...].pdf/.txt                        # all results form the PASTIS analysis
-|      |-- ...
-|   |-- unaberrated_dh.pdf                       # image of unaberrated DH from E2E simulator
+|   |-- results
+|       |-- [...].pdf/.txt                       # all results from the PASTIS analysis, including the modes
+|       |-- ...
+|   |-- title_page.pdf                           # title page of the full_report PDF file 
+|   |-- unaberrated_dh.fits                      # image of unaberrated DH from E2E simulator
+|   |-- unaberrated_dh.pdf                       # PDF image of unaberrated DH from E2E simulator
 ```
 
 
@@ -359,7 +383,7 @@ directory structure is as follows:
 
 ### Rerunning just the analysis
 Calculating the PASTIS matrix takes some time, but once this is over the PASTIS analysis can be redone on it without 
-having to regenerate the matrix. To do this, open the script `run_cases.py` and comment out the line that calls 
+having to regenerate the matrix. To do this, open the script `run_luvoir.py` and comment out the line that calls 
 the matrix calculation function:
 ```py
     #dir_small = num_matrix_luvoir(design='small')
@@ -367,14 +391,42 @@ the matrix calculation function:
 and instead uncomment the line where you can pre-define the data directory, and drop in the correct folder directory 
 within your output destination:
 ```py
-    dir_small = os.path.join(CONFIG_INI.get('local', 'local_data_path'), '<your-data-directory_small>')
+    dir_small = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '<your-data-directory_small>')
 ```
 
-If you now run `run_cases.py`, it will only rerun the analysis.
+If you now run `run_luvoir.py`, it will only rerun the analysis.
 
-### Other LUVOIR-A coronagraphs
-The script `run_cases.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
+## Supported Simulators
+`pastis` currently supports E2E simulators for three telescopes: LUVOIR-A, JWST and HiCAT. Only LUVOIR comes with a built-in
+E2E simulator within `pastis`. The simulator for JWST is `webbpsf` and can be installed additionally, while the HiCAT simulator
+is currently private. The analysis for each of them can be started with the respective launcher in `pastis/launchers`.
+
+### LUVOIR-A
+There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baselien APLC desings
+for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
+
+### JWST
+The coronagraphs currently supported on JWST are the NIRCam coronagraphs. You will need to install `webbpsf`
+([installation instructions here](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-with-conda-but-not-astroconda))
+in order to be able to use it with `pastis`, and don't forget that you also need to install the [required data files](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-the-required-data-files).
+Once you are done with the installation, you will also need to drop in your local path to your new webbpsf data files to the
+PASTIS configfile. you can figure out the path to your webbpsf by running the following in a python session:
+```py
+import webbpsf
+webbpsf.utils.get_webbpsf_data_path()
+```
+Then you need to copy the output to the (local) configfile in the following section:
+```ini
+[local]
+; figure out webbpsf-data path with: webbpsf.utils.get_webbpsf_data_path()
+webbpsf_data_path = ...
+```
+
+The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_jwst.py`.
+
+### HiCAT
+The HiCAT simulator is private and its support is only provided for internal use.
 
 
 ## Jupyter notebooks

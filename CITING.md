@@ -4,7 +4,7 @@ used in your work [2]. To cite the scientific method, please consider also citin
 We provide the following LaTeX/BibTeX acknowledgment if there is no specific place to cite the above:  
 ```
 "This research made use of PASTIS \citep{Laginja-submitted, pastis-v1.3.0}, a modular, open-source Python package for
-segment-level error budgeting of segmented telescopes."
+segment-level error budgeting of segmented telescopes \citep{Leboulleux2018}."
 ```
 
 [1] Laginja et al., submitted

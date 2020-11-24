@@ -151,7 +151,7 @@ def set_up_nircam():
     """
     Return a configured instance of the NIRCam simulator on JWST.
 
-    Sets up the Lyots stop and filter from the configfile, turns of science insturment (SI) internal WFE and zeros
+    Sets up the Lyot stop and filter from the configfile, turns of science instrument (SI) internal WFE and zeros
     the OTE.
     :return: Tuple of NIRCam instance, and its OTE
     """
