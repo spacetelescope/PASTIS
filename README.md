@@ -134,7 +134,7 @@ The default out-of-the-box analysis from the Quickstart section runs the followi
 - local aberration = piston
 - calibration aberration per segment to generate the PASTIS matrix with: 1 nm
 
-If you want to change any of these, please refer to the section about the [configfile](#configuration-file). 
+If you want to change any of these, please refer to the section about the [configfile](#configuration-file) and [Supported Simulators](#supported-simulators). 
 
 ## Full Requirements
 
