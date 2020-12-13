@@ -263,6 +263,16 @@ def segment_pairs_non_repeating(nseg):
     return itertools.combinations_with_replacement(np.arange(nseg), r=2)
 
 
+def pastis_matrix_measurements(nseg):
+    """
+    Calculate the total number of measurements needed for a PASTIS matrix with nseg segments
+    :param nseg: int, total number of segments
+    :return: int, total number of measurements
+    """
+    total_number = (nseg**2 + nseg) / 2
+    return int(total_number)
+
+
 def symmetrize(array):
     """
     Return a symmetrized version of NumPy array a.
