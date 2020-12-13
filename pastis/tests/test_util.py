@@ -1,3 +1,4 @@
+import astropy.units as u
 import numpy as np
 from pastis import util
 
@@ -58,7 +59,9 @@ def test_create_random_rms_values():
     # Check that the random WFE map is correctly scaled to the target global WFE.
 
     nseg = 120
-    total_rms = 1
-    random_array = util.create_random_rms_values(nseg, total_rms)
+    target_rms = 1 * u.nm
+    random_array = util.create_random_rms_values(nseg, target_rms)
 
-    assert util.rms(random_array) == total_rms
+    resulting_rms = util.rms(random_array)
+    assert resulting_rms.unit == target_rms.unit
+    assert np.allclose(resulting_rms, target_rms, 1e-13)
