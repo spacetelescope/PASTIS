@@ -12,6 +12,7 @@ dependencies:
   - pandas
   - pip
   - pypdf2
+  - pytest
   - python>=3.6
   - scipy=1.2.1
   - pip:
