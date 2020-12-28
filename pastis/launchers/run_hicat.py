@@ -13,7 +13,7 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # Generate the matrix
-    dir_run = num_matrix_multiprocess(instrument='HiCAT')
+    dir_run = num_matrix_multiprocess(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     # Alternatively, pick data location to run PASTIS analysis on
     #dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2020-08-26T11-44-28_hicat')
