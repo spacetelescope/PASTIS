@@ -667,3 +667,12 @@ def find_package_location(package='pastis'):
     """Find absolute path to package location on disk
     Taken from hicat-package/hicat/util.py"""
     return importlib.util.find_spec(package).submodule_search_locations[0]
+
+
+def find_repo_location(package='pastis'):
+    """
+    Find absolute path to repository location on disk
+    Taken from hicat-package/hicat/util.py
+    :param package: string, name of package within the repository whose path we are looking for
+    """
+    return os.path.abspath(os.path.join(find_package_location(package), os.pardir))
