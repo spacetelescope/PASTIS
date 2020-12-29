@@ -28,13 +28,13 @@ def test_segment_pairs_all():
 
 
 def test_segment_pairs_non_repeating():
-    # Check that the permutation list has the correct length.
+    # Check that the permutation list has the correct length as calculated from number of segments.
 
     nseg = 120
     permutation_list = list(util.segment_pairs_non_repeating(nseg))
     number_of_measurements = util.pastis_matrix_measurements(nseg)
 
-    assert len(permutation_list) == number_of_measurements, 'Total number of non-repeating permutations is not correct.'
+    assert len(permutation_list) == number_of_measurements, 'Total number of non-repeating permutations does not agree with calculated number of measurements reuqired for PASTIS matrix.'
 
 
 def test_symmetrize():
