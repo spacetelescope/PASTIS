@@ -5,6 +5,7 @@ import os
 import hcipy
 import matplotlib
 from matplotlib import cm
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
@@ -14,14 +15,18 @@ from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.util import apply_mode_to_luvoir
 
-cmap_brev = cm.get_cmap('Blues_r')
+matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
+cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
+clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
+blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
 
 
-def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
+def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', save=False):
     """
     Plot a PASTIS matrix.
     :param pastis_matrix: array, PASTIS matrix in units of contrast/nm**2
-    :param wvln: float, wavelength at which the PASTIS matrix was generated in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 PASTIS matrix to units of contrast/wave^2, if None it stays in contrast/nm^2.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -31,29 +36,39 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        matrix_to_plot = pastis_matrix * wvln**2
+        cbar_label = 'contrast/wave$^2$'
+    else:
+        matrix_to_plot = pastis_matrix
+        cbar_label = 'contrast/nm$^2$'
+
     plt.figure(figsize=(10, 10))
-    plt.imshow(pastis_matrix * wvln**2)
+    plt.imshow(matrix_to_plot, cmap=blue_orange_divergent)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
     cbar.ax.tick_params(labelsize=20)
     cbar.ax.yaxis.offsetText.set(size=15)   # this changes the base of ten size on the colorbar
-    cbar.set_label('contrast/wave$^2$', size=30)
+    cbar.set_label(cbar_label, size=30)
     plt.xlabel('Segments', size=30)
     plt.ylabel('Segments', size=30)
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
-def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
+def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln=None, out_dir='', fname_suffix='', xlim=None, ylim=None, save=False):
     """
     Plot a hockeystick curve comparing the optical propagation between semi-analytical PASTIS and end-to-end simulator.
     :param rms_range: array or list of RMS values in nm
     :param pastis_matrix_contrasts: array or list, contrast values from SA PASTIS
     :param e2e_contrasts: array or list, contrast values from E2E simulator
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 rms_range (x-axis) to units of waves, if None it stays in nm.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param xlim: tuple, limits of x-axis, default None
@@ -65,10 +80,17 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        rms_range_to_plot = rms_range / wvln
+        rms_units = 'wave'
+    else:
+        rms_range_to_plot = rms_range
+        rms_units = 'nm'
+
     plt.figure(figsize=(12, 8))
     plt.title("Semi-analytical PASTIS vs. E2E", size=30)
-    plt.plot(rms_range / wvln, pastis_matrix_contrasts, label="SA PASTIS", linewidth=4)
-    plt.plot(rms_range / wvln, e2e_contrasts, label="E2E simulator", linewidth=4, linestyle='--')
+    plt.plot(rms_range_to_plot, pastis_matrix_contrasts, label="SA PASTIS", linewidth=4)
+    plt.plot(rms_range_to_plot, e2e_contrasts, label="E2E simulator", linewidth=4, linestyle='--')
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.semilogx()
     plt.semilogy()
@@ -76,21 +98,24 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
         plt.xlim(xlim[0], xlim[1])
     if ylim is not None:
         plt.ylim(ylim[0], ylim[1])
-    plt.xlabel("WFE RMS (waves)", size=30)
+    plt.xlabel(f"WFE RMS ({rms_units})", size=30)
     plt.ylabel("Contrast", size=30)
     plt.legend(prop={'size': 30})
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
-def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
+def plot_eigenvalues(eigenvalues, nseg, wvln=None, out_dir='', fname_suffix='', save=False):
     """
     Plot PASTIS eigenvalues as function of PASTIS mode index.
     :param eigenvalues: array or list of eigenvalues of the PASTIS matrix, in units of contrast/nm**2
     :param nseg: int, number of segments/modes
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 eiganvalues to units of contrast/wave^2, if None they stay in contrast/nm^2.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -100,26 +125,36 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=Fal
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        evals_to_plot = eigenvalues * wvln**2
+        evals_unit = 'c/wave$^{2}$'
+    else:
+        evals_to_plot = eigenvalues
+        evals_unit = 'c/nm$^2$'
+
     plt.figure(figsize=(12, 8))
-    plt.plot(np.arange(1, nseg + 1), eigenvalues * wvln**2, linewidth=3, color='red')
+    plt.plot(np.arange(1, nseg + 1), evals_to_plot, linewidth=3, color='red')
     plt.semilogy()
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.title('PASTIS matrix eigenvalues', size=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel('Eigenvalues $\lambda_p$ (c/wave$^{2})$', size=30)
+    plt.ylabel(f'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
-def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, save=False):
+def plot_mode_weights_simple(sigmas, c_target, wvln=None, out_dir='', fname_suffix='', labels=None, save=False):
     """
     Plot mode weights against mode index, with mode weights in units of waves.
     :param sigmas: array or list, or tuple of arrays or lists of mode weights, in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
-    :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 mode weights (sigmas) to units of waves, if None they stay in nm.
+    :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param labels: tuple, optional, labels for the different lists of sigmas provided
     :param save: bool, whether to save to disk or not, default is False
@@ -128,6 +163,13 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
     fname = f'mode_requirements_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
+
+    if wvln is not None:
+        sigmas_to_plot = sigmas / wvln
+        weights_units = 'waves'
+    else:
+        sigmas_to_plot = sigmas
+        weights_units = 'nm'
 
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
@@ -141,15 +183,15 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
-        plt.plot(sigmas / wvln, linewidth=3, c='r', label=labels)
+        plt.plot(sigmas_to_plot, linewidth=3, c='r', label=labels)
     else:
         for i in range(sets):
-            plt.plot(sigmas[i] / wvln, linewidth=3, label=labels[i])
+            plt.plot(sigmas_to_plot[i], linewidth=3, label=labels[i])
     plt.semilogy()
     plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel('Mode weights $\sigma_p$ (waves)', size=30)
+    plt.ylabel(f'Mode weights $\sigma_p$ ({weights_units})', size=30)
     if labels is not None:
         plt.legend(prop={'size': 20})
     plt.tight_layout()
@@ -161,6 +203,8 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
 def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, alphas=None, linestyles=None, colors=None, save=False):
@@ -331,8 +375,11 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    # Make sure covariance plot stretch is centered on zero (which will be white)
+    norm_covariance = matplotlib.colors.TwoSlopeNorm(vcenter=0)
+
     plt.figure(figsize=(10, 10))
-    plt.imshow(covariance_matrix)
+    plt.imshow(covariance_matrix, cmap='seismic', norm=norm_covariance)
     if segment_space:
         plt.title('Segment-space covariance matrix $C_a$', size=25)
         plt.xlabel('Segments', size=25)

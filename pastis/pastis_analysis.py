@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 import logging
+import matplotlib
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
@@ -21,6 +22,7 @@ from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_
 import pastis.plotting as ppl
 import pastis.util as util
 
+matplotlib.rc('image', origin='lower')
 log = logging.getLogger(__name__)
 
 
@@ -568,9 +570,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln,
-                                     out_dir=os.path.join(workdir, 'results'),
+        ppl.plot_mode_weights_simple(sigmas,
                                      c_target=c_target,
+                                     wvln=wvln,
+                                     out_dir=os.path.join(workdir, 'results'),
                                      fname_suffix='uniform',
                                      save=True)
 
@@ -744,7 +747,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         log.info('Calculate segment-based mode weights')
         sigmas_opt = np.sqrt(np.diag(Cb))
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
-        ppl.plot_mode_weights_simple(sigmas_opt, wvln, out_dir=os.path.join(workdir, 'results'), c_target=c_target,
+        ppl.plot_mode_weights_simple(sigmas_opt, c_target=c_target, wvln=wvln, out_dir=os.path.join(workdir, 'results'),
                                      fname_suffix='segment-based', save=True)
         ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
                                           fname_suffix='segment-based-vs-uniform',
