@@ -13,7 +13,7 @@ import numpy as np
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
-from pastis.util import apply_mode_to_luvoir
+import pastis.util
 
 matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
 cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
@@ -460,7 +460,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
     if instrument == 'LUVOIR':
         sim_instance.flatten()
-        wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
+        wf_constraints = pastis.util.apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
 
     if instrument == 'HiCAT':
@@ -514,13 +514,13 @@ def calculate_mode_phases(pastis_modes, design):
     """
     # Create luvoir instance
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Calculate phases of all modes
     all_modes = []
     for mode in range(len(pastis_modes)):
-        all_modes.append(apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
+        all_modes.append(pastis.util.apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
 
     return all_modes
 
@@ -574,11 +574,11 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
 
     # Create luvoir instance
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)
-    one_mode = apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
+    one_mode = pastis.util.apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
     hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
