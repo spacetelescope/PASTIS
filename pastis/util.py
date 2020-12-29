@@ -5,6 +5,7 @@ Helper functions for PASTIS.
 import glob
 import os
 import datetime
+import importlib
 import itertools
 import time
 from shutil import copy
@@ -660,3 +661,9 @@ def read_mean_and_variance(filename):
     variance_value = float(variance_string.split(': ')[-1])
 
     return mean_value, variance_value
+
+
+def find_package_location(package='pastis'):
+    """Find absolute path to package location on disk
+    Taken from hicat-package/hicat/util.py"""
+    return importlib.util.find_spec(package).submodule_search_locations[0]
