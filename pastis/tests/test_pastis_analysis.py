@@ -1,10 +1,12 @@
 import os
 from astropy.io import fits
+import astropy.units as u
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 from pastis import pastis_analysis
+from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
@@ -63,3 +65,29 @@ def test_uniform_mode_weights():
                           cumulative_pastis[second] - cumulative_pastis[second - interval], rtol=1e-5, atol=1e-27)
         assert np.isclose(cumulative_e2e[first] - cumulative_e2e[first - interval],
                           cumulative_e2e[second] - cumulative_e2e[second - interval], rtol=1e-1, atol=1e-15)
+
+
+def test_analytical_mean_and_variance():
+    # Calculate modes and eigenvalues from matrix
+    pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
+
+    # Calculate independent segment weights
+    mus = pastis_analysis.calculate_segment_constraints(pmodes, LUVOIR_MATRIX_SMALL, C_TARGET, CORO_FLOOR) * u.nm
+
+    # Calculate independent segment based covariance matrix
+    Ca = np.diag(np.square(mus.value))
+
+    # Perform basis transformation to PASTIS mode basis covariance matrix
+    Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
+    # Construct PASTIS matric in mode space, D
+    D_matrix = np.diag(svals)
+
+    # Calculate contrast mean and variance in both bases
+    segs_mean_stat_c = util.calc_statistical_mean_contrast(LUVOIR_MATRIX_SMALL, Ca, CORO_FLOOR)
+    segs_var_c = util.calc_variance_of_mean_contrast(LUVOIR_MATRIX_SMALL, Ca)
+    modes_mean_stat_c = util.calc_statistical_mean_contrast(D_matrix, Cb, CORO_FLOOR)
+    modes_var_c = util.calc_variance_of_mean_contrast(D_matrix, Cb)
+
+    # Compare results in both bases to each other
+    assert np.isclose(segs_mean_stat_c, modes_mean_stat_c, rtol=1e-15, atol=1e-30), 'Mean in two bases does not agree'
+    assert np.isclose(segs_var_c, modes_var_c, rtol=1e-15, atol=1e-40), 'Variance in both bases does not agree'
