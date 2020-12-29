@@ -490,7 +490,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             log.info(f'Coronagraph design: {design}')
 
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Generate reference PSF and unaberrated coronagraphic image

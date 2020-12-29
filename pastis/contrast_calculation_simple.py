@@ -281,7 +281,7 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
 
     # Instantiate LUVOIR telescope with APLC
     luvoir = LuvoirAPLC(optics_input, design, sampling)

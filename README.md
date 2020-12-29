@@ -93,17 +93,9 @@ $ cd pastis
 
 - Copy the file `config_pastis.ini` and name the copy `config_local.ini`.
 
-- Open your local configfile `config_local.ini` and find the section `[local]`. In that section, edit the key 
-`local_repo_path` to point to your local repo clone that you just created, e.g. (for more about the configfile, see 
+- Open your local configfile `config_local.ini` and find the section `[local]`. In that section, define where all the 
+output data will be saved to by adjusting the key `local_data_path`, e.g. (for more about the configfile, see 
 [Configuration file](#configuration-file)):
-```ini
-[local]
-...
-local_repo_path = /Users/<user-name>/repos/PASTIS
-```
-
-- In the same file and section, define where all the output data will be saved to by adjusting the key 
-`local_data_path`, e.g.:  
 ```ini
 [local]
 ...
@@ -272,13 +264,11 @@ it will be used, if not, the code will fall back on `config_pastis.ini`. A copy 
 with the PASTIS matrix output when a matrix is generated. In the case you want to version control the configfile you use, 
 we recommend that you **fork** the repository and simply use the `config_pastis.ini` file directly.
 
-The first section deals with local paths. Here, you need to point the file to the local clone of your repo and the 
-directory you want to have the output data saved to:
+The first section deals with local paths. Here, you need to point the file to the directory you want to have the output data saved to:
 ```ini
 [local]
 ...
 local_data_path = /Users/<user-name>/data_from_repos/pastis_data
-local_repo_path = /Users/<user-name>/repos/PASTIS
 ```
 
 In the next section, you make a selection of the telescope you want to run the analysis on. See [Supported Simulators](#supported-simulators) to see
@@ -301,7 +291,10 @@ valid_range_upper = 4
 nb_subapertures = 120
 diameter = 15.
 gaps = 0.02
-optics_path = ${local:local_repo_path}/LUVOIR_delivery_May2019/
+optics_path_in_repo = LUVOIR_delivery_May2019/
+aperture_path_in_optics = inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits
+indexed_aperture_path_in_optics = inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits
+lyot_stop_path_in_optics = inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits
 
 ; coronagraph
 ; iwa and owa from dictionaries within files. could move that to util.
@@ -310,11 +303,11 @@ optics_path = ${local:local_repo_path}/LUVOIR_delivery_May2019/
 coronagraph_size = small
 lambda = 500.
 ```
-The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path`  specifies
-the data location of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC designs. The path goes into 
-the local repo path from `[local] -> local_path` and into the right location. There are three APLC designs available, 
-with a small, medium and large FPM, and the key `coronagraph_size` lets you switch between them. Finally, `lambda` sets
-the wavelength in nanometers.
+The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path_in_repo`  specifies
+the data location (within the repository) of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC
+designs.There are three APLC designs available, with a small, medium and large FPM, and the key `coronagraph_size` lets 
+you switch between them. Finally, `lambda` sets the wavelength in nanometers. The three keys below `optics_path_in_repo`
+are paths within the optics path that point to different files needed by the LUVOIR simulator.
 
 The `calibration_aberration` is the local aberration coefficient that will be used when calculating the PASTIS matrix, and
 the two parameters below set the upper and lower log limits of the total pupil WFE rms value for which the hockey stick curve

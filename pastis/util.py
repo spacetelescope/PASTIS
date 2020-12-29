@@ -481,9 +481,9 @@ def copy_config(outdir):
     """
     print('Saving the configfile to outputs folder.')
     try:
-        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_local.ini'), outdir)
+        copy(os.path.join(find_package_location(), 'config_local.ini'), outdir)
     except IOError:
-        copy(os.path.join(CONFIG_PASTIS.get('local', 'local_repo_path'), 'pastis', 'config_pastis.ini'), outdir)
+        copy(os.path.join(find_package_location(), 'config_pastis.ini'), outdir)
 
 
 def setup_pastis_logging(experiment_path, name):
@@ -667,3 +667,12 @@ def find_package_location(package='pastis'):
     """Find absolute path to package location on disk
     Taken from hicat-package/hicat/util.py"""
     return importlib.util.find_spec(package).submodule_search_locations[0]
+
+
+def find_repo_location(package='pastis'):
+    """
+    Find absolute path to repository location on disk
+    Taken from hicat-package/hicat/util.py
+    :param package: string, name of package within the repository whose path we are looking for
+    """
+    return os.path.abspath(os.path.join(find_package_location(package), os.pardir))

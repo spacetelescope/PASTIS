@@ -266,7 +266,7 @@ def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
     util.copy_config(resDir)
 
     ### Instantiate Luvoir telescope with chosen apodizer design
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     ### Reference images for contrast normalization and coronagraph floor
@@ -373,7 +373,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     if instrument == 'LUVOIR':
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
-        optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         if design is None:
             design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
         luvoir = LuvoirAPLC(optics_input, design, sampling)
@@ -546,7 +546,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
 
     # Instantiate LUVOIR object
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luv = LuvoirAPLC(optics_input, design, sampling)
 
     log.info(f'PAIR: {segment_pair[0]+1}-{segment_pair[1]+1}')

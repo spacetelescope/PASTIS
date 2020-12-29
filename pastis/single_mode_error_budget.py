@@ -15,6 +15,7 @@ import numpy as np
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 from pastis.pastis_analysis import modes_from_file
+import pastis.util
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     log.info(f'Working on {design} coronagraph design.')
 
     # Instantiate LUVOIR-A
-    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
     luvoir = LuvoirAPLC(optics_input, design, sampling)
     luvoir.flatten()

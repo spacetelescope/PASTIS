@@ -16,7 +16,7 @@ def test_main_sections():
 def test_data_paths():
     """ Check that all required data paths exist. """
 
-    data_keys = ['local_data_path', 'local_repo_path', 'webbpsf_data_path']
+    data_keys = ['local_data_path', 'webbpsf_data_path']
     for key in data_keys:
         assert CONFIG_PASTIS.has_option('local', key), f"[local] section has no key '{key}'"
 
