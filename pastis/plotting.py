@@ -5,6 +5,7 @@ import os
 import hcipy
 import matplotlib
 from matplotlib import cm
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
@@ -14,7 +15,10 @@ from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.util import apply_mode_to_luvoir
 
-cmap_brev = cm.get_cmap('Blues_r')
+matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
+cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
+clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
+blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
 
 
 def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
@@ -32,7 +36,7 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
         fname += f'_{fname_suffix}'
 
     plt.figure(figsize=(10, 10))
-    plt.imshow(pastis_matrix * wvln**2)
+    plt.imshow(pastis_matrix * wvln**2, cmap=blue_orange_divergent)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
@@ -332,7 +336,7 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
         fname += f'_{fname_suffix}'
 
     plt.figure(figsize=(10, 10))
-    plt.imshow(covariance_matrix)
+    plt.imshow(covariance_matrix, cmap='seismic')
     if segment_space:
         plt.title('Segment-space covariance matrix $C_a$', size=25)
         plt.xlabel('Segments', size=25)

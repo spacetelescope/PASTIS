@@ -9,6 +9,7 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 import logging
+import matplotlib
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import hcipy
@@ -21,6 +22,7 @@ from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_
 import pastis.plotting as ppl
 import pastis.util as util
 
+matplotlib.rc('image', origin='lower')
 log = logging.getLogger(__name__)
 
 
