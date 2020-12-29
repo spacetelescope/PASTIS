@@ -33,12 +33,13 @@ def test_pastis_forward_model():
     # Test that the PASTIS matrix propagates aberrations correctly
     # This is essentially a test for the hockey stick curve, inside its valid range
     rms_values = [1, 10, 15] * u.nm    # nm WFE rms over total  pupil
-    tolerances = [1e-3, 1e-2, 1e-1]
+    relative_tolerances = [1e-3, 1e-2, 1e-1]
+    absolute_tolerances = [1e-15, 1e-9, 1e-8]
 
     # Calculate coronagraph floor, direct PSF peak normalization factor, and return E2E sim instance
     contrast_floor, norm, luvoir_sim = calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
 
-    for rms, tol in zip(rms_values, tolerances):
+    for rms, rel_tol, abs_tol in zip(rms_values, relative_tolerances, absolute_tolerances):
         # Create random aberration coefficients on segments, scaled to total rms
         aber = util.create_random_rms_values(NSEG, rms)
 
@@ -52,4 +53,4 @@ def test_pastis_forward_model():
         psf_luvoir /= norm
         contrasts_e2e = (util.dh_mean(psf_luvoir, luvoir_sim.dh_mask))
 
-        assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={tol}.'
+        assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
