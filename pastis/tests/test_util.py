@@ -27,6 +27,15 @@ def test_segment_pairs_all():
     assert len(permutation_list) == nseg * nseg, 'Total number of repeating permutations is not correct.'
 
 
+def test_number_of_matrix_measurements():
+    """Test that calculated number of measurements required for a PASTIS matrix is calculated correctly."""
+    luvoir_nseg = 120
+    luvoir_measurement_num = 7260
+    calc_num_measurements = util.pastis_matrix_measurements(luvoir_nseg)
+
+    assert calc_num_measurements == luvoir_measurement_num, 'Calculated number of required measurements for PASTIS matrix is wrong.'
+
+
 def test_segment_pairs_non_repeating():
     # Check that the permutation list has the correct length as calculated from number of segments.
 
