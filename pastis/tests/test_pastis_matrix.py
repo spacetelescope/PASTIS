@@ -3,15 +3,13 @@ from astropy.io import fits
 import astropy.units as u
 import numpy as np
 
-from pastis.config import CONFIG_PASTIS
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization, num_matrix_multiprocess
 from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
-# TODO: This needs to be a matrix I will save with Git LFS
-matrix_path = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2020-07-17T00-57-55_luvoir-small', 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits')
-#matrix_path = os.path.join('data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
+test_data_dir = os.path.join(util.find_package_location(), 'tests')
+matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 
 LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
 NSEG = LUVOIR_MATRIX_SMALL.shape[0]
