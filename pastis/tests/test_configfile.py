@@ -10,7 +10,7 @@ def test_main_sections():
 
     for section in STANDARD_SECTIONS+OBSERVATORY_SECTIONS:
         exists = section in CONFIG_PASTIS
-        assert exists
+        assert exists, f'Section {section} does not exist in configfile.'
 
 
 def test_data_paths():
@@ -18,7 +18,7 @@ def test_data_paths():
 
     data_keys = ['local_data_path', 'local_repo_path', 'webbpsf_data_path']
     for key in data_keys:
-        assert CONFIG_PASTIS.has_option('local', key)
+        assert CONFIG_PASTIS.has_option('local', key), f"[local] section has no key '{key}'"
 
 
 def test_telescope():
@@ -26,7 +26,7 @@ def test_telescope():
 
     telescope_keys = ['name']
     for key in telescope_keys:
-        assert CONFIG_PASTIS.has_option('telescope', key)
+        assert CONFIG_PASTIS.has_option('telescope', key), f"[telescope] section has no key '{key}'"
 
 
 def test_observatory_parameters():
@@ -43,7 +43,7 @@ def test_observatory_parameters():
     # First test the observatory sections that are included by default
     for sec in OBSERVATORY_SECTIONS:
         for key in observatory_params:
-            assert CONFIG_PASTIS.has_option(sec, key)
+            assert CONFIG_PASTIS.has_option(sec, key), f"'{sec}' section has no key '{key}'"
 
     # Then test any additional observatory sections
     for sec in all_sections:
@@ -51,4 +51,4 @@ def test_observatory_parameters():
             pass
         else:
             for key in observatory_params:
-                assert CONFIG_PASTIS.has_option(sec, key)
+                assert CONFIG_PASTIS.has_option(sec, key), f"'{sec}' section has no key '{key}'"
