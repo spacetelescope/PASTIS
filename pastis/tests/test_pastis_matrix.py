@@ -23,10 +23,10 @@ def test_luvoir_matrix_regression():
     new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
     # Check that the calculated PASTIS matrix is symmetric
-    assert np.all(new_matrix) == np.all(new_matrix.T), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
+    assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
 
     # Check that new matrix is equal to previously computed matrix that is known to be correct
-    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert (new_matrix == LUVOIR_MATRIX_SMALL).all(), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
 def test_pastis_forward_model():
