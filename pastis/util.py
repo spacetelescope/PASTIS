@@ -199,10 +199,10 @@ def get_segment_list(instrument):
     JWST does not have a center segment, but it uses custom segment names anyway, so we start the numbering with zero,
     at the first segment that is actually controllable (A1).
 
-    :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
+    :param instrument: string, "HiCAT", "HiCAT_continuous", "LUVOIR" or "JWST"
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
-    if instrument not in ['LUVOIR', 'HiCAT', 'JWST']:
+    if instrument not in ['LUVOIR', 'HiCAT', 'HiCAT_continuous', 'JWST']:
         raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
@@ -317,7 +317,7 @@ def create_random_rms_values(nb_seg, total_rms):
     Also subtracts global piston.
 
     :param nb_seg: int, number of segments in the pupil
-    :param rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
+    :param total_rms: float, nm (astropy units) of WFE rms that the aberration array will be scaled to
     :return: aber: array of segment aberration values in nm (astropy units) of WFE rms, scaled to input rms value (total_rms)
     """
     # Create own random state

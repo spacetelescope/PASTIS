@@ -10,6 +10,7 @@ from matplotlib.ticker import ScalarFormatter
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.util import apply_mode_to_luvoir
@@ -154,9 +155,9 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
         plt.legend(prop={'size': 20})
     plt.tight_layout()
 
-    plt.annotate(text='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
+    plt.annotate(s='Low impact modes\n (high tolerance)', xy=(60, 2e-5), xytext=(67, 0.0024), color='black',
                  fontweight='bold', size=25)
-    plt.annotate(text='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
+    plt.annotate(s='High impact modes\n (low tolerance)', xy=(60, 2e-5), xytext=(3, 3.4e-5), color='black',
                  fontweight='bold', size=25)
 
     if save:
@@ -397,12 +398,12 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
 def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, fname_suffix='', save=False):
     """
     Plot the segment requirement map for a specific target contrast.
-    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: string, "LUVOIR", "HiCAT", 'HiCAT_continuous' or "JWST"
     :param mus: array or list, segment requirements (standard deviations) in nm
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the segment requirements have been calculated
-    :param limits: tuple, colorbar limirs, deault is None
+    :param limits: tuple, colorbar limits in nm, default is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -411,24 +412,36 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    if instrument == 'LUVOIR':
+    only_instrument = instrument.split("_")[0]
+
+    if only_instrument == 'LUVOIR':
         sim_instance.flatten()
         wf_constraints = apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
-            sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)  # /1e9 converts to meters
-        psf, inter = sim_instance.calc_psf(return_intermediates=True)
-        wf_sm = inter[1].phase
+    if only_instrument == 'HiCAT':
+
+        if instrument == 'HiCAT':
+            # Apply mu map to IrisAO
+            sim_instance.iris_dm.flatten()
+            for segnum in range(CONFIG_PASTIS.getint(only_instrument, 'nb_subapertures')):
+                sim_instance.iris_dm.set_actuator(segnum, mus[segnum] / 1e9, 0, 0)    # /1e9 converts to meters
+            psf, inter = sim_instance.calc_psf(return_intermediates=True)
+            wf_sm = inter[1].phase
+
+        elif instrument == 'HiCAT_continuous':
+            # Apply mu map to DM1
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mus).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command / 1e9)    # /1e9 converts to meters
+            psf, inter = sim_instance.calc_psf(return_intermediates=True)
+            wf_sm = inter[4].phase
 
         hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / hicat_wavenumber) * 1e12  # in picometers
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
-        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+        for segnum in range(CONFIG_PASTIS.getint(only_instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
             seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
             sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
 
@@ -502,6 +515,41 @@ def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
         ax.axis('off')
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+
+
+def plot_single_wf_map(wfe_mode, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+    """
+    Plot a single, arbitrary WFE map.
+    :param wfe_mode: array, WFE map (one number per segment) in nm
+    :param out_dir: str, output path to save the figure to if save=True
+    :param design: str, "small", "medium", or "large" LUVOIR-A APLC design
+    :param figsize: tuple, size of figure, default=(8.5,8.5)
+    :param vmin: matplotlib min extent of image, default is None
+    :param vmax: matplotlib max extent of image, default is None
+    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param save: bool, whether to save to disk or not, default is False
+    :return:
+    """
+    fname = f'wfe_map'
+    if fname_suffix != '':
+        fname += f'_{fname_suffix}'
+
+    # Create luvoir instance
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    optics_input = CONFIG_PASTIS.get('LUVOIR', 'optics_path')
+    luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    plt.figure(figsize=figsize, constrained_layout=False)
+    one_mode = apply_mode_to_luvoir(wfe_mode, luvoir)[0]
+    hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
+    plt.axis('off')
+    cbar = plt.colorbar(fraction=0.046,
+                        pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+    cbar.ax.tick_params(labelsize=40)  # this changes the numbers on the colorbar
+    plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))

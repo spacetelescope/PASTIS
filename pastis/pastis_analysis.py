@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import hcipy
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat
+import pastis.e2e_simulators.hicat_imaging as hicat_imaging
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
@@ -74,20 +74,21 @@ def modes_from_file(datadir):
 
 def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving=False):
     """
-    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
+    Put all modes onto the segmented/deformable mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
 
-    Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
-    in the pupil. This phase gets returned both as an array of 2D arrays.
-    Both the pupl plane and the focal plane modes get save into a PDF grid, and as a cube to fits. Optionally, you can
+    Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a
+    segmented/deformable mirror in the pupil. This phase gets returned both as an array of 2D arrays.
+    Both the pupil plane and the focal plane modes get save into a PDF grid, and as a cube to fits. Optionally, you can
     save the pupil plane modes individually to PDF files by setting saving=True.
 
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
+    :param instrument: string, 'LUVOIR', 'HiCAT', 'HiCAT_continuous' or 'JWST'
     :param pmodes: array of PASTIS modes [segnum, modenum], expected in nanometers
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param sim_instance: class instance of the simulator for "instrument"
     :param saving: bool, whether to save the individual pupil plane modes as PDFs to disk, default=False
     :return: cube of pupil plane modes as array of 2D arrays
     """
+    only_instrument = instrument.split("_")[0]
 
     nseg = pmodes.shape[0]
     seglist = util.get_segment_list(instrument)
@@ -97,26 +98,37 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     all_modes_focal_plane = []
     for i, thismode in enumerate(seglist):
 
-        if instrument == 'LUVOIR':
+        if only_instrument == 'LUVOIR':
             log.info(f'Working on mode {thismode}/{nseg}.')
             wf_sm, wf_detector = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
             psf_detector = wf_detector.intensity.shaped
             all_modes_focal_plane.append(psf_detector)
             all_modes.append((wf_sm.phase / wf_sm.wavenumber).shaped)   # wf_sm.phase is in rad, so this converts it to meters
 
-        if instrument == 'HiCAT':
+        if only_instrument == 'HiCAT':
             log.info(f'Working on mode {thismode}/{nseg-1}.')
-            for segnum in range(nseg):
-                sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
+
+            if instrument == 'HiCAT':
+                # Apply OPD to IrisAO
+                for segnum in range(nseg):
+                    sim_instance.iris_dm.set_actuator(segnum, pmodes[segnum, i] / 1e9, 0, 0)   # /1e9 converts to meters
+            elif instrument == 'HiCAT_continuous':
+                # Apply OPD to DM1
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(pmodes[:,i]).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                sim_instance.dm1.set_surface(mode_command / 1e9)
+
             psf_detector_data, inter = sim_instance.calc_psf(return_intermediates=True)
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
 
-            phase_sm = inter[1].phase
+            if instrument == 'HiCAT':
+                phase_sm = inter[1].phase
+            elif instrument == 'HiCAT_continuous':
+                phase_sm = inter[4].phase
             hicat_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('HiCAT', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_sm / hicat_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
-        if instrument == 'JWST':
+        if only_instrument == 'JWST':
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance[1].zero()
             for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
@@ -152,6 +164,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             plt.subplot(12, 10, i + 1)
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
+        if instrument == 'HiCAT_continuous':
+            plt.subplot(34, 28, i + 1)
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
         plt.imshow(all_modes[i], cmap='RdBu')
@@ -178,15 +192,28 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
     ### Plot all modes together and save as PDF (focal plane)
     log.info('Saving all PASTIS modes together as PDF (focal plane)...')
+
+    # Create DH mask to show only DH in output image
+    if only_instrument in ('JWST', 'HiCAT'):
+        iwa = CONFIG_PASTIS.getfloat(only_instrument, 'IWA')
+        owa = CONFIG_PASTIS.getfloat(only_instrument, 'OWA')
+        sampling = CONFIG_PASTIS.getfloat(only_instrument, 'sampling')
+        dh_mask = util.create_dark_hole(all_modes_focal_plane[0], iwa, owa, sampling).astype('bool')
+    elif only_instrument == 'LUVOIR':
+        dh_mask = sim_instance.dh_mask.shaped
+
     plt.figure(figsize=(36, 30))
     for i, thismode in enumerate(seglist):
         if instrument == 'LUVOIR':
             plt.subplot(12, 10, i + 1)
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
+        if instrument == 'HiCAT_continuous':
+            plt.subplot(34, 28, i + 1)
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
-        plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
+
+        plt.imshow(all_modes_focal_plane[i] * dh_mask, cmap='inferno', norm=LogNorm())
         plt.axis('off')
         plt.title(f'Mode {thismode}')
     plt.savefig(os.path.join(datadir, 'results', 'modes', 'focal_plane', 'modes_piston.pdf'))
@@ -241,7 +268,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
+    :param instrument: string, 'LUVOIR', 'HiCAT', 'HiCAT_continuous' or 'JWST'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param sigmas: array, weights per PASTIS mode
     :param sim_instance: class instance of the simulator for "instrument"
@@ -250,6 +277,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
     :return: cont_cum_e2e, list of cumulative or individual contrasts
     """
+    only_instrument = instrument.split("_")[0]
 
     cont_cum_e2e = []
     for maxmode in range(pmodes.shape[0]):
@@ -261,21 +289,27 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
-        if instrument == 'LUVOIR':
+        if only_instrument == 'LUVOIR':
             sim_instance.flatten()
             for seg, val in enumerate(opd):
                 sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf = im_data.shaped
 
-        if instrument == 'HiCAT':
-            sim_instance.iris_dm.flatten()
-            for seg, val in enumerate(opd):
-                sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+        if only_instrument == 'HiCAT':
+            if instrument == 'HiCAT':
+                # Apply OPD to IrisAO
+                sim_instance.iris_dm.flatten()
+                for seg, val in enumerate(opd):
+                    sim_instance.iris_dm.set_actuator(seg, val.to(u.m).value, 0, 0)
+            elif instrument == 'HiCAT_continuous':
+                # Apply OPD to DM1
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(opd.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                sim_instance.dm1.set_surface(mode_command)
             im_data = sim_instance.calc_psf()
             psf = im_data[0].data
 
-        if instrument == 'JWST':
+        if only_instrument == 'JWST':
             sim_instance[1].zero()
             for seg, val in enumerate(opd):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
@@ -345,7 +379,7 @@ def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_fl
 def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: str, "LUVOIR", "HiCAT", "HiCAT_continuous" or "JWST"
     :param sim_instance: class instance of the simulator for "instrument"
     :param mus: array, segment-based PASTIS constraints in nm
     :param dh_mask: array, dark hole mask for PSF produced by/for instrument
@@ -353,27 +387,34 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     :return: random_map: list, random segment map used in this PSF calculation in m;
              rand_contrast: float, mean contrast of the calculated PSF
     """
+    only_instrument = instrument.split("_")[0]
 
     # Create a random set of segment weights with mus as stddevs in the normal distribution
     segments_random_state = np.random.RandomState()
     random_weights = segments_random_state.normal(0, mus) * u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if only_instrument == "LUVOIR":
         sim_instance.flatten()
         for seg in range(mus.shape[0]):
             sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for seg in range(mus.shape[0]):
-            sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
+    if only_instrument == 'HiCAT':
+        if instrument == 'HiCAT':
+            # Apply OPD to IrisAO
+            sim_instance.iris_dm.flatten()
+            for seg in range(mus.shape[0]):
+                sim_instance.iris_dm.set_actuator(seg, random_weights[seg].to(u.m).value, 0, 0)
+        elif instrument == 'HiCAT_continuous':
+            # Apply OPD to DM1
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(random_weights.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command)   # needed in meters
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
         for seg in range(mus.shape[0]):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
@@ -389,7 +430,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
 def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
     """
     Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: str, "LUVOIR", "HiCAT", "HiCAT_continuous" or "JWST"
     :param pmodes: array, pastis mode matrix [nseg, nmodes]
     :param sim_instance: class instance of the simulator for "instrument"
     :param sigmas: array, mode-based PASTIS constraints
@@ -398,6 +439,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     :return: random_weights: array, random weights used in this PSF calculation
              rand_contrast: float, mean contrast of the calculated PSF
     """
+    only_instrument = instrument.split("_")[0]
 
     # Create a random set of mode weights with sigmas as stddevs in the normal distribution
     modes_random_state = np.random.RandomState()
@@ -408,21 +450,27 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     opd *= u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if only_instrument == "LUVOIR":
         sim_instance.flatten()
         for seg, aber in enumerate(opd):
             sim_instance.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
-    if instrument == 'HiCAT':
-        sim_instance.iris_dm.flatten()
-        for seg, aber in enumerate(opd):
-            sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+    if only_instrument == 'HiCAT':
+        if instrument == 'HiCAT':
+            # Apply OPD to IrisAO
+            sim_instance.iris_dm.flatten()
+            for seg, aber in enumerate(opd):
+                sim_instance.iris_dm.set_actuator(seg, aber.to(u.m).value, 0, 0)
+        elif instrument == 'HiCAT_continuous':
+            # Apply OPD to DM1
+            mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(opd.to(u.m).value).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+            sim_instance.dm1.set_surface(mode_command)
         im_data = sim_instance.calc_psf()
         psf = im_data[0].data
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         sim_instance[1].zero()
         for seg, aber in enumerate(opd):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
@@ -450,7 +498,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     8. analytically calculating the statistical mean contrast and its variance
     9. calculting segment-based error budget
 
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: str, "LUVOIR", "HiCAT", "HiCAT_continuous" or "JWST"
     :param run_choice: str, path to data and where outputs will be saved
     :param design: str, optional, default=None, which means we read from the configfile (if running for LUVOIR):
                    what coronagraph design to use - 'small', 'medium' or 'large'
@@ -469,11 +517,13 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     analytical_statistics = True
     calculate_segment_based = True
 
+    only_instrument = instrument.split("_")[0]
+
     # Data directory
     workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
 
     nseg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
-    wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9   # [m]
+    wvln = CONFIG_PASTIS.getfloat(only_instrument, 'lambda') * 1e-9   # [m]
 
     log.info('Setting up optics...')
     log.info(f'Data folder: {workdir}')
@@ -482,7 +532,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Set up simulator, calculate reference PSF and dark hole mask
     # TODO: replace this section with calculate_unaberrated_contrast_and_normalization(). This will require to save out
     # reference and unaberrated coronagraphic PSF already in matrix generation.
-    if instrument == "LUVOIR":
+    if only_instrument == "LUVOIR":
         if design is None:
             design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
             log.info(f'Coronagraph design: {design}')
@@ -500,8 +550,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         dh_mask = luvoir.dh_mask.shaped
         sim_instance = luvoir
 
-    if instrument == 'HiCAT':
-        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+    if only_instrument == 'HiCAT':
+        hicat_sim = hicat_imaging.set_up_hicat(apply_continuous_dm_maps=True)
 
         # Generate reference PSF and unaberrated coronagraphic image
         hicat_sim.include_fpm = False
@@ -520,7 +570,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         sim_instance = hicat_sim
 
-    if instrument == 'JWST':
+    if only_instrument == 'JWST':
         jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
 
         # Generate reference PSF and unaberrated coronagraphic image
@@ -552,7 +602,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:
         log.info('Calculating all PASTIS modes')
-        pmodes, svals = modes_from_matrix(instrument, workdir)
+        pmodes, svals = modes_from_matrix(only_instrument, workdir)
 
         ### Get full 2D modes and save them
         mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
@@ -638,21 +688,28 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         # Apply mu map directly and run through E2E simulator
         mus *= u.nm
 
-        if instrument == 'LUVOIR':
+        if only_instrument == 'LUVOIR':
             sim_instance.flatten()
             for seg, mu in enumerate(mus):
                 sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf_pure_mu_map = im_data.shaped
 
-        if instrument == 'HiCAT':
-            sim_instance.iris_dm.flatten()
-            for seg, mu in enumerate(mus):
-                sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+        if only_instrument == 'HiCAT':
+            if instrument == 'HiCAT':
+                # Apply mu map to IrisAO
+                sim_instance.iris_dm.flatten()
+                for seg, mu in enumerate(mus):
+                    sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
+            elif instrument == 'HiCAT_continuous':
+                # Apply mu map to DM1
+                mode_command = hicat_imaging.DM_ACTUATORS_TO_SURFACE(mus).reshape(hicat_imaging.ACTUATOR_GRID.shape)
+                sim_instance.dm1.set_surface(mode_command / 1e9)  # /1e9 converts to meters
+
             im_data = sim_instance.calc_psf()
             psf_pure_mu_map = im_data[0].data
 
-        if instrument == 'JWST':
+        if only_instrument == 'JWST':
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
