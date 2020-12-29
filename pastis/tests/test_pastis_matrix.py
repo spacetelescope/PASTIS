@@ -16,7 +16,9 @@ NSEG = LUVOIR_MATRIX_SMALL.shape[0]
 
 
 def test_luvoir_matrix_regression():
-    # Check multiprocessed matrix calculation against previously calculated matrix
+    """ Check multiprocessed matrix calculation against previously calculated matrix """
+
+    # Calculate new LUVOIR small PASTIS matrix
     new_matrix_path = num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
     new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
@@ -29,8 +31,10 @@ def test_luvoir_matrix_regression():
 
 
 def test_pastis_forward_model():
-    # Test that the PASTIS matrix propagates aberrations correctly
-    # This is essentially a test for the hockey stick curve, inside its valid range
+    """ Test that the PASTIS matrix propagates aberrations correctly
+    This is essentially a test for the hockey stick curve, inside its valid range. """
+
+    # Define a couple of total pupil rms values of WFE to test
     rms_values = [1, 10, 15] * u.nm    # nm WFE rms over total  pupil
     relative_tolerances = [1e-3, 1e-2, 1e-1]
     absolute_tolerances = [1e-15, 1e-9, 1e-8]

@@ -21,6 +21,8 @@ C_TARGET = 1e-10
 
 
 def test_modes_from_matrix():
+    """ Test correctness of eigenmodes and eigenvectors (here from full SVD). """
+
     # Calculate modes and eigenvalues from matrix
     pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
 
@@ -36,6 +38,8 @@ def test_modes_from_matrix():
 
 
 def test_uniform_mode_weights():
+    """Test calculated uniform cumulative contrast."""
+
     # Calculate modes and eigenvalues from matrix
     pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
 
@@ -66,6 +70,8 @@ def test_uniform_mode_weights():
 
 
 def test_analytical_mean_and_variance():
+    """Test analytically calculated contrast mean and variance in two different bases."""
+
     # Calculate modes and eigenvalues from matrix
     pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
 
