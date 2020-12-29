@@ -21,11 +21,12 @@ clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
 blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
 
 
-def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False):
+def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', save=False):
     """
     Plot a PASTIS matrix.
     :param pastis_matrix: array, PASTIS matrix in units of contrast/nm**2
-    :param wvln: float, wavelength at which the PASTIS matrix was generated in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 PASTIS matrix to units of contrast/wave^2, if None it stays in contrast/nm^2.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -35,20 +36,29 @@ def plot_pastis_matrix(pastis_matrix, wvln, out_dir, fname_suffix='', save=False
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        matrix_to_plot = pastis_matrix * wvln**2
+        cbar_label = 'contrast/wave$^2$'
+    else:
+        matrix_to_plot = pastis_matrix
+        cbar_label = 'contrast/nm$^2$'
+
     plt.figure(figsize=(10, 10))
-    plt.imshow(pastis_matrix * wvln**2, cmap=blue_orange_divergent)
+    plt.imshow(matrix_to_plot, cmap=blue_orange_divergent)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
     cbar.ax.tick_params(labelsize=20)
     cbar.ax.yaxis.offsetText.set(size=15)   # this changes the base of ten size on the colorbar
-    cbar.set_label('contrast/wave$^2$', size=30)
+    cbar.set_label(cbar_label, size=30)
     plt.xlabel('Segments', size=30)
     plt.ylabel('Segments', size=30)
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
 def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
