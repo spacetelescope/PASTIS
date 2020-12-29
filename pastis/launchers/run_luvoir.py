@@ -14,9 +14,9 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # First generate a couple of matrices
-    dir_small = num_matrix_multiprocess(instrument='LUVOIR', design='small')
-    #dir_medium = num_matrix_multiprocess(instrument='LUVOIR', design='medium')
-    #dir_large = num_matrix_multiprocess(instrument='LUVOIR', design='large')
+    dir_small = num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    #dir_medium = num_matrix_multiprocess(instrument='LUVOIR', design='medium', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    #dir_large = num_matrix_multiprocess(instrument='LUVOIR', design='large', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     # Alternatively, pick data locations to run PASTIS analysis on
     #dir_small = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory_small')

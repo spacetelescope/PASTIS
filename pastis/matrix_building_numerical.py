@@ -691,7 +691,7 @@ def calculate_off_axis_elements(contrast_matrix, seglist):
     return matrix_pastis_half
 
 
-def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=True):
+def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
     """
     Generate a numerical/semi-analytical PASTIS matrix.
 
@@ -700,6 +700,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
     :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
+    :param initial_path: str, path to save results directory to
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
     :return: overall_dir: string, experiment directory
@@ -716,7 +717,7 @@ def num_matrix_multiprocess(instrument, design=None, savepsfs=True, saveopds=Tru
         if design is None:
             design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
         tel_suffix += f'-{design}'
-    overall_dir = util.create_data_path(CONFIG_PASTIS.get('local', 'local_data_path'), telescope=tel_suffix)
+    overall_dir = util.create_data_path(initial_path, telescope=tel_suffix)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
@@ -836,5 +837,5 @@ if __name__ == '__main__':
         #num_matrix_jwst()
 
         #num_matrix_luvoir(design='small')
-        #num_matrix_multiprocess(instrument='LUVOIR', design='small')
-        num_matrix_multiprocess(instrument='HiCAT')
+        #num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+        num_matrix_multiprocess(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
