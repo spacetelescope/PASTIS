@@ -98,7 +98,7 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
         plt.xlim(xlim[0], xlim[1])
     if ylim is not None:
         plt.ylim(ylim[0], ylim[1])
-    plt.xlabel(f"WFE RMS {rms_units}]", size=30)
+    plt.xlabel(f"WFE RMS ({rms_units})", size=30)
     plt.ylabel("Contrast", size=30)
     plt.legend(prop={'size': 30})
     plt.tight_layout()
@@ -109,12 +109,13 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
         plt.show()
 
 
-def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
+def plot_eigenvalues(eigenvalues, nseg, wvln=None, out_dir='', fname_suffix='', save=False):
     """
     Plot PASTIS eigenvalues as function of PASTIS mode index.
     :param eigenvalues: array or list of eigenvalues of the PASTIS matrix, in units of contrast/nm**2
     :param nseg: int, number of segments/modes
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 eiganvalues to units of contrast/wave^2, if None they stay in contrast/nm^2.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -124,17 +125,26 @@ def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=Fal
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        evals_to_plot = eigenvalues * wvln**2
+        evals_unit = 'c/wave$^{2}$'
+    else:
+        evals_to_plot = eigenvalues
+        evals_unit = 'c/nm$^2$'
+
     plt.figure(figsize=(12, 8))
-    plt.plot(np.arange(1, nseg + 1), eigenvalues * wvln**2, linewidth=3, color='red')
+    plt.plot(np.arange(1, nseg + 1), evals_to_plot, linewidth=3, color='red')
     plt.semilogy()
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.title('PASTIS matrix eigenvalues', size=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel('Eigenvalues $\lambda_p$ (c/wave$^{2})$', size=30)
+    plt.ylabel(f'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
 def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, save=False):
