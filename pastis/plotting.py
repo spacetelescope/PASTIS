@@ -147,13 +147,14 @@ def plot_eigenvalues(eigenvalues, nseg, wvln=None, out_dir='', fname_suffix='', 
         plt.show()
 
 
-def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, save=False):
+def plot_mode_weights_simple(sigmas, c_target, wvln=None, out_dir='', fname_suffix='', labels=None, save=False):
     """
     Plot mode weights against mode index, with mode weights in units of waves.
     :param sigmas: array or list, or tuple of arrays or lists of mode weights, in nm
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
-    :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 mode weights (sigmas) to units of waves, if None they stay in nm.
+    :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param labels: tuple, optional, labels for the different lists of sigmas provided
     :param save: bool, whether to save to disk or not, default is False
@@ -162,6 +163,13 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
     fname = f'mode_requirements_{c_target}'
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
+
+    if wvln is not None:
+        sigmas_to_plot = sigmas / wvln
+        weights_units = 'waves'
+    else:
+        sigmas_to_plot = sigmas
+        weights_units = 'nm'
 
     # Figure out how many sets of sigmas we have
     if isinstance(sigmas, tuple):
@@ -175,15 +183,15 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
-        plt.plot(sigmas / wvln, linewidth=3, c='r', label=labels)
+        plt.plot(sigmas_to_plot, linewidth=3, c='r', label=labels)
     else:
         for i in range(sets):
-            plt.plot(sigmas[i] / wvln, linewidth=3, label=labels[i])
+            plt.plot(sigmas_to_plot[i], linewidth=3, label=labels[i])
     plt.semilogy()
     plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel('Mode weights $\sigma_p$ (waves)', size=30)
+    plt.ylabel(f'Mode weights $\sigma_p$ ({weights_units})', size=30)
     if labels is not None:
         plt.legend(prop={'size': 20})
     plt.tight_layout()
@@ -195,6 +203,8 @@ def plot_mode_weights_simple(sigmas, wvln, out_dir, c_target, fname_suffix='', l
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
 def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix='', labels=None, alphas=None, linestyles=None, colors=None, save=False):

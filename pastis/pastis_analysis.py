@@ -570,9 +570,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
-        ppl.plot_mode_weights_simple(sigmas, wvln,
-                                     out_dir=os.path.join(workdir, 'results'),
+        ppl.plot_mode_weights_simple(sigmas,
                                      c_target=c_target,
+                                     wvln=wvln,
+                                     out_dir=os.path.join(workdir, 'results'),
                                      fname_suffix='uniform',
                                      save=True)
 
@@ -746,7 +747,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         log.info('Calculate segment-based mode weights')
         sigmas_opt = np.sqrt(np.diag(Cb))
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
-        ppl.plot_mode_weights_simple(sigmas_opt, wvln, out_dir=os.path.join(workdir, 'results'), c_target=c_target,
+        ppl.plot_mode_weights_simple(sigmas_opt, c_target=c_target, wvln=wvln, out_dir=os.path.join(workdir, 'results'),
                                      fname_suffix='segment-based', save=True)
         ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
                                           fname_suffix='segment-based-vs-uniform',
