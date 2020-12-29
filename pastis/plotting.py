@@ -61,13 +61,14 @@ def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', sa
         plt.show()
 
 
-def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln, out_dir, fname_suffix='', xlim=None, ylim=None, save=False):
+def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, wvln=None, out_dir='', fname_suffix='', xlim=None, ylim=None, save=False):
     """
     Plot a hockeystick curve comparing the optical propagation between semi-analytical PASTIS and end-to-end simulator.
     :param rms_range: array or list of RMS values in nm
     :param pastis_matrix_contrasts: array or list, contrast values from SA PASTIS
     :param e2e_contrasts: array or list, contrast values from E2E simulator
-    :param wvln: float, wavelength at which the PASTIS matrix was generated, in nm
+    :param wvln: float, optional, wavelength at which the PASTIS matrix was generated in nm. If provided, converts
+                 rms_range (x-axis) to units of waves, if None it stays in nm.
     :param out_dir: str, output path to save the figure to if save=True
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param xlim: tuple, limits of x-axis, default None
@@ -79,10 +80,17 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    if wvln is not None:
+        rms_range_to_plot = rms_range / wvln
+        rms_units = 'wave'
+    else:
+        rms_range_to_plot = rms_range
+        rms_units = 'nm'
+
     plt.figure(figsize=(12, 8))
     plt.title("Semi-analytical PASTIS vs. E2E", size=30)
-    plt.plot(rms_range / wvln, pastis_matrix_contrasts, label="SA PASTIS", linewidth=4)
-    plt.plot(rms_range / wvln, e2e_contrasts, label="E2E simulator", linewidth=4, linestyle='--')
+    plt.plot(rms_range_to_plot, pastis_matrix_contrasts, label="SA PASTIS", linewidth=4)
+    plt.plot(rms_range_to_plot, e2e_contrasts, label="E2E simulator", linewidth=4, linestyle='--')
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.semilogx()
     plt.semilogy()
@@ -90,13 +98,15 @@ def plot_hockey_stick_curve(rms_range, pastis_matrix_contrasts, e2e_contrasts, w
         plt.xlim(xlim[0], xlim[1])
     if ylim is not None:
         plt.ylim(ylim[0], ylim[1])
-    plt.xlabel("WFE RMS (waves)", size=30)
+    plt.xlabel(f"WFE RMS {rms_units}]", size=30)
     plt.ylabel("Contrast", size=30)
     plt.legend(prop={'size': 30})
     plt.tight_layout()
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
 
 
 def plot_eigenvalues(eigenvalues, nseg, wvln, out_dir, fname_suffix='', save=False):
