@@ -375,8 +375,11 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
+    # Make sure covariance plot stretch is centered on zero (which will be white)
+    norm_covariance = matplotlib.colors.TwoSlopeNorm(vcenter=0)
+
     plt.figure(figsize=(10, 10))
-    plt.imshow(covariance_matrix, cmap='seismic')
+    plt.imshow(covariance_matrix, cmap='seismic', norm=norm_covariance)
     if segment_space:
         plt.title('Segment-space covariance matrix $C_a$', size=25)
         plt.xlabel('Segments', size=25)
