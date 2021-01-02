@@ -70,7 +70,9 @@ jobs:
       max-parallel: 1
       matrix:
         python-version: [3.7]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
+        # if we ever need to enable this for Windows too, just replace with this line:
+        # os: [ubuntu-latest, windows-latest]
     steps:
     - uses: actions/checkout@v1
       with:
