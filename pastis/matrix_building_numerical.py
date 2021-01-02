@@ -15,8 +15,6 @@ import shutil
 import astropy.units as u
 import logging
 import matplotlib
-matplotlib.rc('image', origin='lower')
-matplotlib.rc('pdf', fonttype=42)
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import multiprocessing
@@ -31,6 +29,8 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
 
 log = logging.getLogger()
+matplotlib.rc('image', origin='lower')
+matplotlib.rc('pdf', fonttype=42)
 
 
 def num_matrix_jwst():
