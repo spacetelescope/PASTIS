@@ -19,6 +19,8 @@ matplotlib.rc('image', origin='lower')    # Make sure image origin is always in 
 cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
 clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
 blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
+# Define a normalization of diverging colormap so that it is centered on zero (depending on matrix, black or white)
+norm_center_zero = matplotlib.colors.TwoSlopeNorm(vcenter=0)
 
 
 def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', save=False):
@@ -44,7 +46,7 @@ def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', sa
         cbar_label = 'contrast/nm$^2$'
 
     plt.figure(figsize=(10, 10))
-    plt.imshow(matrix_to_plot, cmap=blue_orange_divergent)
+    plt.imshow(matrix_to_plot, cmap=blue_orange_divergent, norm=norm_center_zero)
     plt.title('Semi-analytical PASTIS matrix', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
     cbar = plt.colorbar(fraction=0.046, pad=0.06)  # format='%.0e'
@@ -375,11 +377,8 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    # Make sure covariance plot stretch is centered on zero (which will be white)
-    norm_covariance = matplotlib.colors.TwoSlopeNorm(vcenter=0)
-
     plt.figure(figsize=(10, 10))
-    plt.imshow(covariance_matrix, cmap='seismic', norm=norm_covariance)
+    plt.imshow(covariance_matrix, cmap='seismic', norm=norm_center_zero)
     if segment_space:
         plt.title('Segment-space covariance matrix $C_a$', size=25)
         plt.xlabel('Segments', size=25)
