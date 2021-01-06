@@ -318,28 +318,16 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False
     return cont_cum_pastis
 
 
-def calculate_segment_constraints(pmodes, pastismatrix, c_target, coronagraph_floor):
+def calculate_segment_constraints(pastismatrix, c_target, coronagraph_floor):
     """
     Calculate segment-based PASTIS constraints from PASTIS matrix and PASTIS modes.
-    :param pmodes: array, PASTIS modes [nseg, nmodes]
     :param pastismatrix: array, full PASTIS matrix [nseg, nseg]
     :param c_target: float, static target contrast
     :param coronagraph_floor: float, coronagraph contrast floor
     :return: mu_map: array, map of segment-based PASTIS constraints
     """
-    nmodes = pmodes.shape[0]
-
-    # Calculate the inverse of the pastis mode matrix
-    modestosegs = np.linalg.pinv(pmodes)
-
-    # Calculate all mean contrasts of the pastis modes directly (as-is, with natural normalization)
-    c_avg = []
-    for i in range(nmodes):
-        c_avg.append(util.pastis_contrast(pmodes[:, i] * u.nm, pastismatrix) + coronagraph_floor)
-
-    # Calculate segment requirements
-    mu_map = np.sqrt(
-        ((c_target - coronagraph_floor) / nmodes) / (np.dot(np.array(c_avg) - coronagraph_floor, np.square(modestosegs))))
+    nseg = pastismatrix.shape[0]
+    mu_map = np.sqrt((c_target - coronagraph_floor) / (nseg * np.diag(pastismatrix)))
 
     return mu_map
 
@@ -463,7 +451,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Which parts are we running?
     calculate_modes = True
     calculate_sigmas = True
-    run_monte_carlo_modes = True
+    run_monte_carlo_modes = False
     calc_cumulative_contrast = True
     calculate_mus = True
     run_monte_carlo_segments = True
@@ -632,7 +620,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     ### Calculate segment-based static constraints
     if calculate_mus:
         log.info('Calculating segment-based constraints')
-        mus = calculate_segment_constraints(pmodes, matrix, c_target, coro_floor)
+        mus = calculate_segment_constraints(matrix, c_target, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'), mus)
 
         ppl.plot_segment_weights(mus, out_dir=os.path.join(workdir, 'results'), c_target=c_target, save=True)
