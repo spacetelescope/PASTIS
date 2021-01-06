@@ -76,7 +76,7 @@ def test_analytical_mean_and_variance():
     pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
 
     # Calculate independent segment weights
-    mus = pastis_analysis.calculate_segment_constraints(pmodes, LUVOIR_MATRIX_SMALL, C_TARGET, CORO_FLOOR) * u.nm
+    mus = pastis_analysis.calculate_segment_constraints(LUVOIR_MATRIX_SMALL, C_TARGET, CORO_FLOOR) * u.nm
 
     # Calculate independent segment based covariance matrix
     Ca = np.diag(np.square(mus.value))
