@@ -695,13 +695,14 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
     """
 
     # Create future (half filled) PASTIS matrix
-    matrix_pastis_half = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
+    matrix_pastis_half = np.zeros_like(contrast_matrix)     # This will be the final PASTIS matrix.
 
     # Assuming constant coronagraph floor across all pair-aberrated measurements
     if isinstance(coro_floor, float):
 
-        # Subtract the constant coronagraph floor
-        matrix_pastis_half -= coro_floor
+        # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
+        np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix)-coro_floor)
+        log.info('On-axis elements of PASTIS matrix calculated')
 
         # Calculate the off-axis elements in the (half) PASTIS matrix
         for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
@@ -720,10 +721,8 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
         for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
 
             # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
-            if pair[0] == pair[1]:
-                matrix_diag_val = matrix_pastis_half[0] - coro_floor[0]
-                matrix_pastis_half[pair[0], pair[0]] = matrix_diag_val
-                log.info(f'On-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_diag_val}')
+            np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix)-np.diag(coro_floor))
+            log.info('On-axis elements of PASTIS matrix calculated')
 
             # Then calculate the off-axis elements
             if pair[0] != pair[1]:    # exclude diagonal elements
