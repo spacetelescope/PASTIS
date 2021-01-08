@@ -712,6 +712,11 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
 
     # Assuming drifting coronagraph floor across all pair-aberrated measurements
     elif isinstance(coro_floor, np.ndarray):
+
+        # Check that the coro_floor array has same dimensions like the contrast_matrix array
+        if coro_floor.shape != contrast_matrix.shape:
+            raise ValueError('coro_floor needs to have same dimensions like contrast_matrix')
+
         for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
 
             # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
