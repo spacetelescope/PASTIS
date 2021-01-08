@@ -862,7 +862,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     plt.savefig(os.path.join(resDir, 'contrast_matrix.pdf'))
 
     # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
-    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, contrast_floor)
+    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, float(contrast_floor))
 
     # Save matrix to file
     filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'    #TODO: I hate my old naming convention. Change this.
