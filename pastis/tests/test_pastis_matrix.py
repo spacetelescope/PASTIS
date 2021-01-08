@@ -3,11 +3,12 @@ from astropy.io import fits
 import astropy.units as u
 import numpy as np
 
-from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization, num_matrix_multiprocess
+import pastis.matrix_building_numerical as matrix_calc
 from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
+# TODO: add data dir the matrix is from as comment
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 
@@ -19,7 +20,7 @@ def test_luvoir_matrix_regression():
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_path = num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
+    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
     new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
     # Check that the calculated PASTIS matrix is symmetric
@@ -40,7 +41,7 @@ def test_pastis_forward_model():
     absolute_tolerances = [1e-15, 1e-9, 1e-8]
 
     # Calculate coronagraph floor, direct PSF peak normalization factor, and return E2E sim instance
-    contrast_floor, norm, luvoir_sim = calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
+    contrast_floor, norm, luvoir_sim = matrix_calc.calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
 
     for rms, rel_tol, abs_tol in zip(rms_values, relative_tolerances, absolute_tolerances):
         # Create random aberration coefficients on segments, scaled to total rms
