@@ -31,6 +31,28 @@ def test_luvoir_matrix_regression():
     assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
+def test_semi_analytic_matrix_from_contrast_matrix():
+    """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
+
+    # Load a correct contrast matrix
+    #TODO: add comment stating what experient run the contrast matrix is from
+    contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'contrast_matrix_LUVOIR_small_piston-only.fits')
+    contrast_matrix = fits.getdata(contrast_matrix_path)
+
+    # Hard-code the contrast floor and calibration aberration it was generated with
+    coro_floor = 1    #TODO: insert real number
+    wfe_aber = 1e-9    # m
+
+    # Create seglist
+    seglist = util.get_segment_list('LUVOIR')
+
+    # Feed all that into matrix_calc.pastis_from_contrast_matrix()
+    pastis_matrix = matrix_calc.pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor)
+
+    # Compare to PASTIS matrix in the tests folder
+    assert np.allclose(pastis_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+
+
 def test_pastis_forward_model():
     """ Test that the PASTIS matrix propagates aberrations correctly
     This is essentially a test for the hockey stick curve, inside its valid range. """
