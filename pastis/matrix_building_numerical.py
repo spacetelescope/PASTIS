@@ -695,13 +695,14 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
     """
 
     # Create future (half filled) PASTIS matrix
-    matrix_pastis_half = np.zeros_like(contrast_matrix)     # This will be the final PASTIS matrix.
+    matrix_pastis_half = np.zeros_like(contrast_matrix)
 
     # Assuming constant coronagraph floor across all pair-aberrated measurements
     if isinstance(coro_floor, float):
+        log.info('coro_floor is a constant --> float')
 
         # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
-        np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix)-coro_floor)
+        np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix) - coro_floor)
         log.info('On-axis elements of PASTIS matrix calculated')
 
         # Calculate the off-axis elements in the (half) PASTIS matrix
@@ -713,6 +714,7 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
 
     # Assuming drifting coronagraph floor across all pair-aberrated measurements
     elif isinstance(coro_floor, np.ndarray):
+        log.info('coro_floor is drifting --> np.ndarray')
 
         # Check that the coro_floor array has same dimensions like the contrast_matrix array
         if coro_floor.shape != contrast_matrix.shape:
