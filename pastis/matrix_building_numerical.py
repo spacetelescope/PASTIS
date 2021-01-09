@@ -633,61 +633,108 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     return contrast, segment_pair
 
 
-def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber):
+def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
     """
-    Calculate the final PASTIS matrix from the input contrast matrix (coro floor already subtracted, but only half filled).
+    Calculate the final PASTIS matrix from the input contrast matrix (only half filled).
 
     The contrast matrix is a nseg x nseg matrix where only half of it is filled, including the diagonal, and the other
-    half is filled with zeros. It holds the DH mean contrast values of each aberrated segment pair, with an WFE
+    half is filled with zeros. It holds the DH mean contrast values of each aberrated segment pair, with a WFE
     amplitude of the calibration aberration wfe_aber, in m. Hence, the input contrast matrix is not normalized to the
-    desired units yet. The coronagraph floor already needs to be subtracted from it at this point though.
-    This function calculates the off-axis elements of the PASTIS matrix and then normalizes it by the calibration
-    aberration to get a matrix with units of contrast / nm^2.
-    Finally, it symmetrizes the matrix to output the full PASTIS matrix.
+    desired units yet. The coronagraph floor is NOT subtracted from it at this point yet, but also passed in.
+    This function first normalizes the contrast matrix and coro floor by the calibration aberration to get a matrix with
+    units of contrast / nm^2. Then, it calculates the PASTIS matrix, and it adapts to whether we assume a static
+    coronagraph floor (passed in as a single float) or a drifting coronagraph floor (passed in as a 2D array, per
+    segment pair measurement). Finally, it symmetrizes the matrix to output the full PASTIS matrix.
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
-                            with the coro floor already subtracted, but only half of the matrix has non-zero values
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs;
+                            only half of the matrix has non-zero values, contrast floor NOT SUBTRACTED yet.
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
     :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
-    :return: the finalized PASTIS matrix in units of contrast per nanometers squared, nd.array of nseg x nseg
+    :param coro_floor: float, or nd.array of same dims like contrast_matrix. In simulations we usually assume a static
+                       coronagraph floor across the measurements for the PASTIS matrix and can use a single number.
+                       When we have a drifting coro floor though, we need one contrast floor number per measurement.
+    :return: the finalized PASTIS matrix in units of contrast per nanometers squared, ndarray of nseg x nseg
     """
 
-    # Calculate the off-axis elements in the PASTIS matrix
-    log.info('Calculating off-axis elements of PASTIS matrix')
-    matrix_pastis_half = calculate_off_axis_elements(contrast_matrix, seglist)
+    # Normalize contrast matrix, and coronagraph floor, to the input aberration - this defines what units the PASTIS
+    # matrix will be in. The PASTIS matrix propagation function (util.pastis_contrast()) then needs to take in the
+    # aberration vector in these same units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to
+    # units of nanometers (contrast / nanometers squared).
+    log.info('Normalizing contrast matrix and coronagraph floor')
+    contrast_matrix /= np.square(wfe_aber * 1e9)  # 1e9 converts the calibration aberration back to nanometers
+    coro_floor /= np.square(wfe_aber * 1e9)
+
+    # Calculate the semi-analytical PASTIS matrix from the contrast matrix
+    log.info('Calculating the semi-analytical PASTIS matrix from the contrast matrix')
+    matrix_pastis_half = calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_floor)
 
     # Symmetrize the half-PASTIS matrix
     log.info('Symmetrizing PASTIS matrix')
     matrix_pastis = util.symmetrize(matrix_pastis_half)
 
-    # Normalize matrix for the input aberration - this defines what units the PASTIS matrix will be in. The PASTIS
-    # matrix propagation function (util.pastis_contrast()) then needs to take in the aberration vector in these same
-    # units. I have chosen to keep this to 1nm, so, we normalize the PASTIS matrix to units of nanometers.
-    log.info('Normalizing PASTIS matrix')
-    matrix_pastis /= np.square(wfe_aber * 1e9)  # 1e9 converts the calibration aberration back to nanometers
-
     return matrix_pastis
 
 
-def calculate_off_axis_elements(contrast_matrix, seglist):
+def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_floor):
     """
-    Calculate the off-axis elements of the (half) PASTIS matrix, from the contrast matrix (coro floor already subtracted).
+    Perform the semi-analytical calculation to go from contrast matrix to PASTIS matrix, depending on assumption for
+    coronagraph floor drift.
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs,
-                            with the coro floor already subtracted
+    This function calculates the elements of the (half !) PASTIS matrix from the contrast matrix in which the
+    coronagraph has not been subtracted yet. The calculation is only performed on the half-PASTIS matrix, so it will
+    need to be symmetrized after this step.
+    The calculation is slightly different for the two cases in which the coronagraph is either assumed to be constant
+    across all pair-wise aberrated measurements, or is drifting.
+
+    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contrast values of all aberrated segment pairs
     :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :return: unnormalized half-PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
+    :param coro_floor: float or nd.array of same dims like contrast_matrix. In simulations we usually assume a static
+                       coronagraph floor across the measurements for the PASTIS matrix and can use a single number.
+                       When we have a drifting coro floor though, we need one contrast floor number per measurement.
+    :return: half-PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
     """
 
     # Create future (half filled) PASTIS matrix
-    matrix_pastis_half = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
+    matrix_pastis_half = np.zeros_like(contrast_matrix)
 
-    # Calculate the off-axis elements in the (half) PASTIS matrix
-    for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
-        if pair[0] != pair[1]:    # exclude diagonal elements
-            matrix_off_val = (contrast_matrix[pair[0], pair[1]] - contrast_matrix[pair[0], pair[0]] - contrast_matrix[pair[1], pair[1]]) / 2.
-            matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
-            log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
+    # Assuming constant coronagraph floor across all pair-aberrated measurements
+    if isinstance(coro_floor, float):
+        log.info('coro_floor is a constant --> float')
+
+        # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
+        np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix) - coro_floor)
+        log.info('On-axis elements of PASTIS matrix calculated')
+
+        # Calculate the off-axis elements in the (half) PASTIS matrix
+        for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
+            if pair[0] != pair[1]:    # exclude diagonal elements
+                matrix_off_val = (contrast_matrix[pair[0], pair[1]] + coro_floor - contrast_matrix[pair[0], pair[0]] - contrast_matrix[pair[1], pair[1]]) / 2.
+                matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
+                log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
+
+    # Assuming drifting coronagraph floor across all pair-aberrated measurements  #TODO: this is untested
+    elif isinstance(coro_floor, np.ndarray):
+        log.info('coro_floor is drifting --> np.ndarray')
+
+        # Check that the coro_floor array has same dimensions like the contrast_matrix array
+        if coro_floor.shape != contrast_matrix.shape:
+            raise ValueError('coro_floor needs to have same dimensions like contrast_matrix')
+
+        for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
+
+            # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
+            np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix)-np.diag(coro_floor))
+            log.info('On-axis elements of PASTIS matrix calculated')
+
+            # Then calculate the off-axis elements
+            if pair[0] != pair[1]:    # exclude diagonal elements
+                matrix_off_val = (contrast_matrix[pair[0], pair[1]] - coro_floor[pair[0], pair[1]] - matrix_pastis_half[pair[0], pair[0]] - matrix_pastis_half[pair[1], pair[1]]) / 2.
+                matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
+                log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
+
+    else:
+        raise TypeError('"coro_floor" needs to be either a float, if working with a constant coronagraph floor, or an '
+                        'ndarray, if working with a drifting coronagraph floor.')
 
     return matrix_pastis_half
 
@@ -804,25 +851,25 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     # results is a list of tuples that contain the return from the partial function, in this case: result[i] = (c, (seg1, seg2))
     contrast_matrix = np.zeros([nb_seg, nb_seg])  # Generate empty matrix
     for i in range(len(results)):
-        # Fill according entry in the matrix and subtract baseline contrast
-        contrast_matrix[results[i][1][0], results[i][1][1]] = results[i][0] - contrast_floor
+        # Fill according entry in the contrast matrix
+        contrast_matrix[results[i][1][0], results[i][1][1]] = results[i][0]
     mypool.close()
 
-    # Save all contrasts to disk, WITH subtraction of coronagraph floor
-    hcipy.write_fits(contrast_matrix, os.path.join(resDir, 'pair-wise_contrasts.fits'))
+    # Save all contrasts to disk, WITHOUT subtraction of coronagraph floor
+    hcipy.write_fits(contrast_matrix, os.path.join(resDir, 'contrast_matrix.fits'))
     plt.figure(figsize=(10, 10))
     plt.imshow(contrast_matrix)
     plt.colorbar()
     plt.savefig(os.path.join(resDir, 'contrast_matrix.pdf'))
 
-    # Calculate the PASTIS matrix from the contrast matrix: off-axis elements and normalization
-    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber)
+    # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
+    matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, float(contrast_floor))
 
     # Save matrix to file
-    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
+    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'    #TODO: I hate my old naming convention. Change this.
     hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     ppl.plot_pastis_matrix(matrix_pastis, wvln*1e9, out_dir=resDir, save=True)    # convert wavelength to nm
-    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
+    log.info(f'PASTIS matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
     end_time = time.time()

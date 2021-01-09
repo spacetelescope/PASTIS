@@ -3,11 +3,12 @@ from astropy.io import fits
 import astropy.units as u
 import numpy as np
 
-from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization, num_matrix_multiprocess
+import pastis.matrix_building_numerical as matrix_calc
 from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
+# TODO: add data dir the matrix is from as comment
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 
@@ -19,7 +20,7 @@ def test_luvoir_matrix_regression():
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_path = num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
+    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
     new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
 
     # Check that the calculated PASTIS matrix is symmetric
@@ -28,6 +29,28 @@ def test_luvoir_matrix_regression():
     # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
     # on the order of 1e-23
     assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+
+
+def x_test_semi_analytic_matrix_from_contrast_matrix():
+    """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
+
+    # Load a correct contrast matrix
+    #TODO: add comment stating what experient run the contrast matrix is from
+    contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'contrast_matrix_LUVOIR_small_piston-only.fits')
+    contrast_matrix = fits.getdata(contrast_matrix_path)
+
+    # Hard-code the contrast floor and calibration aberration it was generated with
+    coro_floor = 1    #TODO: insert real number
+    wfe_aber = 1e-9    # m
+
+    # Create seglist
+    seglist = util.get_segment_list('LUVOIR')
+
+    # Feed all that into matrix_calc.pastis_from_contrast_matrix()
+    pastis_matrix = matrix_calc.pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor)
+
+    # Compare to PASTIS matrix in the tests folder
+    assert np.allclose(pastis_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
 def test_pastis_forward_model():
@@ -40,7 +63,7 @@ def test_pastis_forward_model():
     absolute_tolerances = [1e-15, 1e-9, 1e-8]
 
     # Calculate coronagraph floor, direct PSF peak normalization factor, and return E2E sim instance
-    contrast_floor, norm, luvoir_sim = calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
+    contrast_floor, norm, luvoir_sim = matrix_calc.calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
 
     for rms, rel_tol, abs_tol in zip(rms_values, relative_tolerances, absolute_tolerances):
         # Create random aberration coefficients on segments, scaled to total rms
