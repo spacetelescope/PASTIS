@@ -712,7 +712,7 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
                 matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
                 log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
 
-    # Assuming drifting coronagraph floor across all pair-aberrated measurements
+    # Assuming drifting coronagraph floor across all pair-aberrated measurements  #TODO: this is untested
     elif isinstance(coro_floor, np.ndarray):
         log.info('coro_floor is drifting --> np.ndarray')
 
