@@ -44,7 +44,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
 
     # Construct random coro floor matrix
     coro_floor_state = np.random.RandomState()
-    coro_floor_matrix_full = coro_floor_state.normal(loc=0, scale=0.1, size=(NSEG, NSEG)) * coro_floor
+    coro_floor_matrix_full = coro_floor_state.normal(loc=0, scale=1, size=(NSEG, NSEG)) * coro_floor
     random_coro_floor_matrix = np.triu(coro_floor_matrix_full)
 
     # Subtract the original contrast floor from the contrast matrix
