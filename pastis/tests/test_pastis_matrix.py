@@ -31,7 +31,7 @@ def test_luvoir_matrix_regression():
     assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
-def test_semi_analytic_matrix_from_contrast_matrix():
+def x_test_semi_analytic_matrix_from_contrast_matrix():
     """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
 
     # Load a correct contrast matrix
