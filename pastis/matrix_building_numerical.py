@@ -707,7 +707,7 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
         # Calculate the off-axis elements in the (half) PASTIS matrix
         for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
             if pair[0] != pair[1]:    # exclude diagonal elements
-                matrix_off_val = (contrast_matrix[pair[0], pair[1]] - contrast_matrix[pair[0], pair[0]] - contrast_matrix[pair[1], pair[1]]) / 2.
+                matrix_off_val = (contrast_matrix[pair[0], pair[1]] + coro_floor - contrast_matrix[pair[0], pair[0]] - contrast_matrix[pair[1], pair[1]]) / 2.
                 matrix_pastis_half[pair[0], pair[1]] = matrix_off_val
                 log.info(f'Off-axis for i{seglist[pair[0]]}-j{seglist[pair[1]]}: {matrix_off_val}')
 
