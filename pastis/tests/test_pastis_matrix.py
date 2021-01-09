@@ -24,21 +24,6 @@ contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices',
 CONTRAST_MATRIX = fits.getdata(contrast_matrix_path)
 
 
-def test_luvoir_matrix_regression():
-    """ Check multiprocessed matrix calculation against previously calculated matrix """
-
-    # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
-    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
-
-    # Check that the calculated PASTIS matrix is symmetric
-    assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
-
-    # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
-    # on the order of 1e-23
-    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
-
-
 def test_semi_analytic_matrix_from_contrast_matrix():
     """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
 
@@ -102,3 +87,18 @@ def test_pastis_forward_model():
         contrasts_e2e = (util.dh_mean(psf_luvoir, luvoir_sim.dh_mask))
 
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
+
+
+def test_luvoir_matrix_regression():
+    """ Check multiprocessed matrix calculation against previously calculated matrix """
+
+    # Calculate new LUVOIR small PASTIS matrix
+    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
+    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
+
+    # Check that the calculated PASTIS matrix is symmetric
+    assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
+
+    # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
+    # on the order of 1e-23
+    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
