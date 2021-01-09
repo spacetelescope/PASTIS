@@ -38,6 +38,9 @@ def x_test_semi_analytic_matrix_from_contrast_matrix():
     #TODO: add comment stating what experient run the contrast matrix is from
     contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'contrast_matrix_LUVOIR_small_piston-only.fits')
     contrast_matrix = fits.getdata(contrast_matrix_path)
+    nseg = contrast_matrix.shape[0]
+
+    ### Test the case in which the coronagraph floor is constant across all matrix measurements
 
     # Hard-code the contrast floor and calibration aberration it was generated with
     coro_floor = 1    #TODO: insert real number
@@ -47,10 +50,27 @@ def x_test_semi_analytic_matrix_from_contrast_matrix():
     seglist = util.get_segment_list('LUVOIR')
 
     # Feed all that into matrix_calc.pastis_from_contrast_matrix()
-    pastis_matrix = matrix_calc.pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor)
-
+    pastis_matrix_constant = matrix_calc.pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor)
     # Compare to PASTIS matrix in the tests folder
-    assert np.allclose(pastis_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert np.allclose(pastis_matrix_constant, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+
+    ### Test the case in which the coronagraph floor is drifting across matrix measurements
+
+    # Construct random coro floor matrix
+    coro_floor_matrix_full = np.random.normal(loc=0, scale=0.1, size=(nseg, nseg)) * coro_floor
+    coro_floor_matrix = np.triu(coro_floor_matrix_full)
+
+    # Subtract the original contrast floor from the contrast matrix
+    constant_coro_floor_matrix = np.ones((nseg, nseg)) * coro_floor
+    contrast_matrix_subtracted = contrast_matrix - np.triu(constant_coro_floor_matrix)
+
+    # Add the random c0 matrix to subtracted contrast matrix
+    contrast_matrix_random_c0 = contrast_matrix_subtracted + coro_floor_matrix
+
+    # Calculate the PASTIS matrix under assumption of a drifting coronagraph floor
+    pastis_matrix_drift = matrix_calc.pastis_from_contrast_matrix(contrast_matrix_random_c0, seglist, wfe_aber, coro_floor_matrix)
+    # Compare to PASTIS matrix in the tests folder
+    assert np.allclose(pastis_matrix_drift, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
 def test_pastis_forward_model():
