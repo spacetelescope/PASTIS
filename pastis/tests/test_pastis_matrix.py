@@ -8,16 +8,16 @@ from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
-# From data dir: 2021-01-09T01-01-53_luvoir-small
-# Created on commit: 0842c7
+# From data dir: 2021-01-09T22-41-13_luvoir-small
+# Created on commit: 2a9dd6
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
 NSEG = LUVOIR_MATRIX_SMALL.shape[0]
 
 # Read the LUVOIR-A small APLC contrast matrix
-# From data dir: 2021-01-09T01-01-53_luvoir-small
-# Created on commit: 0842c7
+# From data dir: 2021-01-09T22-41-13_luvoir-small
+# Created on commit: 2a9dd6
 # Coronagraph floor has not been subtracted from this contrast matrix
 contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices',
                                     'contrast_matrix_LUVOIR_small_piston-only.fits')
