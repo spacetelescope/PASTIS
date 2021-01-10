@@ -720,11 +720,11 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
         if coro_floor.shape != contrast_matrix.shape:
             raise ValueError('coro_floor needs to have same dimensions like contrast_matrix')
 
-        for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
+        # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
+        np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix) - np.diag(coro_floor))
+        log.info('On-axis elements of PASTIS matrix calculated')
 
-            # First calculate the on-axis elements, which just need to have the coronagraph floor subtracted
-            np.fill_diagonal(matrix_pastis_half, np.diag(contrast_matrix)-np.diag(coro_floor))
-            log.info('On-axis elements of PASTIS matrix calculated')
+        for pair in util.segment_pairs_non_repeating(contrast_matrix.shape[0]):    # this util function returns a generator
 
             # Then calculate the off-axis elements
             if pair[0] != pair[1]:    # exclude diagonal elements

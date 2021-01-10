@@ -8,49 +8,56 @@ from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
-# TODO: add data dir the matrix is from as comment
+# From data dir: 2021-01-09T22-41-13_luvoir-small
+# Created on commit: 2a9dd6
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
-
 LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
 NSEG = LUVOIR_MATRIX_SMALL.shape[0]
 
-
-def test_luvoir_matrix_regression():
-    """ Check multiprocessed matrix calculation against previously calculated matrix """
-
-    # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
-    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
-
-    # Check that the calculated PASTIS matrix is symmetric
-    assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
-
-    # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
-    # on the order of 1e-23
-    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+# Read the LUVOIR-A small APLC contrast matrix
+# From data dir: 2021-01-09T22-41-13_luvoir-small
+# Created on commit: 2a9dd6
+# Coronagraph floor has not been subtracted from this contrast matrix
+contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices',
+                                    'contrast_matrix_LUVOIR_small_piston-only.fits')
+CONTRAST_MATRIX = fits.getdata(contrast_matrix_path)
 
 
-def x_test_semi_analytic_matrix_from_contrast_matrix():
+def test_semi_analytic_matrix_from_contrast_matrix():
     """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
 
-    # Load a correct contrast matrix
-    #TODO: add comment stating what experient run the contrast matrix is from
-    contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'contrast_matrix_LUVOIR_small_piston-only.fits')
-    contrast_matrix = fits.getdata(contrast_matrix_path)
-
-    # Hard-code the contrast floor and calibration aberration it was generated with
-    coro_floor = 1    #TODO: insert real number
+    # Create seglist and drop in calibration aberration the matrices in tests/data have been created with
+    seglist = util.get_segment_list('LUVOIR')
     wfe_aber = 1e-9    # m
 
-    # Create seglist
-    seglist = util.get_segment_list('LUVOIR')
+    ### Test the case in which the coronagraph floor is constant across all matrix measurements
 
-    # Feed all that into matrix_calc.pastis_from_contrast_matrix()
-    pastis_matrix = matrix_calc.pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor)
-
+    # Hard-code the contrast floor the matrix was generated with
+    coro_floor = 4.315823935036038e-11
+    # Calculate the PASTIS matrix under assumption of a CONSTANT coronagraph floor
+    pastis_matrix_constant = matrix_calc.pastis_from_contrast_matrix(CONTRAST_MATRIX, seglist, wfe_aber, coro_floor)
     # Compare to PASTIS matrix in the tests folder
-    assert np.allclose(pastis_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert np.allclose(pastis_matrix_constant, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+
+    ### Test the case in which the coronagraph floor is drifting across matrix measurements
+
+    # Construct random coro floor matrix
+    coro_floor_state = np.random.RandomState()
+    coro_floor_matrix_full = coro_floor_state.normal(loc=0, scale=1, size=(NSEG, NSEG)) * coro_floor
+    random_coro_floor_matrix = np.triu(coro_floor_matrix_full)
+
+    # Subtract the original contrast floor from the contrast matrix
+    constant_coro_floor_matrix = np.ones((NSEG, NSEG)) * coro_floor
+    contrast_matrix_subtracted = CONTRAST_MATRIX - np.triu(constant_coro_floor_matrix)
+
+    # Add the random c0 matrix to subtracted contrast matrix
+    contrast_matrix_random_c0 = contrast_matrix_subtracted + random_coro_floor_matrix
+
+    # Calculate the PASTIS matrix under assumption of a DRIFTING coronagraph floor
+    pastis_matrix_drift = matrix_calc.pastis_from_contrast_matrix(contrast_matrix_random_c0, seglist, wfe_aber, random_coro_floor_matrix)
+    # Compare to PASTIS matrix in the tests folder
+    assert np.allclose(pastis_matrix_drift, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
 def test_pastis_forward_model():
@@ -80,3 +87,18 @@ def test_pastis_forward_model():
         contrasts_e2e = (util.dh_mean(psf_luvoir, luvoir_sim.dh_mask))
 
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
+
+
+def test_luvoir_matrix_regression():
+    """ Check multiprocessed matrix calculation against previously calculated matrix """
+
+    # Calculate new LUVOIR small PASTIS matrix
+    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
+    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
+
+    # Check that the calculated PASTIS matrix is symmetric
+    assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
+
+    # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
+    # on the order of 1e-23
+    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
