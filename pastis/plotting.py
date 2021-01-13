@@ -745,6 +745,8 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
                             pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
         cbar.ax.tick_params(labelsize=30)
 
+        # I need only the matrix elements up to and including the current iteration
+        # So I null the rest
         contrast_matrix_here[seg_pair_tuples[i][0] + 1:, :] = 0
         contrast_matrix_here[seg_pair_tuples[i][0]:, seg_pair_tuples[i][1] + 1:] = 0
 
