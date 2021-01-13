@@ -4,6 +4,7 @@ Plotting and animation functions for the PASTIS code.
 import copy
 import os
 import glob
+import progressbar
 import re
 import time
 
