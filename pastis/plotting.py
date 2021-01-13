@@ -1,6 +1,7 @@
 """
 Plotting and animation functions for the PASTIS code.
 """
+import copy
 import os
 import glob
 import re
@@ -712,7 +713,8 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     elif display_mode == 'stretch':
         plt.figure(figsize=(24, 8))
 
-    for i in range(len(seg_pair_tuples)):    #TODO: add progressbar
+    cmap_matrix_anim = copy.copy(cm.get_cmap('Blues'))
+    cmap_matrix_anim.set_bad(color='black')
         contrast_matrix_here = np.copy(contrast_matrix)
 
         plt.clf()
@@ -723,7 +725,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
             plt.subplot(1, 3, 1)
         plt.title('Segmented mirror phase', fontsize=30)
         this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    #TODO: add apodizer (and LS) to aperture
-        plt.imshow(this_ote, cmap=cmap_brev, norm=norm_center_zero)
+        plt.imshow(this_ote, cmap=cmap_matrix_anim)
         plt.axis('off')
         cbar = plt.colorbar(fraction=0.046,
                             pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
