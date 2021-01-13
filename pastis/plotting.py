@@ -23,7 +23,7 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.util
 
 matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
-cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
+cmap_brev = copy.copy(cm.get_cmap('Blues_r'))        # A blue colormap where white is zero, used for mu maps
 cmap_brev.set_bad(color='black')
 clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
 blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
