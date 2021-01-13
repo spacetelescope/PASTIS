@@ -1,11 +1,16 @@
 """
-Plotting functions for the PASTIS code.
+Plotting and animation functions for the PASTIS code.
 """
 import os
+import glob
+import re
+import time
+
+from astropy.io import fits
 import hcipy
 import matplotlib
 from matplotlib import cm
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
@@ -664,3 +669,170 @@ def plot_contrast_per_mode(contrasts_per_mode, coro_floor, c_target, nmodes, out
 
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+
+
+def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', display_mode='stretch'):
+    """
+    Create animation of the contrast matrix generation and save to MP4 file.
+    :param data_path: string, absolute path to main PASTIS directory containing all subdirs, e.g. "matrix_numerical"
+    :param instrument: string, for now only "LUVOIR" implemented
+    :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
+    :param display_mode: string; 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
+    :return:
+    """
+
+    # Keep track of time
+    start_time = time.time()
+
+    if instrument == 'LUVOIR':
+        # Instantiate LUVOIR sim object (needed only for DH mask)
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
+        # Load LUVOIR aperture file
+        aper_path_in_optics = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
+        aperture = fits.getdata(os.path.join(optics_input, aper_path_in_optics))
+        # Calculate segment pair tuples
+        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(120))
+    else:
+        raise ValueError("Only instrument='LUVOIR' is implemented at this point for this animation.")
+
+    # Load contrast matrix and OTE + PSF fits images
+    contrast_matrix = fits.getdata(os.path.join(data_path, 'matrix_numerical', 'contrast_matrix.fits'))
+    print('Reading OTE images...')
+    all_ote_images = read_ote_fits_files(data_path)
+    print('All OTE fits files read')
+    print('Reading PSF images...')
+    all_psf_images = read_psf_fits_files(data_path)
+    print('All PSF fits files read')
+
+    matrix_anim = hcipy.FFMpegWriter('video.mp4', framerate=5)
+    if display_mode == 'boxy':
+        plt.figure(figsize=(15, 15))
+    elif display_mode == 'stretch':
+        plt.figure(figsize=(24, 8))
+
+    for i in range(len(seg_pair_tuples)):    #TODO: add progressbar
+        contrast_matrix_here = np.copy(contrast_matrix)
+
+        plt.clf()
+
+        if display_mode == 'boxy':
+            plt.subplot(2, 2, 1)
+        elif display_mode == 'stretch':
+            plt.subplot(1, 3, 1)
+        plt.title('Segmented mirror phase', fontsize=30)
+        this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    #TODO: add apodizer (and LS) to aperture
+        plt.imshow(this_ote, cmap=cmap_brev)
+        plt.axis('off')
+        cbar = plt.colorbar(fraction=0.046,
+                            pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+        cbar.ax.tick_params(labelsize=30)
+
+        if display_mode == 'boxy':
+            plt.subplot(2, 2, 2)
+        elif display_mode == 'stretch':
+            plt.subplot(1, 3, 2)
+        plt.title('Dark hole contrast', fontsize=30)
+        plt.imshow(all_psf_images[i] * luvoir.dh_mask.shaped, norm=LogNorm(), cmap='inferno', vmin=1e-10, vmax=1e-7)
+        plt.axis('off')
+        cbar = plt.colorbar(fraction=0.046,
+                            pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+        cbar.ax.tick_params(labelsize=30)
+
+        contrast_matrix_here[seg_pair_tuples[i][0] + 1:, :] = 0
+        contrast_matrix_here[seg_pair_tuples[i][0]:, seg_pair_tuples[i][1] + 1:] = 0
+
+        if display_mode == 'boxy':
+            plt.subplot(2, 1, 2)
+        elif display_mode == 'stretch':
+            plt.subplot(1, 3, 3)
+        plt.title('Contrast matrix', fontsize=30)
+        plt.imshow(contrast_matrix_here, cmap='Greys', origin='lower')
+        plt.xlabel('Segments', size=30)
+        plt.ylabel('Segments', size=30)
+        plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
+        # cbar = plt.colorbar(fraction=0.046, pad=0.04)    # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+        # cbar.ax.tick_params(labelsize=30)
+        # cbar.ax.yaxis.offsetText.set(size=25)   # this changes the base of ten on the colorbar
+        #TODO: figure out whether to add colorbar to contrast matrix or not (above)
+
+        plt.suptitle(instrument, fontsize=40)
+
+        if i == 0:
+            plt.tight_layout()
+
+        matrix_anim.add_frame()
+
+    plt.close()
+    matrix_anim.close()
+
+    # Tell us how long it took to finish.
+    end_time = time.time()
+
+    print(f'Runtime for animate_contrast_matrix(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    print(f'Animation saved to {os.getcwd()}')
+
+
+def read_ote_fits_files(data_path):
+    """
+    Read OTE fits files from a PASTIS matrix calculation and return as list of arrays.
+    :param data_path: string, path to PASTIS folder containing subdir "matrix_numerical" ff
+    :return: all_ote_images, list of images arrays
+    """
+    all_ote_images = []
+    try:
+        all_filenames = glob.glob(os.path.join(data_path, 'matrix_numerical', 'OTE_images', 'fits', '*.fits'))
+    except FileNotFoundError:
+        raise FileNotFoundError('The OTE files either do not exist, or the directory structure is different than assumed.')
+
+    # Sort the filenames by human numbering
+    all_filenames.sort(key=natural_keys)
+
+    # https://stackoverflow.com/a/55489469/10112569
+    for filename in all_filenames:
+        with fits.open(filename, memmap=False) as hdulist:
+            all_ote_images.append(hdulist[0].data)
+        del hdulist[0].data
+
+    return all_ote_images
+
+
+def read_psf_fits_files(data_path):
+    """
+    Read PSF fits files from a PASTIS matrix calculation and return as list of arrays.
+    :param data_path: string, path to PASTIS folder containing subdir "matrix_numerical" ff
+    :return: all_psf_images, list of images arrays
+    """
+    all_psf_images = []
+    try:
+        all_filenames = glob.glob(os.path.join(data_path, 'matrix_numerical', 'psfs', '*.fits'))
+    except FileNotFoundError:
+        raise FileNotFoundError('The OTE files either do not exist, or the directory structure is different than assumed.')
+
+    # Sort the filenames by human numbering
+    all_filenames.sort(key=natural_keys)
+
+    # https://stackoverflow.com/a/55489469/10112569
+    for filename in all_filenames:
+        with fits.open(filename, memmap=False) as hdulist:
+            all_psf_images.append(hdulist[0].data)
+        del hdulist[0].data
+
+    return all_psf_images
+
+
+def atoi(text):
+    # Taken from jost-package
+    return int(text) if text.isdigit() else text
+
+
+def natural_keys(text):
+    """
+    # Taken from jost-package
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (from stack overflow:
+    https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside)
+    """
+    return [atoi(c) for c in re.split(r'(\d+)', text)]
