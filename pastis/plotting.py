@@ -22,6 +22,7 @@ import pastis.util
 
 matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
 cmap_brev = cm.get_cmap('Blues_r')        # A blue colormap where white is zero, used for mu maps
+cmap_brev.set_bad(color='black')
 clist = [(0.1, 0.6, 1.0), (0.05, 0.05, 0.05), (0.8, 0.5, 0.1)]
 blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", clist)    # diverging colormap for PASTIS matrix
 # Define a normalization of diverging colormap so that it is centered on zero (depending on matrix, black or white)
@@ -490,7 +491,6 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
 
     map_small = np.ma.masked_where(map_small == 0, map_small)
-    cmap_brev.set_bad(color='black')
 
     plt.figure(figsize=(10, 10))
     plt.imshow(map_small, cmap=cmap_brev)
