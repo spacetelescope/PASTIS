@@ -716,7 +716,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     cmap_matrix_anim = copy.copy(cm.get_cmap('Blues'))
     cmap_matrix_anim.set_bad(color='black')
 
-    for i in range(len(seg_pair_tuples)):
+    for i in progressbar.progressbar(range(len(seg_pair_tuples))):
         contrast_matrix_here = np.copy(contrast_matrix)
 
         plt.clf()
