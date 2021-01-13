@@ -754,7 +754,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         elif display_mode == 'stretch':
             plt.subplot(1, 3, 3)
         plt.title('Contrast matrix', fontsize=30)
-        plt.imshow(contrast_matrix_here, cmap='Greys', origin='lower')
+        plt.imshow(contrast_matrix_here, cmap='Greys')
         plt.xlabel('Segments', size=30)
         plt.ylabel('Segments', size=30)
         plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=25)
