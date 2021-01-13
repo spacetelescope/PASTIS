@@ -730,8 +730,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    #TODO: add apodizer (and LS) to aperture
         plt.imshow(this_ote, cmap=cmap_matrix_anim)
         plt.axis('off')
-        cbar = plt.colorbar(fraction=0.046,
-                            pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
+        cbar = plt.colorbar(fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=30)
 
         if display_mode == 'boxy':
