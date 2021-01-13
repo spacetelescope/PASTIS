@@ -723,7 +723,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
             plt.subplot(1, 3, 1)
         plt.title('Segmented mirror phase', fontsize=30)
         this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    #TODO: add apodizer (and LS) to aperture
-        plt.imshow(this_ote, cmap=cmap_brev)
+        plt.imshow(this_ote, cmap=cmap_brev, norm=norm_center_zero)
         plt.axis('off')
         cbar = plt.colorbar(fraction=0.046,
                             pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
