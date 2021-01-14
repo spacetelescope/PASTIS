@@ -680,7 +680,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     :param data_path: string, absolute path to main PASTIS directory containing all subdirs, e.g. "matrix_numerical"
     :param instrument: string, "LUVOIR" or "HiCAT"
     :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
-    :param display_mode: string; 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
+    :param display_mode: string, 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
     """
 
     # Keep track of time
@@ -805,11 +805,11 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
 def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='small', display_mode='stretch'):
     """
     Create animation of the drawing of a random WFE map following the my map, and save to MP4 file.
-    :param data_path: string, absolute path to main PASTIS directory containing all subdirs, e.g. "matrix_numerical"
+    :param data_path: string, absolute path to the directory that contains the segment requirements txt file
     :param c_target: float, target contrast the segment constraints were calculated for
     :param instrument: string, "LUVOIR"
     :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
-    :param display_mode: string; 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
+    :param display_mode: string, 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
     """
 
     # Keep track of time
