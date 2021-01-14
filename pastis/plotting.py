@@ -16,6 +16,7 @@ from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
+from scipy.stats import norm
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
@@ -679,8 +680,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     :param data_path: string, absolute path to main PASTIS directory containing all subdirs, e.g. "matrix_numerical"
     :param instrument: string, "LUVOIR" or "HiCAT"
     :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
-    :param display_mode: string; 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
-    :return:
+    :param display_mode: string, 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
     """
 
     # Keep track of time
@@ -794,6 +794,105 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
 
     plt.close()
     matrix_anim.close()
+
+    # Tell us how long it took to finish.
+    end_time = time.time()
+
+    print(f'Runtime for animate_contrast_matrix(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+    print(f'Animation saved to {os.getcwd()}')
+
+
+def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='small', display_mode='stretch'):
+    """
+    Create animation of the drawing of a random WFE map following the my map, and save to MP4 file.
+    :param data_path: string, absolute path to the directory that contains the segment requirements txt file
+    :param c_target: float, target contrast the segment constraints were calculated for
+    :param instrument: string, "LUVOIR"
+    :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
+    :param display_mode: string, 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
+    """
+
+    # Keep track of time
+    start_time = time.time()
+
+    # Load the mu map
+    mu_map = np.loadtxt(os.path.join(data_path, f'segment_requirements_{c_target}.txt'))
+    mu_min = np.min(mu_map)
+    mu_max = np.max(mu_map)
+
+    dist_mean = 0
+    range_limits = mu_max + mu_max * 0.5
+    wfe_range = np.linspace(-range_limits, range_limits, 1000)
+
+    # Define some instrument specific parameters
+    if instrument == 'LUVOIR':
+        # Instantiate LUVOIR sim object
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
+
+    seg_weights_all = np.zeros_like(mu_map)
+    wfe_maps_anim = hcipy.FFMpegWriter('video.mp4', framerate=5)
+    plt.figure(figsize=(18, 6))
+
+    for i in progressbar.progressbar(range(mu_map.shape[0])):
+
+        plt.clf()
+
+        # mu map
+        partial_mu_map = np.copy(mu_map)
+        partial_mu_map[i + 1:] = 0
+        luvoir.flatten()
+        wf_constraints = pastis.util.apply_mode_to_luvoir(partial_mu_map, luvoir)[0]
+        map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
+        map_small = np.ma.masked_where(map_small == 0, map_small)
+
+        plt.subplot(1, 3, 1)
+        plt.title('$\mu$ map', fontsize=30)
+        plt.imshow(map_small, cmap=cmap_brev, norm=norm_center_zero)
+        cbar = plt.colorbar(fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
+        cbar.ax.yaxis.offsetText.set(size=20)  # this changes the base of ten on the colorbar
+        cbar.set_label('picometers', size=20)
+        plt.clim(mu_min * 1e3, mu_max * 1e3)  # in pm
+        plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=20)
+        plt.axis('off')
+
+        # Normal distribution
+        dist_stddev = mu_map[i]
+        pdf = norm.pdf(wfe_range, dist_mean, dist_stddev)
+
+        plt.subplot(1, 3, 2)
+        plt.title('$\mu_k$ as stddev', fontsize=30)
+        plt.plot(wfe_range, pdf)
+        plt.axvline(dist_mean, c='r', ls='-.', lw=3)
+        plt.axvline(dist_mean + dist_stddev, c='darkorange', ls=':', lw=3)
+        plt.axvline(dist_mean - dist_stddev, c='darkorange', ls=':', lw=3)
+
+        # Random WFE map
+        segments_random_state = np.random.RandomState()
+        seg_weights_all[i] = segments_random_state.normal(0, dist_stddev)
+        if i < 89:
+            vmin = -4e-4
+            vmax = 4e-4
+        else:
+            vmin = -0.0015
+            vmax = 0.0015
+
+        plt.subplot(1, 3, 3)
+        plt.title('$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
+        one_mode = pastis.util.apply_mode_to_luvoir(seg_weights_all, luvoir)[0]
+        hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
+        plt.axis('off')
+        cbar = plt.colorbar(fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=20)  # this changes the numbers on the colorbar
+
+        # plt.suptitle(instrument, fontsize=40)
+
+        wfe_maps_anim.add_frame()
+
+    plt.close()
+    wfe_maps_anim.close()
 
     # Tell us how long it took to finish.
     end_time = time.time()
