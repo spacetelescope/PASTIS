@@ -835,7 +835,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
     wfe_maps_anim = hcipy.FFMpegWriter('video.mp4', framerate=5)
     plt.figure(figsize=(18, 6))
 
-    for i in range(mu_map.shape[0]):
+    for i in progressbar.progressbar(range(mu_map.shape[0])):
 
         plt.clf()
 
