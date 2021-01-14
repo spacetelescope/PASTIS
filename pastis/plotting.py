@@ -719,7 +719,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
         dh_mask = pastis.util.create_dark_hole(all_psf_images[0], iwa, owa, sampling).astype('bool')
         # Load HiCAT aperture file
-        aperture = np.ones_like(all_psf_images[0])    #TODO: load actual HiCAT aperture
+        aperture = np.ones_like(all_ote_images[0])    #TODO: load actual HiCAT aperture
         # Calculate segment pair tuples
         seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(37))
 
