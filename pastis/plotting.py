@@ -677,7 +677,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     """
     Create animation of the contrast matrix generation and save to MP4 file.
     :param data_path: string, absolute path to main PASTIS directory containing all subdirs, e.g. "matrix_numerical"
-    :param instrument: string, for now only "LUVOIR" implemented
+    :param instrument: string, "LUVOIR" or "HiCAT"
     :param design: string, necessary if instrument='LUVOIR', defaults to "small" - LUVOIR APLC design choice
     :param display_mode: string; 'boxy' for two panels on top, one on bottom, 'stretch' for all three panels in one row
     :return:
@@ -685,19 +685,6 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
 
     # Keep track of time
     start_time = time.time()
-
-    if instrument == 'LUVOIR':
-        # Instantiate LUVOIR sim object (needed only for DH mask)
-        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-        luvoir = LuvoirAPLC(optics_input, design, sampling)
-        # Load LUVOIR aperture file
-        aper_path_in_optics = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
-        aperture = fits.getdata(os.path.join(optics_input, aper_path_in_optics))
-        # Calculate segment pair tuples
-        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(120))
-    else:
-        raise ValueError("Only instrument='LUVOIR' is implemented at this point for this animation.")
 
     # Load contrast matrix and OTE + PSF fits images
     contrast_matrix = fits.getdata(os.path.join(data_path, 'matrix_numerical', 'contrast_matrix.fits'))
@@ -707,6 +694,41 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     print('Reading PSF images...')
     all_psf_images = read_psf_fits_files(data_path)
     print('All PSF fits files read')
+
+    # Define some instrument specific parameters
+    if instrument == 'LUVOIR':
+        # Instantiate LUVOIR sim object (needed only for DH mask)
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        luvoir = LuvoirAPLC(optics_input, design, sampling)
+        dh_mask = luvoir.dh_mask.shaped
+        # Load LUVOIR aperture file
+        aper_path_in_optics = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
+        aperture = fits.getdata(os.path.join(optics_input, aper_path_in_optics))
+        # Calculate segment pair tuples
+        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(120))
+
+        # Define plotting limits
+        vmin_psfs = 1e-10
+        vmax_psfs = 1e-7
+
+    elif instrument == 'HiCAT':
+        # Create HiCAT DH mask
+        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
+        dh_mask = pastis.util.create_dark_hole(all_psf_images[0], iwa, owa, sampling).astype('bool')
+        # Load HiCAT aperture file
+        aperture = np.ones_like(all_psf_images[0])    #TODO: load actual HiCAT aperture
+        # Calculate segment pair tuples
+        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(37))
+
+        # Define plotting limits
+        vmin_psfs = 1e-8
+        vmax_psfs = 1e-4
+
+    else:
+        raise ValueError("Only instruments 'LUVOIR' and 'HiCAT' are implemented for this animation.")
 
     matrix_anim = hcipy.FFMpegWriter('video.mp4', framerate=5)
     if display_mode == 'boxy':
@@ -738,7 +760,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         elif display_mode == 'stretch':
             plt.subplot(1, 3, 2)
         plt.title('Dark hole contrast', fontsize=30)
-        plt.imshow(all_psf_images[i] * luvoir.dh_mask.shaped, norm=LogNorm(), cmap='inferno', vmin=1e-10, vmax=1e-7)
+        plt.imshow(all_psf_images[i] * dh_mask, norm=LogNorm(), cmap='inferno', vmin=vmin_psfs, vmax=vmax_psfs)
         plt.axis('off')
         cbar = plt.colorbar(fraction=0.046,
                             pad=0.04)  # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
