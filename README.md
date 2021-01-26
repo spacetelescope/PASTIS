@@ -29,7 +29,7 @@ about the code and other telescopes it suppoerts. For further info, contact the 
   * [Conda environment](#conda-environment)
   * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
-  * [Known `maplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
+  * [Known `matplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
 * [Output directory](#output-directory)
 * [PASTIS analysis](#pastis-analysis)
