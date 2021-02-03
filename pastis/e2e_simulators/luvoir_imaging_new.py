@@ -27,7 +27,7 @@ from scipy.interpolate import griddata
 #             Apodizer
 #         lyots : Field
 #             Lyot stop
-#         fpm : fpm
+#    ,     fpm : fpm
 #             Focal plane mask
 #         focal_grid :
 #             Focal plane grid to put final image on
@@ -62,6 +62,9 @@ class SegmentedTelescopeAPLC:
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         self.sm = []
+        self.fm = []
+        self.zm = []
+        self.dm = []
         self.aper = aper
         self.apodizer = apod
         self.lyotstop = lyotst
@@ -77,6 +80,92 @@ class SegmentedTelescopeAPLC:
         self.wf_aper = hc.Wavefront(aper, wavelength=self.wvln)
         self.focal_det = focal_grid
         self.seg_pos = seg_pos
+        self.zernike_step = np.pi / 2
+        self.zernike_spot_diam = 1.06
+        self.zernike_spot_points = 128
+        self.zernike_pupil_downsample = 10
+        self.zernike_wfs = hc.wavefront_sensing.ZernikeWavefrontSensorOptics(self.pupil_grid, phase_step=self.zernike_step,
+                                                            phase_dot_diameter=self.zernike_spot_diam, num_pix=self.zernike_spot_points,
+                                                            pupil_diameter=1/self.diam, reference_wavelength=1/self.wvln)
+    def prop_norm(self,tmp):
+        fact = np.max(self.focal_det.x)*self.pupil_grid.dims[0]/np.max(self.pupil_grid.x)/self.focal_det.dims[0]
+        tmp1 = self.prop(tmp)
+        tmp2 = fact*tmp1.electric_field
+        tmp3 =hc.Wavefront(tmp2,self.wvln)
+        return tmp3
+
+    def prop_OBWFS(self):
+
+        wf_coro_pup = self.wf_aper
+
+        if (self.sm != []):
+            wf_coro_pup = self.sm(wf_coro_pup)
+
+        if (self.fm != []):
+            wf_coro_pup = self.fm(wf_coro_pup)
+
+        if (self.zm != []):
+            wf_coro_pup = self.zm(wf_coro_pup)
+
+        if (self.dm != []):
+            wf_coro_pup = self.dm(wf_coro_pup)
+
+        res = self.zernike_wfs.forward(wf_coro_pup)
+        return res
+
+    def prop_LOWFS(self):
+
+        wf_coro_pup = self.wf_aper
+
+        if (self.sm != []):
+            wf_coro_pup = self.sm(wf_coro_pup)
+
+        if (self.fm != []):
+            wf_coro_pup = self.fm(wf_coro_pup)
+
+        if (self.zm != []):
+            wf_coro_pup = self.zm(wf_coro_pup)
+
+        if (self.dm != []):
+            wf_coro_pup = self.dm(wf_coro_pup)
+
+        apod_prop = hc.Apodizer(self.apodizer)
+        tmp1 = apod_prop(wf_coro_pup)
+        tmp2 = tmp1.electric_field - self.coro_no_ls(tmp1).electric_field
+        tmp3 = hc.Wavefront(tmp2,self.wvln)
+        res = self.zernike_wfs.forward(tmp3)
+        return res
+
+
+
+    def make_LO_Modes(self, Nzernike_global):
+        global_zernike_basis = hc.mode_basis.make_zernike_basis(Nzernike_global,self.diam, self.pupil_grid,
+                                                                starting_mode=1, ansi=False, radial_cutoff=True, use_cache=True)
+        self.zm = hc.optics.DeformableMirror(global_zernike_basis)
+
+    def make_DM(self,num_actuators_across):
+        actuator_spacing = self.diam / num_actuators_across
+        influence_functions = hc.make_xinetics_influence_functions(self.pupil_grid, num_actuators_across,
+                                                                   actuator_spacing)
+        self.dm = hc.DeformableMirror(influence_functions)
+
+    def make_HI_Modes(self, NFourier):
+
+        """Generate a fourier sine and cosine , up to NFourier cycles per aperture.
+
+                        Parameters:
+                        ----------
+                        NFourier : int
+                            Maximum number for cycles per apertures, use an odd number
+
+                        --------
+                        self.fdm: DeformableMirror
+                            Fourier deformable mirror (primary) as a DM object
+                        """
+
+        fourier_grid = hc.make_pupil_grid(dims=NFourier, diameter=NFourier)
+        fourier_basis = hc.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
+        self.fm = hc.optics.DeformableMirror(fourier_basis)
 
     def make_segment_zernike_primary(self,Nzernike):
         """Generate a zernike basis, up to Nzernike, for each segment.
@@ -108,7 +197,7 @@ class SegmentedTelescopeAPLC:
         for qq in range(0, Nzernike):
             mode_basis_local_zernike._transformation_matrix[:, qq] = seg_evaluated[seg_num]*mode_basis_local_zernike._transformation_matrix[:, qq]
         for seg_num in range(1, 120):
-            print(seg_num)
+            # print(seg_num)
             mode_basis_local_zernike_tmp = hc.mode_basis.make_zernike_basis(Nzernike, self.segment_circum_diameter,self.pupil_grid.shifted(-self.seg_pos[seg_num]),
                                                                             starting_mode=1,
                                                                             ansi=False, radial_cutoff=True,
@@ -254,8 +343,22 @@ class SegmentedTelescopeAPLC:
         apod_prop = hc.Apodizer(self.apodizer)
 
         # Calculate all wavefronts of the full propagation
-        wf_sm = self.sm(self.wf_aper)
-        wf_apod = apod_prop(wf_sm)
+
+        wf_coro_pup = self.wf_aper
+
+        if (self.sm != []):
+            wf_coro_pup = self.sm(wf_coro_pup)
+
+        if (self.fm != []):
+            wf_coro_pup = self.fm(wf_coro_pup)
+
+        if (self.zm != []):
+            wf_coro_pup = self.zm(wf_coro_pup)
+
+        if (self.dm != []):
+            wf_coro_pup = self.dm(wf_coro_pup)
+
+        wf_apod = apod_prop(wf_coro_pup)
         wf_lyot = self.coro(wf_apod)
         wf_im_coro = self.prop(wf_lyot)
 

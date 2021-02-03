@@ -109,6 +109,8 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     print('nm_aber: {} m'.format(nm_aber))
 
     focus_fieldS = []
+    focus_fieldS_Re = []
+    focus_fieldS_Im = []
 
     for pp in range(0, number_of_modes):
         print(pp)
@@ -120,6 +122,8 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
                                                             return_intermediate='efield')
         focus_field1 = inter['at_science_focus']
         focus_fieldS.append(focus_field1)
+        focus_fieldS_Re.append(focus_field1.real)
+        focus_fieldS_Im.append(focus_field1.imag)
 
     mat_fast = np.zeros([number_of_modes, number_of_modes])
     for i in range(0, number_of_modes):
@@ -129,6 +133,8 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
             dh_test = (test / norm) * dh_mask
             contrast = np.mean(dh_test[np.where(dh_mask != 0)])
             mat_fast[i, j] = contrast
+
+
 
 
     #
@@ -163,6 +169,15 @@ def num_matrix_luvoir(design, savepsfs=True, saveopds=True):
     filename_matrix = 'PASTISmatrix_num_Multiple_Modes_MaxZer_' + str(max_zern_number)
     hc.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     print('Matrix saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+
+    filename_matrix = 'EFIELD_Re_matrix_num_Multiple_Modes_MaxZer_' + str(max_zern_number)
+    hc.write_fits(focus_fieldS_Re, os.path.join(resDir, filename_matrix + '.fits'))
+    print('Efield Real saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+
+    filename_matrix = 'EFIELD_Im_matrix_num_Multiple_Modes_MaxZer_' + str(max_zern_number)
+    hc.write_fits(focus_fieldS_Im, os.path.join(resDir, filename_matrix + '.fits'))
+    print('Efield Imag saved to:', os.path.join(resDir, filename_matrix + '.fits'))
+
 
     # Tell us how long it took to finish.
     end_time = time.time()
