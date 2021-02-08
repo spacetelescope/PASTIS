@@ -326,9 +326,9 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     plt.ylabel('Cumulative contrast', size=30)
     plt.legend(prop={'size': 30}, loc=(0.02, 0.52))
     plt.axhline(cumulative_c_e2e[0], linestyle='dashdot', c='dimgrey')  # coronagraph floor
-    plt.axhline(cumulative_c_e2e[-1], linestyle='dashdot', c='dimgrey')  # target contrast
+    plt.axhline(c_target, linestyle='dashdot', c='dimgrey')  # target contrast
     plt.text(75, cumulative_c_e2e[0], "coronagraph floor", size=30)
-    plt.text(15, cumulative_c_e2e[-1], "target contrast", size=30)
+    plt.text(15, c_target, "target contrast", size=30)
     ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
     plt.tight_layout()
