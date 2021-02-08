@@ -600,14 +600,15 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, fname_suffix='', save=False):
+def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, plot_empirical_stats=False, fname_suffix='', save=False):
     """
     Plot histogram of Monte Carlo simulation for contrasts.
     :param random_contrasts: array or list, contrasts calculated by random WFE realizations
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the Monte Carlo simulation was run
     :param segments: bool, whether run with segment or mode requirements, default is True
-    :param stddev: float, standard deviation of the contrast distribution
+    :param stddev: float, analytically calculated standard deviation of the contrast distribution
+    :param plot_empirical_stats: bool, whether to plot the empirical mean and standard deviation from the data
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -634,9 +635,17 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set x-axis formatter to x10^{-10}
     ax1.xaxis.offsetText.set_fontsize(30)  # set x-axis formatter font size
     plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
+    # Add analytical mean and stddev
     if stddev:
         plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
+    # Add empirical mean and stddev
+    if plot_empirical_stats:
+        empirical_mean = np.mean(random_contrasts)
+        empirical_stddev = np.std(random_contrasts)
+        plt.axvline(empirical_mean, c='dimgrey', ls='-.', lw='3')
+        plt.axvline(empirical_mean + empirical_stddev, c='dimgrey', ls=':', lw=4)
+        plt.axvline(empirical_mean - empirical_stddev, c='dimgrey', ls=':', lw=4)
     plt.tight_layout()
 
     if save:
