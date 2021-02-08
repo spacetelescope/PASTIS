@@ -301,12 +301,14 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
     make_plot()
 
 
-def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
+def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, coro_floor, c_target,
+                                              fname_suffix='', save=False):
     """
     Plot cumulative contrast plot to verify accuracy between SA PASTIS propagation and E2E propagation.
     :param cumulative_c_pastis: array or list, contrast values from SA PASTIS
     :param cumulative_c_e2e: array or list, contrast values from E2E simulator
     :param out_dir: str, output path to save the figure to if save=True
+    :param: coro_floor: float, contrast floor in absence of aberrations
     :param c_target: float, target contrast for which the mode weights have been calculated
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -325,9 +327,9 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     plt.xlabel('Mode index', size=30)
     plt.ylabel('Cumulative contrast', size=30)
     plt.legend(prop={'size': 30}, loc=(0.02, 0.52))
-    plt.axhline(cumulative_c_e2e[0], linestyle='dashdot', c='dimgrey')  # coronagraph floor
+    plt.axhline(coro_floor, linestyle='dashdot', c='dimgrey')  # coronagraph floor
     plt.axhline(c_target, linestyle='dashdot', c='dimgrey')  # target contrast
-    plt.text(75, cumulative_c_e2e[0], "coronagraph floor", size=30)
+    plt.text(75, coro_floor, "coronagraph floor", size=30)
     plt.text(15, c_target, "target contrast", size=30)
     ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
