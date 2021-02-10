@@ -637,15 +637,17 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
     # Add analytical mean and stddev
     if stddev:
-        plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
+        plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4, label='Analytical stddev')
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
     # Add empirical mean and stddev
     if plot_empirical_stats:
         empirical_mean = np.mean(random_contrasts)
         empirical_stddev = np.std(random_contrasts)
         plt.axvline(empirical_mean, c='dimgrey', ls='-.', lw='3')
-        plt.axvline(empirical_mean + empirical_stddev, c='dimgrey', ls=':', lw=4)
-        plt.axvline(empirical_mean - empirical_stddev, c='dimgrey', ls=':', lw=4)
+        plt.axvline(empirical_mean + empirical_stddev, c='maroon', ls=':', lw=4, label='Empirical stddev')
+        plt.axvline(empirical_mean - empirical_stddev, c='maroon', ls=':', lw=4)
+    if stddev or plot_empirical_stats:
+        plt.legend(prop={'size': 20})
     plt.tight_layout()
 
     if save:
