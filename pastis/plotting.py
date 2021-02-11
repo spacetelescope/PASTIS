@@ -301,12 +301,14 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
     make_plot()
 
 
-def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
+def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_e2e, out_dir, coro_floor, c_target,
+                                              fname_suffix='', save=False):
     """
     Plot cumulative contrast plot to verify accuracy between SA PASTIS propagation and E2E propagation.
     :param cumulative_c_pastis: array or list, contrast values from SA PASTIS
     :param cumulative_c_e2e: array or list, contrast values from E2E simulator
     :param out_dir: str, output path to save the figure to if save=True
+    :param: coro_floor: float, contrast floor in absence of aberrations
     :param c_target: float, target contrast for which the mode weights have been calculated
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
@@ -325,10 +327,10 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     plt.xlabel('Mode index', size=30)
     plt.ylabel('Cumulative contrast', size=30)
     plt.legend(prop={'size': 30}, loc=(0.02, 0.52))
-    plt.axhline(cumulative_c_e2e[0], linestyle='dashdot', c='dimgrey')  # coronagraph floor
-    plt.axhline(cumulative_c_e2e[-1], linestyle='dashdot', c='dimgrey')  # target contrast
-    plt.text(75, cumulative_c_e2e[0], "coronagraph floor", size=30)
-    plt.text(15, cumulative_c_e2e[-1], "target contrast", size=30)
+    plt.axhline(coro_floor, linestyle='dashdot', c='dimgrey')  # coronagraph floor
+    plt.axhline(c_target, linestyle='dashdot', c='dimgrey')  # target contrast
+    plt.text(75, coro_floor, "coronagraph floor", size=30)
+    plt.text(15, c_target, "target contrast", size=30)
     ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
     ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
     plt.tight_layout()
@@ -598,14 +600,15 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, fname_suffix='', save=False):
+def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=True, stddev=None, plot_empirical_stats=False, fname_suffix='', save=False):
     """
     Plot histogram of Monte Carlo simulation for contrasts.
     :param random_contrasts: array or list, contrasts calculated by random WFE realizations
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the Monte Carlo simulation was run
     :param segments: bool, whether run with segment or mode requirements, default is True
-    :param stddev: float, standard deviation of the contrast distribution
+    :param stddev: float, analytically calculated standard deviation of the contrast distribution
+    :param plot_empirical_stats: bool, whether to plot the empirical mean and standard deviation from the data
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -632,9 +635,19 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set x-axis formatter to x10^{-10}
     ax1.xaxis.offsetText.set_fontsize(30)  # set x-axis formatter font size
     plt.axvline(c_target, c=lines_color, ls='-.', lw='3')
+    # Add analytical mean and stddev
     if stddev:
-        plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4)
+        plt.axvline(c_target + stddev, c=lines_color, ls=':', lw=4, label='Analytical stddev')
         plt.axvline(c_target - stddev, c=lines_color, ls=':', lw=4)
+    # Add empirical mean and stddev
+    if plot_empirical_stats:
+        empirical_mean = np.mean(random_contrasts)
+        empirical_stddev = np.std(random_contrasts)
+        plt.axvline(empirical_mean, c='maroon', ls='-.', lw='3')
+        plt.axvline(empirical_mean + empirical_stddev, c='maroon', ls=':', lw=4, label='Empirical stddev')
+        plt.axvline(empirical_mean - empirical_stddev, c='maroon', ls=':', lw=4)
+    if stddev or plot_empirical_stats:
+        plt.legend(prop={'size': 20})
     plt.tight_layout()
 
     if save:

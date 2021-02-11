@@ -610,6 +610,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         # Plot the cumulative contrast from E2E simulator and matrix
         ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,
                                                       out_dir=os.path.join(workdir, 'results'),
+                                                      coro_floor=coro_floor,
                                                       c_target=c_target,
                                                       save=True)
 
