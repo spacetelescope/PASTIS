@@ -643,7 +643,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     if plot_empirical_stats:
         empirical_mean = np.mean(random_contrasts)
         empirical_stddev = np.std(random_contrasts)
-        plt.axvline(empirical_mean, c='dimgrey', ls='-.', lw='3')
+        plt.axvline(empirical_mean, c='maroon', ls='-.', lw='3')
         plt.axvline(empirical_mean + empirical_stddev, c='maroon', ls=':', lw=4, label='Empirical stddev')
         plt.axvline(empirical_mean - empirical_stddev, c='maroon', ls=':', lw=4)
     if stddev or plot_empirical_stats:
