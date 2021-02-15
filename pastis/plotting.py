@@ -432,7 +432,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
     elif isinstance(mus, np.ndarray) and mus.ndim == 1:
         sets = 1
     else:
-        raise AttributeError('sigmas must be an array of values, or a tuple of such arrays.')
+        raise AttributeError('Segment weights "mus" must be an array of values, or a tuple of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
