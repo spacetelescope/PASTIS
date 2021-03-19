@@ -202,19 +202,27 @@ class SegmentedTelescopeAPLC:
 class LuvoirAPLC(SegmentedTelescopeAPLC):
     """ Simple E2E simulator for LUVOIR A (with APLC).
 
+    All this does is instantiate a SegmentedTelescopeAPLC() by feeding it the appropriate parameters to make it a
+    LUVOIR A simulator with one of the three baseline APLC designs.
+
     Parameters:
     ----------
     input dir : string
         Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
     apod_design : string
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
+    samp : float
+        Desired image plane sampling of coronagraphic PSF.
     """
     def __init__(self, input_dir, apod_design, samp):
-        self.nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
+
+        self.sampling = samp
+        self.apod_design = apod_design
+
         wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9    # m
         diameter = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')
-        self.sampling = samp
         self.lam_over_d = wvln / diameter
+
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
                                     'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
                           'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
@@ -222,53 +230,55 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                           'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
         imlamD = 1.2 * self.apod_dict[apod_design]['owa']
-        self.apod_design = apod_design
 
-        # Pupil plane optics
-        aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
-        aper_ind_path = CONFIG_PASTIS.get('LUVOIR', 'indexed_aperture_path_in_optics')
-        apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
-                                 self.apod_dict[apod_design]['fname'])
-        ls_fname = CONFIG_PASTIS.get('LUVOIR', 'lyot_stop_path_in_optics')
-
-        pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
-        aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
-        apod_read = hcipy.read_fits(os.path.join(input_dir, apod_path))
-        ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
-
+        # Create a gridi for pupil plane optics
         pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=diameter)
 
+        # Load segmented aperture
+        aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
+        pup_read = hcipy.read_fits(os.path.join(input_dir, aper_path))
         aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
-        self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
+
+        # Load apodizer
+        apod_path = os.path.join('luvoir_stdt_baseline_bw10', apod_design + '_fpm', 'solutions',
+                                 self.apod_dict[apod_design]['fname'])
+        apod_read = hcipy.read_fits(os.path.join(input_dir, apod_path))
         apodizer = hcipy.Field(apod_read.ravel(), pupil_grid)
+
+        # Load Lyot Stop
+        ls_fname = CONFIG_PASTIS.get('LUVOIR', 'lyot_stop_path_in_optics')
+        ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
         lyot_stop = hcipy.Field(ls_read.ravel(), pupil_grid)
+
+        # Load indexed segmented aperture
+        aper_ind_path = CONFIG_PASTIS.get('LUVOIR', 'indexed_aperture_path_in_optics')
+        aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
+        self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
 
         # Load segment positions from fits header
         hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
-
+        self.nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
         poslist = []
         for i in range(self.nseg):
             segname = 'SEG' + str(i + 1)
             xin = hdr[segname + '_X']
             yin = hdr[segname + '_Y']
             poslist.append((xin, yin))
-
         poslist = np.transpose(np.array(poslist))
         self.seg_pos = hcipy.CartesianGrid(poslist)
 
-        # Focal plane mask
+        # Create a focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
         focal_grid_fpm = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
                                             num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=wvln)
         self.fpm = 1 - hcipy.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
 
-        # Final focal plane grid (detector)
+        # Create a focal plane grid for the detector
         self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=imlamD, wavelength=wvln)
 
+        # Bundle LUVOIR parameters and initialize the general segmented telescope with APLC class; includes the SM.
         luvoir_params = {'wavelength': wvln, 'diameter': diameter, 'imlamD': imlamD,
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
-
-        # Initialize the general segmented telescope with APLC class, includes the SM
         super().__init__(aper=aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=apodizer,
                          lyotst=lyot_stop, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
