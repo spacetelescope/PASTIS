@@ -52,7 +52,7 @@ class SegmentedTelescopeAPLC:
         self.diam = params['diameter']
         self.imlamD = params['imlamD']
         self.fpm_rad = params['fpm_rad']
-        self.lamDrad = self.wvln / self.diam
+        self.lam_over_d = self.wvln / self.diam
         self.coro = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm, lyotst)
         self.prop = hcipy.FraunhoferPropagator(indexed_aperture.grid, focal_grid)
         self.coro_no_ls = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm)
@@ -89,7 +89,7 @@ class SegmentedTelescopeAPLC:
         """
 
         # Create fake FPM for plotting
-        fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lamDrad)(self.focal_det)
+        fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
 
         # Create apodozer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
