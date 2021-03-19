@@ -277,10 +277,3 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         dh_inner = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['iwa'] * self.lam_over_d)(
             self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
-
-        # Propagators
-        self.coro = hcipy.LyotCoronagraph(pupil_grid, self.fpm, self.ls)
-        self.prop = hcipy.FraunhoferPropagator(pupil_grid, self.focal_det)
-        self.coro_no_ls = hcipy.LyotCoronagraph(pupil_grid, self.fpm)
-        #TODO: these three propagators should actually happen in the super init
-        # -> how are self.aper_ind and pupil_grid connected?
