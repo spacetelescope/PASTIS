@@ -222,6 +222,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                           'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
         imlamD = 1.2 * self.apod_dict[apod_design]['owa']
+        self.apod_design = apod_design
 
         # Pupil plane optics
         aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
