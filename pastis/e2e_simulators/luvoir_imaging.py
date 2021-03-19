@@ -35,12 +35,12 @@ class SegmentedTelescopeAPLC:
         Apodizer
     lyots : Field
         Lyot stop
-    fpm : fpm
+    fpm : Field
         Focal plane mask
     focal_grid :
         Focal plane grid to put final image on
     params : dict
-        wavelength, diameter, image size in lambda/D, FPM radius
+        wavelength, telescope diameter, image size in lambda/D, FPM radius in lambda/D
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
