@@ -211,17 +211,17 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
     """
     def __init__(self, input_dir, apod_design, samp):
         self.nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
-        self.wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9    # m
-        self.diam = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')
+        wvln = CONFIG_PASTIS.getfloat('LUVOIR', 'lambda') * 1e-9    # m
+        diameter = CONFIG_PASTIS.getfloat('LUVOIR', 'diameter')
         self.sampling = samp
-        self.lam_over_d = self.wvln / self.diam
+        self.lam_over_d = wvln / diameter
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
                                     'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
                           'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
                                      'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
                           'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
-        self.imlamD = 1.2 * self.apod_dict[apod_design]['owa']
+        imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
         # Pupil plane optics
         aper_path = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
@@ -235,7 +235,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         apod_read = hcipy.read_fits(os.path.join(input_dir, apod_path))
         ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
 
-        pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
+        pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=diameter)
 
         aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
         self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
@@ -258,13 +258,13 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         # Focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
         focal_grid_fpm = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
-                                            num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=self.wvln)
+                                            num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=wvln)
         self.fpm = 1 - hcipy.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
 
         # Final focal plane grid (detector)
-        self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=self.imlamD, wavelength=self.wvln)
+        self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=imlamD, wavelength=wvln)
 
-        luvoir_params = {'wavelength': self.wvln, 'diameter': self.diam, 'imlamD': self.imlamD,
+        luvoir_params = {'wavelength': wvln, 'diameter': diameter, 'imlamD': imlamD,
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
 
         # Initialize the general segmented telescope with APLC class, includes the SM
