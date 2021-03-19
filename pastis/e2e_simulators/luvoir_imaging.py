@@ -45,7 +45,7 @@ class SegmentedTelescopeAPLC:
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)
-        self.aper = aper
+        self.aperture = aper
         self.apodizer = apod
         self.lyotstop = lyotst
         self.fpm = fpm   #TODO: this is not actually used inside this class
@@ -107,7 +107,7 @@ class SegmentedTelescopeAPLC:
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Wavefronts of the reference propagation
-        wf_ref_pup = hcipy.Wavefront(self.aper * self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_ref_pup = hcipy.Wavefront(self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
         wf_im_ref = self.prop(wf_ref_pup)
 
         # Display intermediate planes
@@ -116,7 +116,7 @@ class SegmentedTelescopeAPLC:
             plt.figure(figsize=(15, 15))
 
             plt.subplot(331)
-            hcipy.imshow_field(wf_sm.phase, mask=self.aper, cmap='RdBu')
+            hcipy.imshow_field(wf_sm.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Seg aperture phase')
 
             plt.subplot(332)
@@ -237,7 +237,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
 
         pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=self.diam)
 
-        self.aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
+        aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
         self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
         self.apod = hcipy.Field(apod_read.ravel(), pupil_grid)
         self.ls = hcipy.Field(ls_read.ravel(), pupil_grid)
@@ -268,7 +268,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                          'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
 
         # Initialize the general segmented telescope with APLC class, includes the SM
-        super().__init__(aper=self.aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
+        super().__init__(aper=aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=self.apod,
                          lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
         # Make dark hole mask
