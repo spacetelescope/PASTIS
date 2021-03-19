@@ -48,7 +48,6 @@ class SegmentedTelescopeAPLC:
         self.aperture = aper
         self.apodizer = apod
         self.lyotstop = lyotst
-        self.fpm = fpm   #TODO: this is not actually used inside this class
         self.wvln = params['wavelength']
         self.diam = params['diameter']
         self.imlamD = params['imlamD']
