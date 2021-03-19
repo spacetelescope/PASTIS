@@ -240,7 +240,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         aperture = hcipy.Field(pup_read.ravel(), pupil_grid)
         self.aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
         apodizer = hcipy.Field(apod_read.ravel(), pupil_grid)
-        self.ls = hcipy.Field(ls_read.ravel(), pupil_grid)
+        lyot_stop = hcipy.Field(ls_read.ravel(), pupil_grid)
 
         # Load segment positions from fits header
         hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
@@ -269,7 +269,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
 
         # Initialize the general segmented telescope with APLC class, includes the SM
         super().__init__(aper=aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=apodizer,
-                         lyotst=self.ls, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
+                         lyotst=lyot_stop, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
         # Make dark hole mask
         dh_outer = hcipy.circular_aperture(2 * self.apod_dict[apod_design]['owa'] * self.lam_over_d)(
