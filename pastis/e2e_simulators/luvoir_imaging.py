@@ -40,7 +40,7 @@ class SegmentedTelescopeAPLC:
     focal_grid :
         Focal plane grid to put final image on
     params : dict
-        wavelength, telescope diameter, image size in lambda/D, FPM radius in lambda/D
+        wavelength, telescope diameter, image size in lambda/D, FPM radius in lambda/D, segment circumscribed diameter in m
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
@@ -50,6 +50,7 @@ class SegmentedTelescopeAPLC:
         self.lyotstop = lyotst
         self.wvln = params['wavelength']
         self.diam = params['diameter']
+        self.segment_circumscribed_diameter = params['segment_circumscribed_diameter']
         self.imlamD = params['imlamD']
         self.fpm_rad = params['fpm_rad']
         self.lam_over_d = self.wvln / self.diam
@@ -276,8 +277,11 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
         self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=imlamD, wavelength=wvln)
 
         # Bundle LUVOIR parameters and initialize the general segmented telescope with APLC class; includes the SM.
-        luvoir_params = {'wavelength': wvln, 'diameter': diameter, 'imlamD': imlamD,
-                         'fpm_rad': self.apod_dict[apod_design]['fpm_rad']}
+        luvoir_params = {'wavelength': wvln,
+                         'diameter': diameter,
+                         'imlamD': imlamD,
+                         'fpm_rad': self.apod_dict[apod_design]['fpm_rad'],
+                         'segment_circumscribed_diameter': 2 / np.sqrt(3) * 1.2225}    # m
         super().__init__(aper=aperture, indexed_aperture=self.aper_ind, seg_pos=self.seg_pos, apod=apodizer,
                          lyotst=lyot_stop, fpm=self.fpm, focal_grid=self.focal_det, params=luvoir_params)
 
