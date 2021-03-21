@@ -264,7 +264,9 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
             yin = hdr[segname + '_Y']
             poslist.append((xin, yin))
         poslist = np.transpose(np.array(poslist))
-        self.seg_pos = hcipy.CartesianGrid(poslist)
+        self.seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(poslist))
+        # The following might be needed if the segment position list was creted in an array for a different pupil diameter
+        # self.seg_pos = self.seg_pos.scaled(self.diam)
 
         # Create a focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
