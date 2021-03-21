@@ -546,6 +546,151 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     return overall_dir
 
 
+class PastisMatrixIntensities:
+
+    def __init__(self, instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
+        self.instrument = instrument
+        self.design = design
+        self.savepsfs = savepsfs
+        self.saveopds = saveopds
+
+        # Create directory names
+        tel_suffix = f'{instrument.lower()}'
+        if instrument == 'LUVOIR':
+            if design is None:
+                design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+            tel_suffix += f'-{design}'
+        self.overall_dir = util.create_data_path(initial_path, telescope=tel_suffix)
+        os.makedirs(self.overall_dir, exist_ok=True)
+        self.resDir = os.path.join(self.overall_dir, 'matrix_numerical')
+
+        # Create necessary directories if they don't exist yet
+        os.makedirs(self.resDir, exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'OTE_images'), exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
+
+        # Set up logger
+        util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
+        log.info(f'Building numerical matrix for {tel_suffix}\n')
+
+        # Read calibration aberration
+        zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
+        self.zern_mode = util.ZernikeMode(zern_number)  # Create Zernike mode object for easier handling
+
+        # General telescope parameters
+        self.nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
+        self.seglist = util.get_segment_list(instrument)
+        self.wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
+        self.wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9  # m
+
+        # Record some of the defined parameters
+        log.info(f'Instrument: {tel_suffix}')
+        log.info(f'Wavelength: {self.wvln} m')
+        log.info(f'Number of segments: {self.nb_seg}')
+        log.info(f'Segment list: {self.seglist}')
+        log.info(f'wfe_aber: {self.wfe_aber} m')
+        log.info(f'Total number of segment pairs in {instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
+        log.info(
+            f'Non-repeating pairs in {instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
+
+        #  Copy configfile to resulting matrix directory
+        util.copy_config(self.resDir)
+
+    def calc_ref_image(self):
+        # Calculate coronagraph floor, and normalization factor from direct image
+        self.contrast_floor, self.norm = calculate_unaberrated_contrast_and_normalization(self.instrument, self.design,
+                                                                                return_coro_simulator=False,
+                                                                                save_coro_floor=True, save_psfs=False,
+                                                                                outpath=self.overall_dir)
+
+    def calculate_contrast_matrix(self):
+
+        # Figure out how many processes is optimal and create a Pool.
+        # Assume we're the only one on the machine so we can hog all the resources.
+        # We expect numpy to use multithreaded math via the Intel MKL library, so
+        # we check how many threads MKL will use, and create enough processes so
+        # as to use 100% of the CPU cores.
+        # You might think we should divide number of cores by 2 to get physical cores
+        # to account for hyperthreading, however empirical testing on telserv3 shows that
+        # it is slightly more performant on telserv3 to use all logical cores
+        num_cpu = multiprocessing.cpu_count()
+        # try:
+        #     import mkl
+        #     num_core_per_process = mkl.get_max_threads()
+        # except ImportError:
+        #     # typically this is 4, so use that as default
+        #     log.info("Couldn't import MKL; guessing default value of 4 cores per process")
+        #     num_core_per_process = 4
+
+        num_core_per_process = 1  # NOTE: this was changed by Scott Will in HiCAT and makes more sense, somehow
+        num_processes = int(num_cpu // num_core_per_process)
+        log.info(
+            f"Multiprocess PASTIS matrix for {self.instrument} will use {num_processes} processes (with {num_core_per_process} threads per process)")
+
+        # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
+        if self.instrument == 'LUVOIR':
+            calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber, self.zern_mode,
+                                                      self.resDir, self.savepsfs, self.saveopds)
+
+        if self.instrument == 'HiCAT':
+            # Copy used BostonDM maps to matrix folder
+            shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
+                            os.path.join(self.resDir, 'hicat_boston_dm_commands'))
+
+            calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir, self.savepsfs,
+                                                      self.saveopds)
+
+        if self.instrument == 'JWST':
+            calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir, self.savepsfs, self.saveopds)
+
+        # Iterate over all segment pairs via a multiprocess pool
+        mypool = multiprocessing.Pool(num_processes)
+        t_start = time.time()
+        results = mypool.map(calculate_matrix_pair,
+                             util.segment_pairs_non_repeating(self.nb_seg))  # this util function returns a generator
+        t_stop = time.time()
+
+        log.info(f"Multiprocess calculation complete in {t_stop - t_start}sec = {(t_stop - t_start) / 60}min")
+
+        # Unscramble results
+        # results is a list of tuples that contain the return from the partial function, in this case: result[i] = (c, (seg1, seg2))
+        self.contrast_matrix = np.zeros([self.nb_seg, self.nb_seg])  # Generate empty matrix
+        for i in range(len(results)):
+            # Fill according entry in the contrast matrix
+            self.contrast_matrix[results[i][1][0], results[i][1][1]] = results[i][0]
+        mypool.close()
+
+        # Save all contrasts to disk, WITHOUT subtraction of coronagraph floor
+        hcipy.write_fits(self.contrast_matrix, os.path.join(self.resDir, 'contrast_matrix.fits'))
+        plt.figure(figsize=(10, 10))
+        plt.imshow(self.contrast_matrix)
+        plt.colorbar()
+        plt.savefig(os.path.join(self.resDir, 'contrast_matrix.pdf'))
+
+    def calculate_pastis_from_contrast_matrix(self):
+
+        # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
+        matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
+
+        # Save matrix to file
+        filename_matrix = f'PASTISmatrix_num_{self.zern_mode.name}_{self.zern_mode.convention + str(self.zern_mode.index)}'  # TODO: I hate my old naming convention. Change this.
+        hcipy.write_fits(matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
+        ppl.plot_pastis_matrix(matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
+        log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
+
+    def calc(self):
+        start_time = time.time()
+
+        self.calc_ref_image()
+        self.calculate_contrast_matrix()
+        self.calculate_pastis_from_contrast_matrix()
+
+        end_time = time.time()
+        log.info(
+            f'Runtime for matrix_building_numerical.py/multiprocess: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+        log.info(f'Data saved to {self.resDir}')
+
+
 if __name__ == '__main__':
 
         #num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
