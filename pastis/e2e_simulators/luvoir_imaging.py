@@ -310,7 +310,12 @@ class SegmentedTelescopeAPLC:
         return wf_im_coro.intensity
 
     def flatten(self):
+        """
+        Flatten all deformable mirrors in this simulator instance.
+        """
         self.sm.flatten()
+        self.zernike_mirror.flatten()
+        self.dm.flatten()
 
     def set_segment(self, segid, piston, tip, tilt):
         self.sm.set_segment(segid, piston, tip, tilt)
