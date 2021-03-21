@@ -58,6 +58,52 @@ class SegmentedTelescopeAPLC:
         self.coro_no_ls = hcipy.LyotCoronagraph(self.pupil_grid, fpm)
         self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
 
+        #self.create_segmented_mirror(1)
+
+    def create_segmented_mirror(self, n_zernikes):
+        """
+        This creates an actuated segmented mirror from hcipy's DeformableMirror, with n_zernikes Zernike modes per segment.
+
+        Parameters:
+        ----------
+        n_zernikes : int
+            how many Zernikes to create per segment
+        """
+
+        # TODO: decide what to do with indexed aperture
+        # TODO: adjust imports, and instantiation of self.sm()
+
+        segment_field_generator = hcipy.hexagonal_aperture(self.segment_circumscribed_diameter, np.pi / 2)
+        _aper_in_sm, segs_in_sm = hcipy.make_segmented_aperture(segment_field_generator, self.seg_pos, return_segments=True)
+        # luvoir_segmented_pattern = hcipy.evaluate_supersampled(_aper_in_sm, self.pupil_grid, 1)   # evaluate segmented aperture on pupil_grid
+        # Evaluate all segments individually on the pupil_grid
+        seg_evaluated = []
+        for seg_tmp in segs_in_sm:
+            tmp_evaluated = hcipy.evaluate_supersampled(seg_tmp, self.pupil_grid, 1)
+            seg_evaluated.append(tmp_evaluated)
+
+        # Create a single segment influence function with all Zernikes n_zernikes
+        first_seg = 0    # Create this first influence function on the center segment only
+        local_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
+                                                                  self.segment_circumscribed_diameter,
+                                                                  self.pupil_grid.shifted(-self.seg_pos[first_seg]),
+                                                                  starting_mode=1)
+        # For all Zernikes, adjust their transformation matrix (by doing what?)
+        for zernike_num in range(0, n_zernikes):
+            local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[first_seg]*local_zernike_basis._transformation_matrix[:, zernike_num]
+
+        # Expand the basis of influence functions from one segment to all segments
+        for seg_num in range(1, self.nseg):
+            local_zernike_basis_tmp = hcipy.mode_basis.make_zernike_basis(n_zernikes,
+                                                                          self.segment_circumscribed_diameter,
+                                                                          self.pupil_grid.shifted(-self.seg_pos[seg_num]),
+                                                                          starting_mode=1)
+            # Adjust each transformation matrix again for some reason
+            for zernike_num in range(0, n_zernikes):
+                local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[seg_num] * local_zernike_basis_tmp._transformation_matrix[:, zernike_num]
+            local_zernike_basis.extend(local_zernike_basis_tmp)   # extend our basis with this new segment
+
+        self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
         """Calculate the PSF of the segmented telescope, normalized to contrast units.
