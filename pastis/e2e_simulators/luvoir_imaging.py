@@ -217,38 +217,56 @@ class SegmentedTelescopeAPLC:
 
             plt.figure(figsize=(15, 15))
 
-            # TODO add displays of the additional deformable mirrors
+            plt.subplot(3, 4, 1)
+            hcipy.imshow_field(self.wf_aper.intensity, mask=self.aperture, cmap='Greys_r')
+            plt.title('Primary mirror')
 
-            plt.subplot(331)
+            plt.subplot(3, 4, 2)
             hcipy.imshow_field(wf_sm.phase, mask=self.aperture, cmap='RdBu')
-            plt.title('Seg aperture phase')
+            plt.title('Segmented mirror phase')
 
-            plt.subplot(332)
+            plt.subplot(3, 4, 3)
+            hcipy.imshow_field(wf_zm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Global Zernike phase')
+
+            plt.subplot(3, 4, 4)
+            hcipy.imshow_field(wf_dm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Deformable mirror phase')
+
+            plt.subplot(3, 4, 5)
+            hcipy.imshow_field(hcipy.Wavefront(transparent_field, wavelength=self.wvln).phase, mask=self.aperture, cmap='RdBu')   # FIXME: drop in actual HM phase
+            plt.title('Harris mode mirror phase')
+
+            plt.subplot(3, 4, 6)
+            hcipy.imshow_field(hcipy.Wavefront(transparent_field, wavelength=self.wvln).phase, mask=self.aperture, cmap='RdBu')   # FIXME: drop in actual FM phase
+            plt.title('High modes mirror phase')
+
+            plt.subplot(3, 4, 7)
             hcipy.imshow_field(wf_apod.intensity, cmap='inferno')
             plt.title('Apodizer')
 
-            plt.subplot(333)
+            plt.subplot(3, 4, 8)
             hcipy.imshow_field(wf_before_fpm.intensity / wf_before_fpm.intensity.max(), norm=LogNorm(), cmap='inferno')
             plt.title('Before FPM')
 
-            plt.subplot(334)
+            plt.subplot(3, 4, 9)
             hcipy.imshow_field(int_after_fpm / wf_before_fpm.intensity.max(), cmap='inferno')
             plt.title('After FPM')
 
-            plt.subplot(335)
-            hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
-                            cmap='inferno')
+            plt.subplot(3, 4, 10)
+            hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
+                               norm=LogNorm(vmin=1e-3, vmax=1), cmap='inferno')
             plt.title('Before Lyot stop')
 
-            plt.subplot(336)
-            hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(), norm=LogNorm(vmin=1e-3, vmax=1),
-                            cmap='inferno', mask=self.lyotstop)
+            plt.subplot(3, 4, 11)
+            hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
+                               norm=LogNorm(vmin=1e-3, vmax=1), cmap='inferno', mask=self.lyotstop)
             plt.title('After Lyot stop')
 
-            plt.subplot(337)
-            hcipy.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(), norm=LogNorm(vmin=1e-10, vmax=1e-3),
-                            cmap='inferno')
-            plt.title('Final image')
+            plt.subplot(3, 4, 12)
+            hcipy.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(),
+                               norm=LogNorm(vmin=1e-10, vmax=1e-3), cmap='inferno')
+            plt.title('Coro image')
             plt.colorbar()
 
         if return_intermediate == 'intensity':
@@ -374,8 +392,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
             poslist.append((xin, yin))
         poslist = np.transpose(np.array(poslist))
         self.seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(poslist))
-        # The following might be needed if the segment position list was creted in an array for a different pupil diameter
-        # self.seg_pos = self.seg_pos.scaled(self.diam)
+        self.seg_pos = self.seg_pos.scaled(diameter)
 
         # Create a focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
