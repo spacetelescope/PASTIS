@@ -41,6 +41,9 @@ class SegmentedTelescopeAPLC:
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)
+        self.zernike_mirror = None
+        self.dm = None
+
         self.aperture = aper
         self.apodizer = apod
         self.lyotstop = lyotst
@@ -104,6 +107,36 @@ class SegmentedTelescopeAPLC:
             local_zernike_basis.extend(local_zernike_basis_tmp)   # extend our basis with this new segment
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
+
+    def create_global_zernike_mirror(self, n_zernikes):
+        """
+        Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
+
+        Parameters:
+        ----------
+        n_zernikes : int
+            number of Zernikes to enable the Zernike mirror for.
+        """
+        global_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
+                                                                   self.diam,
+                                                                   self.pupil_grid,
+                                                                   starting_mode=1)
+        self.zernike_mirror = hcipy.optics.DeformableMirror(global_zernike_basis)
+
+    def create_continuous_deformable_mirror(self, n_actuators_across):
+        """
+        Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
+
+        Parameters:
+        ----------
+        n_actuators_across : int
+            number of actuators across the pupil plane
+        """
+        actuator_spacing = self.diam / n_actuators_across
+        influence_functions = hcipy.make_xinetics_influence_functions(self.pupil_grid,
+                                                                      n_actuators_across,
+                                                                      actuator_spacing)
+        self.dm = hcipy.DeformableMirror(influence_functions)
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
         """Calculate the PSF of the segmented telescope, normalized to contrast units.
