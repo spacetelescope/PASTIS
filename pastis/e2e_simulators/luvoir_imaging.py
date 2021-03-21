@@ -76,9 +76,10 @@ class SegmentedTelescopeAPLC:
         # TODO: decide what to do with indexed aperture
         # TODO: adjust imports, and instantiation of self.sm()
 
+        # Create single hexagonal segment and full segmented aperture from the single segment, with segment positions
         segment_field_generator = hcipy.hexagonal_aperture(self.segment_circumscribed_diameter, np.pi / 2)
         _aper_in_sm, segs_in_sm = hcipy.make_segmented_aperture(segment_field_generator, self.seg_pos, return_segments=True)
-        # luvoir_segmented_pattern = hcipy.evaluate_supersampled(_aper_in_sm, self.pupil_grid, 1)   # evaluate segmented aperture on pupil_grid
+
         # Evaluate all segments individually on the pupil_grid
         seg_evaluated = []
         for seg_tmp in segs_in_sm:
