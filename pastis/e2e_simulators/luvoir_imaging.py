@@ -306,11 +306,14 @@ class SegmentedTelescopeAPLC:
 
     def flatten(self):
         """
-        Flatten all deformable mirrors in this simulator instance.
+        Flatten all deformable mirrors in this simulator instance, if they exist.
         """
-        self.sm.flatten()
-        #self.zernike_mirror.flatten()
-        #self.dm.flatten()
+        if self.sm is not None:
+            self.sm.flatten()
+        if self.zernike_mirror is not None:
+            self.zernike_mirror.flatten()
+        if self.dm is not None:
+            self.dm.flatten()
 
     def set_segment(self, segid, piston, tip, tilt):
         self.sm.set_segment(segid, piston, tip, tilt)
