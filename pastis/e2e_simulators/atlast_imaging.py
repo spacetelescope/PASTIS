@@ -278,7 +278,7 @@ def seg_mirror_test():
 
     # HCIPy grids and propagator
     pupil_grid = hcipy.make_pupil_grid(dims=NPIX, diameter=PUP_DIAMETER)
-    focal_grid = hcipy.make_focal_grid(pupil_grid, samp, lamD, wavelength=wvln)
+    focal_grid = hcipy.make_focal_grid_from_pupil_grid(pupil_grid, samp, lamD, wavelength=wvln)
     prop = hcipy.FraunhoferPropagator(pupil_grid, focal_grid)
 
     # Generate an aperture

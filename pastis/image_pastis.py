@@ -83,7 +83,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     elif telescope == 'ATLAST':
         # Create mini-segment
         pupil_grid = hcipy.make_pupil_grid(dims=tel_size_px, diameter=real_size_seg)
-        focal_grid = hcipy.make_focal_grid(pupil_grid, sampling, sz, wavelength=wvln.to(u.m).value)       # fov = lambda/D radius of total image
+        focal_grid = hcipy.make_focal_grid_from_pupil_grid(pupil_grid, sampling, sz, wavelength=wvln.to(u.m).value)
         prop = hcipy.FraunhoferPropagator(pupil_grid, focal_grid)
 
         mini_seg_real = hcipy.hexagonal_aperture(circum_diameter=real_size_seg, angle=np.pi/2)

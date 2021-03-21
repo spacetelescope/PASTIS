@@ -269,12 +269,11 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
 
         # Create a focal plane mask
         samp_foc = self.apod_dict[apod_design]['fpm_px'] / (self.apod_dict[apod_design]['fpm_rad'] * 2)
-        focal_grid_fpm = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=samp_foc,
-                                            num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=wvln)
+        focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=self.apod_dict[apod_design]['fpm_rad'], wavelength=wvln)
         self.fpm = 1 - hcipy.circular_aperture(2*self.apod_dict[apod_design]['fpm_rad']*self.lam_over_d)(focal_grid_fpm)
 
         # Create a focal plane grid for the detector
-        self.focal_det = hcipy.make_focal_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=imlamD, wavelength=wvln)
+        self.focal_det = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=self.sampling, num_airy=imlamD, wavelength=wvln)
 
         # Bundle LUVOIR parameters and initialize the general segmented telescope with APLC class; includes the SM.
         luvoir_params = {'wavelength': wvln,
