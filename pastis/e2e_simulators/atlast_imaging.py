@@ -9,7 +9,7 @@ import logging
 import hcipy
 import poppy
 
-from config import CONFIG_PASTIS
+from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 
 log = logging.getLogger()

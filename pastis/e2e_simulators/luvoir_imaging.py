@@ -36,7 +36,7 @@ class SegmentedTelescopeAPLC:
     focal_grid :
         Focal plane grid to put final image on
     params : dict
-        wavelength, telescope diameter, image size in lambda/D, FPM radius in lambda/D, segment circumscribed diameter in m
+        wavelength, telescope diameter, image radius in lambda/D, FPM radius in lambda/D, segment circumscribed diameter in m
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
@@ -227,7 +227,7 @@ class LuvoirAPLC(SegmentedTelescopeAPLC):
                                     'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
         imlamD = 1.2 * self.apod_dict[apod_design]['owa']
 
-        # Create a gridi for pupil plane optics
+        # Create a grid for pupil plane optics
         pupil_grid = hcipy.make_pupil_grid(dims=self.apod_dict[apod_design]['pxsize'], diameter=diameter)
 
         # Load segmented aperture
