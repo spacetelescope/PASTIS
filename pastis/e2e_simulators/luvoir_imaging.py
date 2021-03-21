@@ -40,7 +40,7 @@ class SegmentedTelescopeAPLC:
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
-        self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)
+        self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)    # TODO: replace this with new SM implementation from create_segmented_mirror()
         self.zernike_mirror = None
         self.dm = None
 
@@ -314,8 +314,8 @@ class SegmentedTelescopeAPLC:
         Flatten all deformable mirrors in this simulator instance.
         """
         self.sm.flatten()
-        self.zernike_mirror.flatten()
-        self.dm.flatten()
+        #self.zernike_mirror.flatten()
+        #self.dm.flatten()
 
     def set_segment(self, segid, piston, tip, tilt):
         self.sm.set_segment(segid, piston, tip, tilt)
