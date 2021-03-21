@@ -7,15 +7,15 @@ dependencies:
   - astropy
   - configparser
   - jupyter
-  - matplotlib=3.3.2
+  - matplotlib
   - numpy
   - pandas
   - pip
   - conda-forge::pypdf2
   - pytest
-  - python>=3.6
-  - scipy=1.2.1
+  - python=3.7
+  - scipy
   - pip:
     - fpdf
     - poppy
-    - git+https://github.com/ehpor/hcipy.git@980f39c7f309f799fd418b4f6a0657295b52c43e
+    - hcipy
