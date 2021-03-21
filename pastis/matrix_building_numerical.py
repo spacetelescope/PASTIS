@@ -202,13 +202,12 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     return contrast, segment_pair
 
 
-def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs, saveopds, segment_pair):
+def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_multiprocess().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: float, calibration aberration per segment in m
-    :param zern_mode: Zernike mode object, local Zernike aberration
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
@@ -238,12 +237,12 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, zern_mode, resDir, savepsfs,
 
     # Save PSF image to disk
     if savepsfs:
-        filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
+        filename_psf = f'psf_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
-        opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
+        opd_name = f'opd_segs_{segment_pair[0]+1}-{segment_pair[1]+1}'
         plt.clf()
         hcipy.imshow_field(inter['seg_mirror'], grid=luv.aperture.grid, mask=luv.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
@@ -429,9 +428,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     """
 
     # Keep track of time
-    start_time = time.time()   # runtime is currently around 150 minutes
-
-    ### Parameters
+    start_time = time.time()
 
     # Create directory names
     tel_suffix = f'{instrument.lower()}'
@@ -451,10 +448,6 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     # Set up logger
     util.setup_pastis_logging(resDir, f'pastis_matrix_{tel_suffix}')
     log.info(f'Building numerical matrix for {tel_suffix}\n')
-
-    # Read calibration aberration
-    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
-    zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
 
     # General telescope parameters
     nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
@@ -501,7 +494,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
     if instrument == 'LUVOIR':
-        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, zern_mode, resDir,
+        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, resDir,
                                                   savepsfs, saveopds)
 
     if instrument == 'HiCAT':
@@ -540,7 +533,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     matrix_pastis = pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, float(contrast_floor))
 
     # Save matrix to file
-    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'    #TODO: I hate my old naming convention. Change this.
+    filename_matrix = 'pastis_matrix'
     hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
     ppl.plot_pastis_matrix(matrix_pastis, wvln*1e9, out_dir=resDir, save=True)    # convert wavelength to nm
     log.info(f'PASTIS matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
