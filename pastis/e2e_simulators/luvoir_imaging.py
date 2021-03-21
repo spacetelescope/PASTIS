@@ -50,11 +50,14 @@ class SegmentedTelescopeAPLC:
         self.imlamD = params['imlamD']
         self.fpm_rad = params['fpm_rad']
         self.lam_over_d = self.wvln / self.diam
-        self.coro = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm, lyotst)
-        self.prop = hcipy.FraunhoferPropagator(indexed_aperture.grid, focal_grid)
-        self.coro_no_ls = hcipy.LyotCoronagraph(indexed_aperture.grid, fpm)
-        self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+        self.pupil_grid = indexed_aperture.grid
         self.focal_det = focal_grid
+
+        self.coro = hcipy.LyotCoronagraph(self.pupil_grid, fpm, lyotst)
+        self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
+        self.coro_no_ls = hcipy.LyotCoronagraph(self.pupil_grid, fpm)
+        self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
         """Calculate the PSF of the segmented telescope, normalized to contrast units.
