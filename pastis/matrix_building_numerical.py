@@ -546,13 +546,16 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     return overall_dir
 
 
-class PastisMatrixIntensities:
+class PastisMatrix:
+    def __init__(self, instrument, design=None, initial_path=''):
 
-    def __init__(self, instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
+        # General telescope parameters
         self.instrument = instrument
         self.design = design
-        self.savepsfs = savepsfs
-        self.saveopds = saveopds
+        self.nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
+        self.seglist = util.get_segment_list(instrument)
+        self.wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
+        self.wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9  # m
 
         # Create directory names
         tel_suffix = f'{instrument.lower()}'
@@ -573,16 +576,6 @@ class PastisMatrixIntensities:
         util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
         log.info(f'Building numerical matrix for {tel_suffix}\n')
 
-        # Read calibration aberration
-        zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
-        self.zern_mode = util.ZernikeMode(zern_number)  # Create Zernike mode object for easier handling
-
-        # General telescope parameters
-        self.nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
-        self.seglist = util.get_segment_list(instrument)
-        self.wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
-        self.wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9  # m
-
         # Record some of the defined parameters
         log.info(f'Instrument: {tel_suffix}')
         log.info(f'Wavelength: {self.wvln} m')
@@ -596,7 +589,21 @@ class PastisMatrixIntensities:
         #  Copy configfile to resulting matrix directory
         util.copy_config(self.resDir)
 
-    def calc_ref_image(self):
+    def calc(self):
+        """ This is the main method that should be called to calculate a PASTIS matrix. """
+        pass
+
+
+class PastisMatrixIntensities(PastisMatrix):
+
+    def __init__(self, instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
+
+        super().__init__(instrument=instrument, design=design, initial_path=initial_path)
+
+        self.savepsfs = savepsfs
+        self.saveopds = saveopds
+
+    def calculate_ref_image(self):
         # Calculate coronagraph floor, and normalization factor from direct image
         self.contrast_floor, self.norm = calculate_unaberrated_contrast_and_normalization(self.instrument, self.design,
                                                                                 return_coro_simulator=False,
@@ -629,7 +636,7 @@ class PastisMatrixIntensities:
 
         # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
         if self.instrument == 'LUVOIR':
-            calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber, self.zern_mode,
+            calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
                                                       self.resDir, self.savepsfs, self.saveopds)
 
         if self.instrument == 'HiCAT':
@@ -637,11 +644,12 @@ class PastisMatrixIntensities:
             shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
                             os.path.join(self.resDir, 'hicat_boston_dm_commands'))
 
-            calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir, self.savepsfs,
-                                                      self.saveopds)
+            calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                      self.savepsfs, self.saveopds)
 
         if self.instrument == 'JWST':
-            calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir, self.savepsfs, self.saveopds)
+            calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                      self.savepsfs, self.saveopds)
 
         # Iterate over all segment pairs via a multiprocess pool
         mypool = multiprocessing.Pool(num_processes)
@@ -670,24 +678,51 @@ class PastisMatrixIntensities:
     def calculate_pastis_from_contrast_matrix(self):
 
         # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
-        matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
+        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
 
         # Save matrix to file
-        filename_matrix = f'PASTISmatrix_num_{self.zern_mode.name}_{self.zern_mode.convention + str(self.zern_mode.index)}'  # TODO: I hate my old naming convention. Change this.
-        hcipy.write_fits(matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
-        ppl.plot_pastis_matrix(matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
+        filename_matrix = f'pastis_matrix'
+        hcipy.write_fits(self.matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
+        ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
     def calc(self):
         start_time = time.time()
 
-        self.calc_ref_image()
+        self.calculate_ref_image()
         self.calculate_contrast_matrix()
         self.calculate_pastis_from_contrast_matrix()
 
         end_time = time.time()
         log.info(
-            f'Runtime for matrix_building_numerical.py/multiprocess: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+        log.info(f'Data saved to {self.resDir}')
+
+
+class PastisMatrixEfield(PastisMatrix):
+
+    def __init__(self, instrument, design=None, initial_path=''):
+        super().__init__(instrument=instrument, design=design, initial_path=initial_path)
+
+    def calculate_ref_fields(self):
+        pass
+
+    def calculate_single_mode_fields(self):
+        pass
+
+    def calculate_pastis_matrix_from_efields(self):
+        self.matrix_pastis = None
+
+    def calc(self):
+        start_time = time.time()
+
+        self.calculate_ref_fields()
+        self.calculate_single_mode_fields()
+        self.calculate_pastis_matrix_from_efields()
+
+        end_time = time.time()
+        log.info(
+            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
         log.info(f'Data saved to {self.resDir}')
 
 
