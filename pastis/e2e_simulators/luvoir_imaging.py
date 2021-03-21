@@ -40,7 +40,7 @@ class SegmentedTelescopeAPLC:
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
-        self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)    # TODO: replace this with new SM implementation from create_segmented_mirror()
+        self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
         self.zernike_mirror = None
         self.dm = None
 
@@ -61,8 +61,6 @@ class SegmentedTelescopeAPLC:
         self.coro_no_ls = hcipy.LyotCoronagraph(self.pupil_grid, fpm)
         self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
 
-        #self.create_segmented_mirror(1)
-
     def create_segmented_mirror(self, n_zernikes):
         """
         This creates an actuated segmented mirror from hcipy's DeformableMirror, with n_zernikes Zernike modes per segment.
@@ -72,9 +70,6 @@ class SegmentedTelescopeAPLC:
         n_zernikes : int
             how many Zernikes to create per segment
         """
-
-        # TODO: decide what to do with indexed aperture
-        # TODO: adjust imports, and instantiation of self.sm()
 
         # Create single hexagonal segment and full segmented aperture from the single segment, with segment positions
         segment_field_generator = hcipy.hexagonal_aperture(self.segment_circumscribed_diameter, np.pi / 2)
