@@ -88,11 +88,11 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     return func, segment_positions
 
 
-class SegmentedMirror(hcipy.OpticalElement):
-    """A segmented mirror from a segmented aperture.
+class SegmentedMirrorAtlast(hcipy.OpticalElement):
+    """A segmented mirror from a segmented aperture. This is specifically for the ATLAST aperture.
 
-    This is now deprecated as I am using directly the hcipy SM, but specifically from an older commit:
-    from hcipy.optics.segmented_mirror import SegmentedMirror
+    We have moced on to using the DeformableMirror and SegmentedMirror from hcipy. This class still exists because it
+    is specific to the ATLAST geometry (it was never refactored to use the more general SegmentedMirror class).
 
     Parameters:
     ----------
@@ -249,8 +249,7 @@ def seg_mirror_test():
     """
     Testing the integrated energy of images produced by HCIPy vs Poppy segmented DMs.
 
-    This is now deprecated as I am using directly the hcipy SM, but specifically from an older commit:
-    from hcipy.optics.segmented_mirror import SegmentedMirror
+    This is now deprecated as we refactored the segmented mirror classes significantly.
     """
 
     # Parameters
@@ -286,7 +285,7 @@ def seg_mirror_test():
     aper = hcipy.evaluate_supersampled(aper, pupil_grid, 1)
 
     # Instantiate the segmented mirror
-    hsm = SegmentedMirror(aper, seg_pos)
+    hsm = SegmentedMirrorAtlast(aper, seg_pos)
 
     # Make a pupil plane wavefront from aperture
     wf = hcipy.Wavefront(aper, wavelength=wvln)

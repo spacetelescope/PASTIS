@@ -10,13 +10,9 @@ from astropy.io import fits
 import hcipy
 
 from pastis.config import CONFIG_PASTIS
+from pastis.e2e_simulators.indexed_segmented_mirror import SegmentedMirror
 
 log = logging.getLogger()
-
-try:
-    from hcipy.optics.segmented_mirror import SegmentedMirror
-except ImportError:
-    log.info('SegmentedMirror simulator from hcipy@980f39c was not imported.')
 
 
 class SegmentedTelescopeAPLC:
