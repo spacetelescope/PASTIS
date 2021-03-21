@@ -12,7 +12,6 @@ import os
 import time
 import functools
 import shutil
-import astropy.units as u
 import logging
 import matplotlib
 from matplotlib.colors import LogNorm
@@ -31,179 +30,6 @@ import pastis.plotting as ppl
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
 matplotlib.rc('pdf', fonttype=42)
-
-
-def num_matrix_jwst():
-    """
-    Generate a numerical PASTIS matrix for a JWST coronagraph.
-    -- Depracated function, the LUVOIR PASTIS matrix is better calculated with num_matrix_multiprocess(), which can
-    do this for your choice of one of the implemented instruments (LUVOIR, HiCAT, JWST). --
-
-    All inputs are read from the (local) configfile and saved to the specified output directory.
-    """
-
-    import webbpsf
-    from e2e_simulators import webbpsf_imaging as webbim
-    # Set WebbPSF environment variable
-    os.environ['WEBBPSF_PATH'] = CONFIG_PASTIS.get('local', 'webbpsf_data_path')
-
-    # Keep track of time
-    start_time = time.time()   # runtime is currently around 21 minutes
-    log.info('Building numerical matrix for JWST\n')
-
-    # Parameters
-    overall_dir = util.create_data_path(CONFIG_PASTIS.get('local', 'local_data_path'), telescope='jwst')
-    resDir = os.path.join(overall_dir, 'matrix_numerical')
-    which_tel = CONFIG_PASTIS.get('telescope', 'name')
-    nb_seg = CONFIG_PASTIS.getint(which_tel, 'nb_subapertures')
-    im_size_e2e = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
-    inner_wa = CONFIG_PASTIS.getint(which_tel, 'IWA')
-    outer_wa = CONFIG_PASTIS.getint(which_tel, 'OWA')
-    sampling = CONFIG_PASTIS.getfloat(which_tel, 'sampling')
-    fpm = CONFIG_PASTIS.get(which_tel, 'focal_plane_mask')                 # focal plane mask
-    lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')   # Lyot stop
-    filter = CONFIG_PASTIS.get(which_tel, 'filter_name')
-    wfe_aber = CONFIG_PASTIS.getfloat(which_tel, 'calibration_aberration') * u.nm
-    wss_segs = webbpsf.constants.SEGNAMES_WSS_ORDER
-    zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
-    zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
-    zern_mode = util.ZernikeMode(zern_number)                       # Create Zernike mode object for easier handling
-    wss_zern_nb = util.noll_to_wss(zern_number)                     # Convert from Noll to WSS framework
-
-    # Create necessary directories if they don't exist yet
-    os.makedirs(overall_dir, exist_ok=True)
-    os.makedirs(resDir, exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'OTE_images'), exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'psfs'), exist_ok=True)
-    os.makedirs(os.path.join(resDir, 'darkholes'), exist_ok=True)
-
-    # Create the dark hole mask.
-    pup_im = np.zeros([im_size_e2e, im_size_e2e])    # this is just used for DH mask generation
-    dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)
-
-    # Create a direct WebbPSF image for normalization factor
-    fake_aber = np.zeros([nb_seg, zern_max])
-    psf_perfect = webbim.nircam_nocoro(filter, fake_aber)
-    normp = np.max(psf_perfect)
-    psf_perfect = psf_perfect / normp
-
-    # Set up NIRCam coro object from WebbPSF
-    nc_coro = webbpsf.NIRCam()
-    nc_coro.filter = filter
-    nc_coro.image_mask = fpm
-    nc_coro.pupil_mask = lyot_stop
-
-    # Null the OTE OPDs for the PSFs, maybe we will add internal WFE later.
-    nc_coro, ote_coro = webbpsf.enable_adjustable_ote(nc_coro)      # create OTE for coronagraph
-    nc_coro.include_si_wfe = False                                  # set SI internal WFE to zero
-
-    #-# Generating the PASTIS matrix and a list for all contrasts
-    contrast_matrix = np.zeros([nb_seg, nb_seg])   # Generate empty matrix
-    all_psfs = []
-    all_dhs = []
-    all_contrasts = []
-
-    log.info(f'wfe_aber: {wfe_aber}')
-
-    for i in range(nb_seg):
-        for j in range(nb_seg):
-
-            log.info(f'\nSTEP: {i+1}-{j+1} / {nb_seg}-{nb_seg}')
-
-            # Get names of segments, they're being addressed by their names in the ote functions.
-            seg_i = wss_segs[i].split('-')[0]
-            seg_j = wss_segs[j].split('-')[0]
-
-            # Put the aberration on the correct segments
-            Aber_WSS = np.zeros([nb_seg, zern_max])         # The Zernikes here will be filled in the WSS order!!!
-                                                            # Because it goes into _apply_hexikes_to_seg().
-            Aber_WSS[i, wss_zern_nb - 1] = wfe_aber.to(u.m).value    # Aberration on the segment we're currently working on;
-                                                            # convert to meters; -1 on the Zernike because Python starts
-                                                            # numbering at 0.
-            Aber_WSS[j, wss_zern_nb - 1] = wfe_aber.to(u.m).value    # same for other segment
-
-            # Putting aberrations on segments i and j
-            ote_coro.reset()    # Making sure there are no previous movements on the segments.
-            ote_coro.zero()     # set OTE for coronagraph to zero
-
-            # Apply both aberrations to OTE. If i=j, apply only once!
-            ote_coro._apply_hexikes_to_seg(seg_i, Aber_WSS[i, :])    # set segment i  (segment numbering starts at 1)
-            if i != j:
-                ote_coro._apply_hexikes_to_seg(seg_j, Aber_WSS[j, :])    # set segment j
-
-            # If you want to display it:
-            # ote_coro.display_opd()
-            # plt.show()
-
-            # Save OPD images for testing
-            opd_name = f'opd_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
-            plt.clf()
-            ote_coro.display_opd()
-            plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
-            log.info('Calculating WebbPSF image')
-            image = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
-            psf = image[0].data / normp
-
-            # Save WebbPSF image to disk
-            filename_psf = f'psf_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
-            util.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
-            all_psfs.append(psf)
-
-            log.info('Calculating mean contrast in dark hole')
-            dh_intensity = psf * dh_area
-            contrast = np.mean(dh_intensity[np.where(dh_intensity != 0)])
-            log.info(f'contrast: {contrast}')
-
-            # Save DH image to disk and put current contrast in list
-            filename_dh = f'dh_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}_segs_{i+1}-{j+1}'
-            util.write_fits(dh_intensity, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
-            all_dhs.append(dh_intensity)
-            all_contrasts.append(contrast)
-
-            # Fill according entry in the matrix
-            contrast_matrix[i,j] = contrast
-
-    # Transform saved lists to arrays
-    all_psfs = np.array(all_psfs)
-    all_dhs = np.array(all_dhs)
-    all_contrasts = np.array(all_contrasts)
-
-    # Filling the off-axis elements
-    matrix_two_N = np.copy(contrast_matrix)      # This is just an intermediary copy so that I don't mix things up.
-    matrix_pastis = np.copy(contrast_matrix)     # This will be the final PASTIS matrix.
-
-    for i in range(nb_seg):
-        for j in range(nb_seg):
-            if i != j:
-                matrix_off_val = (matrix_two_N[i,j] - matrix_two_N[i,i] - matrix_two_N[j,j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info(f'Off-axis for i{i+1}-j{j+1}: {matrix_off_val}')
-
-    # Normalize matrix for the input aberration
-    matrix_pastis /= np.square(wfe_aber.value)
-
-    # Save matrix to file
-    filename_matrix = f'PASTISmatrix_num_{zern_mode.name}_{zern_mode.convention + str(zern_mode.index)}'
-    util.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'), header=None, metadata=None)
-    log.info(f'Matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
-
-    # Save the PSF and DH image *cubes* as well (as opposed to each one individually)
-    util.write_fits(all_psfs, os.path.join(resDir, 'psfs', 'psf_cube.fits'), header=None, metadata=None)
-    util.write_fits(all_dhs, os.path.join(resDir, 'darkholes', 'dh_cube.fits'), header=None, metadata=None)
-    np.savetxt(os.path.join(resDir, 'pair-wise_contrasts.txt'), all_contrasts, fmt='%e')
-
-    # Tell us how long it took to finish.
-    end_time = time.time()
-    log.info(f'Runtime for matrix_building.py: {end_time - start_time}sec = {(end_time - start_time) / 60}min')
-    log.info(f'Data saved to {resDir}')
-
-    # -- Runtime notes: --
-    #
-    # im_size = 128
-    # oversampling = 1
-    # nb_seg = 18
-    # runtime = 20 min
 
 
 def num_matrix_luvoir(design, savepsfs=False, saveopds=True):
@@ -880,9 +706,6 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 if __name__ == '__main__':
-
-        # Pick the function of the telescope you want to run
-        #num_matrix_jwst()
 
         #num_matrix_luvoir(design='small')
         #num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
