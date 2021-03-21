@@ -173,18 +173,42 @@ class SegmentedTelescopeAPLC:
         # Create apodozer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
 
-        # Calculate all wavefronts of the full propagation
-        wf_sm = self.sm(self.wf_aper)
-        wf_apod = apod_prop(wf_sm)
+        # Create empty field for components that are None
+        values = np.ones_like(self.pupil_grid.x)
+        transparent_field = hcipy.Field(values, self.pupil_grid)
+
+        # Calculate wavefront after all active pupil components depending on which of the DMs exist
+        wf_active_pupil = self.wf_aper
+
+        if self.sm is not None:
+            wf_active_pupil = self.sm(wf_active_pupil)
+            wf_sm = self.sm(self.wf_aper)
+        else:
+            wf_sm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.zernike_mirror is not None:
+            wf_active_pupil = self.zernike_mirror(wf_active_pupil)
+            wf_zm = self.zernike_mirror(self.wf_aper)
+        else:
+            wf_zm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.dm is not None:
+            wf_active_pupil = self.dm(wf_active_pupil)
+            wf_dm = self.dm(self.wf_aper)
+        else:
+            wf_dm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+
+        # Calculate wavefront after apodizer plane
+        wf_apod = apod_prop(wf_active_pupil)
+
+        # Calculate wavefronts of the full coronagraphic propagation
         wf_lyot = self.coro(wf_apod)
         wf_im_coro = self.prop(wf_lyot)
 
-        # Wavefronts in extra planes
+        # Calculate wavefronts in extra planes
         wf_before_fpm = self.prop(wf_apod)
         int_after_fpm = np.log10(wf_before_fpm.intensity / wf_before_fpm.intensity.max()) * fpm_plot  # this is the intensity straight
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
-        # Wavefronts of the reference propagation
+        # Calculate wavefronts of the reference propagation (no FPM)
         wf_ref_pup = hcipy.Wavefront(self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
         wf_im_ref = self.prop(wf_ref_pup)
 
@@ -192,6 +216,8 @@ class SegmentedTelescopeAPLC:
         if display_intermediate:
 
             plt.figure(figsize=(15, 15))
+
+            # TODO add displays of the additional deformable mirrors
 
             plt.subplot(331)
             hcipy.imshow_field(wf_sm.phase, mask=self.aperture, cmap='RdBu')
@@ -227,6 +253,8 @@ class SegmentedTelescopeAPLC:
 
         if return_intermediate == 'intensity':
 
+            # TODO make sure to also return all additional deformable mirrors
+
             # Return the intensity in all planes; except phase on the SM (first plane)
             intermediates = {'seg_mirror': wf_sm.phase,
                              'apod': wf_apod.intensity,
@@ -241,6 +269,8 @@ class SegmentedTelescopeAPLC:
                 return wf_im_coro.intensity, intermediates
 
         if return_intermediate == 'efield':
+
+            # TODO make sure to also return all additional deformable mirrors
 
             # Return the E-fields in all planes; except intensity in focal plane after FPM
             intermediates = {'seg_mirror': wf_sm,
