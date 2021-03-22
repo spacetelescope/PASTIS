@@ -144,7 +144,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_multiprocess().
+    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -204,7 +204,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_multiprocess().
+    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: float, calibration aberration per segment in m
@@ -257,7 +257,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_multiprocess().
+    Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -415,6 +415,8 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
 def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
     """
     Generate a numerical/semi-analytical PASTIS matrix.
+
+    -- DEPRECATED !! -- This functionis deprecated, use the class PastisMatrixIntensities instead.
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
@@ -728,5 +730,5 @@ class PastisMatrixEfield(PastisMatrix):
 
 if __name__ == '__main__':
 
-        #num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-        num_matrix_multiprocess(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+        #PastisMatrixIntensities(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        PastisMatrixIntensities(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
