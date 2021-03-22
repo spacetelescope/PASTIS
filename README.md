@@ -170,40 +170,6 @@ You can also remove a conda environment with:
 conda remove --name pastis --all
 ```
 
-### The package `hcipy`
-PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
-PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
-this reason, the installation with `environment.yml` installs `hcipy` from the commit hash `980f39c`.
-
-If you want to install the package manually from this commit, you can do so with this `pip` command:
-```bash
-$ pip install git+https://github.com/ehpor/hcipy.git@980f39c7f309f799fd418b4f6a0657295b52c43e
-```
-Alternatively, if you are installing from a local clone, you can follow these steps:
-1. Navigate to the location on disk that contains your repos and clone the `hcipy` repository:
-```bash
-$ git clone https://github.com/ehpor/hcipy.git
-```
-2. Make sure to activate you conda environment that you want to install `hcipy` into:
-```bash
-$ conda activate pastis
-```
-3. Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
-```bash
-$ git checkout 980f39c
-```
-4. Then install the package:
-```bash
-$ python setup.py install
-```
-This is a static installation of the `hcipy` package into the conda environment `pastis` only, at the version of the 
-given commit. If you now check out a different commit or branch in your local `hcipy` repository, this will not 
-influence the environment you did this installation in. Note how the installation process will create a "build" 
-directory inside the `hcipy` repository that you are free to delete if you like.
-
-We are currently refactoring our code to be compatible with the improved, current version of `hcipy` that is installable
-via pip, and will update your README accordingly when this change has successfully happened.
-
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
 the plotting should work as expected but the results might be slightly different from what is presented in the paper 
