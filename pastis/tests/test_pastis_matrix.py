@@ -93,7 +93,8 @@ def test_luvoir_matrix_regression():
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_calc = matrix_calc.PastisMatrixIntensities(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False).calc()
+    new_matrix_calc = matrix_calc.PastisMatrixIntensities(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
+    new_matrix_calc.calc()
     new_matrix = new_matrix_calc.matrix_pastis
 
     # Check that the calculated PASTIS matrix is symmetric

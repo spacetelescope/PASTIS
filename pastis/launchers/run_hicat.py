@@ -13,7 +13,8 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # Generate the matrix
-    run_matrix = PastisMatrixIntensities(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+    run_matrix = PastisMatrixIntensities(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
     # Alternatively, pick data location to run PASTIS analysis on

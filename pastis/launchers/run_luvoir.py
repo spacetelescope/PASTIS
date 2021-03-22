@@ -14,7 +14,8 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # First generate a couple of matrices
-    run_matrix = PastisMatrixIntensities(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+    run_matrix = PastisMatrixIntensities(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
     # Alternatively, pick data locations to run PASTIS analysis on
