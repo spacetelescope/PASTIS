@@ -8,14 +8,15 @@
 Sweet liquor from the south of France.
 
 In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes,
-developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
+developed and published in [Leboulleux et al. (2018)](https://ui.adsabs.harvard.edu/abs/2018JATIS...4c5002L/abstract) 
+and [Laginja et al. (2021, accepted for publication in JATIS)](https://ui.adsabs.harvard.edu/abs/2021arXiv210306288L/abstract).
 
 This release brings significant updates especially in the PASTIS matrix calculations, which is now multiprocessed. We also
 take advantage of the fact that the PASTIS matrix is symmetrical, which allows us to calcualte only half of the contrast
 matrix, including the diagonal, before calculating the PASTIS matrix.
 
 This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info
-about the code and other telescopes it suppoerts. For further info, contact the author under `iva.laginja@lam.fr`.
+about the code and other telescopes it supports. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
@@ -27,7 +28,6 @@ about the code and other telescopes it suppoerts. For further info, contact the 
 * [Full Requirements](#full-requirements)
   * [Git](#git)
   * [Conda environment](#conda-environment)
-  * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
   * [Known `matplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
@@ -79,7 +79,7 @@ $ conda env create --file environment.yml
 $ conda activate pastis
 ```
 
-- Install the package into this environmentin develop mode
+- Install the package into this environment in develop mode
 ```bash
 $ python setup.py develop
 ```
@@ -169,40 +169,6 @@ You can also remove a conda environment with:
 ```bash
 conda remove --name pastis --all
 ```
-
-### The package `hcipy`
-PASTIS relies heavily on the `hcipy` package, most importantly for its implementation of a segmented mirror. The current
-PASTIS code is built around an old version of that which is not compatible with the most recent version of `hcipy`. For 
-this reason, the installation with `environment.yml` installs `hcipy` from the commit hash `980f39c`.
-
-If you want to install the package manually from this commit, you can do so with this `pip` command:
-```bash
-$ pip install git+https://github.com/ehpor/hcipy.git@980f39c7f309f799fd418b4f6a0657295b52c43e
-```
-Alternatively, if you are installing from a local clone, you can follow these steps:
-1. Navigate to the location on disk that contains your repos and clone the `hcipy` repository:
-```bash
-$ git clone https://github.com/ehpor/hcipy.git
-```
-2. Make sure to activate you conda environment that you want to install `hcipy` into:
-```bash
-$ conda activate pastis
-```
-3. Navigate into the `hcipy` repo (`$ cd hicpy`) and checkout the required commit:
-```bash
-$ git checkout 980f39c
-```
-4. Then install the package:
-```bash
-$ python setup.py install
-```
-This is a static installation of the `hcipy` package into the conda environment `pastis` only, at the version of the 
-given commit. If you now check out a different commit or branch in your local `hcipy` repository, this will not 
-influence the environment you did this installation in. Note how the installation process will create a "build" 
-directory inside the `hcipy` repository that you are free to delete if you like.
-
-We are currently refactoring our code to be compatible with the improved, current version of `hcipy` that is installable
-via pip, and will update your README accordingly when this change has successfully happened.
 
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
@@ -360,7 +326,7 @@ directory structure is as follows:
 |      |-- contrast_matrix.pdf:                  # PDF image of contrast matrix
 |      |-- pastis_matrix_example.log             # logging output of matrix calculation
 |      |-- pastis_matrix.pdf                     # PDF image of the calculated PASTIS matrix 
-|      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
+|      |-- pastis_matrix.fits                    # the PASTIS matrix
 |      |-- psfs
 |          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
 |   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
@@ -396,7 +362,7 @@ E2E simulator within `pastis`. The simulator for JWST is `webbpsf` and can be in
 is currently private. The analysis for each of them can be started with the respective launcher in `pastis/launchers`.
 
 ### LUVOIR-A
-There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baselien APLC desings
+There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baseline APLC designs
 for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 

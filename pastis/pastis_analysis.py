@@ -39,7 +39,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
     """
 
     # Read matrix
-    matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
+    matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical', 'pastis_matrix.fits'))
 
     # Get singular modes and values from SVD
     pmodes, svals, vh = np.linalg.svd(matrix, full_matrices=True)
@@ -537,7 +537,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     log.info(f'Coronagraph floor: {coro_floor}')
 
     # Read the PASTIS matrix
-    matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
+    matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'pastis_matrix.fits'))
 
     ### Calculate PASTIS modes and singular values/eigenvalues
     if calculate_modes:

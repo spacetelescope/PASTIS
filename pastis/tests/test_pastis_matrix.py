@@ -8,16 +8,16 @@ from pastis import util
 
 
 # Read the LUVOIR-A small APLC PASTIS matrix
-# From data dir: 2021-01-09T22-41-13_luvoir-small
-# Created on commit: 2a9dd6
+# From data dir: 2021-03-21T19-15-50_luvoir-small
+# Created on commit: 33edfa9265a4a07844927402cbde97761c413fcd
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
 NSEG = LUVOIR_MATRIX_SMALL.shape[0]
 
 # Read the LUVOIR-A small APLC contrast matrix
-# From data dir: 2021-01-09T22-41-13_luvoir-small
-# Created on commit: 2a9dd6
+# From data dir: 2021-03-21T19-15-50_luvoir-small
+# Created on commit: 33edfa9265a4a07844927402cbde97761c413fcd
 # Coronagraph floor has not been subtracted from this contrast matrix
 contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices',
                                     'contrast_matrix_LUVOIR_small_piston-only.fits')
@@ -34,7 +34,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
     ### Test the case in which the coronagraph floor is constant across all matrix measurements
 
     # Hard-code the contrast floor the matrix was generated with
-    coro_floor = 4.315823935036038e-11
+    coro_floor = 4.2376360700565846e-11
     # Calculate the PASTIS matrix under assumption of a CONSTANT coronagraph floor
     pastis_matrix_constant = matrix_calc.pastis_from_contrast_matrix(CONTRAST_MATRIX, seglist, wfe_aber, coro_floor)
     # Compare to PASTIS matrix in the tests folder
@@ -94,7 +94,7 @@ def test_luvoir_matrix_regression():
 
     # Calculate new LUVOIR small PASTIS matrix
     new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
-    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'PASTISmatrix_num_piston_Noll1.fits'))
+    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'pastis_matrix.fits'))
 
     # Check that the calculated PASTIS matrix is symmetric
     assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'

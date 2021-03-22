@@ -202,7 +202,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
 
     # Import numerical PASTIS matrix
-    filename = 'PASTISmatrix_num_piston_Noll1'
+    filename = 'pastis_matrix'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
     # Create random aberration coefficients on segments, scaled to total rms
@@ -271,7 +271,7 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
 
     # Import numerical PASTIS matrix
-    filename = 'PASTISmatrix_num_piston_Noll1'
+    filename = 'pastis_matrix'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
     # Create random aberration coefficients on segments, scaled to total rms
@@ -340,7 +340,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
 
     # Import numerical PASTIS matrix
-    filename = 'PASTISmatrix_num_piston_Noll1'
+    filename = 'pastis_matrix'
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
     # Create random aberration coefficients on segments, scaled to total rms
