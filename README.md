@@ -16,7 +16,7 @@ take advantage of the fact that the PASTIS matrix is symmetrical, which allows u
 matrix, including the diagonal, before calculating the PASTIS matrix.
 
 This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info
-about the code and other telescopes it suppoerts. For further info, contact the author under `iva.laginja@lam.fr`.
+about the code and other telescopes it supports. For further info, contact the author under `iva.laginja@lam.fr`.
 
 ## Table of Contents
 
@@ -28,7 +28,6 @@ about the code and other telescopes it suppoerts. For further info, contact the 
 * [Full Requirements](#full-requirements)
   * [Git](#git)
   * [Conda environment](#conda-environment)
-  * [The package `hcipy`](#the-package-hcipy)
   * [Plotting](#plotting)
   * [Known `matplotlib` issues on MacOS](#known-matplotlib-issues-on-macos)
 * [Configuration file](#configuration-file)
