@@ -360,7 +360,7 @@ directory structure is as follows:
 |      |-- contrast_matrix.pdf:                  # PDF image of contrast matrix
 |      |-- pastis_matrix_example.log             # logging output of matrix calculation
 |      |-- pastis_matrix.pdf                     # PDF image of the calculated PASTIS matrix 
-|      |-- PASTISmatrix_num_piston_Noll1.fits    # the PASTIS matrix
+|      |-- pastis_matrix.fits                    # the PASTIS matrix
 |      |-- psfs
 |          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
 |   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
