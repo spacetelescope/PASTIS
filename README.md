@@ -8,7 +8,8 @@
 Sweet liquor from the south of France.
 
 In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes,
-developed and published in Leboulleux et al. (2018) and Laginja et al. (2020, submitted).
+developed and published in [Leboulleux et al. (2018)](https://ui.adsabs.harvard.edu/abs/2018JATIS...4c5002L/abstract) 
+and [Laginja et al. (2021, accepted for publication in JATIS)](https://ui.adsabs.harvard.edu/abs/2021arXiv210306288L/abstract).
 
 This release brings significant updates especially in the PASTIS matrix calculations, which is now multiprocessed. We also
 take advantage of the fact that the PASTIS matrix is symmetrical, which allows us to calcualte only half of the contrast
