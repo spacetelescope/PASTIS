@@ -79,7 +79,7 @@ $ conda env create --file environment.yml
 $ conda activate pastis
 ```
 
-- Install the package into this environmentin develop mode
+- Install the package into this environment in develop mode
 ```bash
 $ python setup.py develop
 ```
@@ -362,7 +362,7 @@ E2E simulator within `pastis`. The simulator for JWST is `webbpsf` and can be in
 is currently private. The analysis for each of them can be started with the respective launcher in `pastis/launchers`.
 
 ### LUVOIR-A
-There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baselien APLC desings
+There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baseline APLC designs
 for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
