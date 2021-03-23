@@ -6,6 +6,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import pandas as pd
+from scipy.interpolate import griddata
 from astropy.io import fits
 import hcipy
 
@@ -41,6 +43,7 @@ class SegmentedTelescopeAPLC:
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
+        self.harris_sm = None
         self.zernike_mirror = None
         self.ripple_mirror = None
         self.dm = None
@@ -61,6 +64,28 @@ class SegmentedTelescopeAPLC:
         self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
         self.coro_no_ls = hcipy.LyotCoronagraph(self.pupil_grid, fpm)
         self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+        
+    def _create_evaluated_segment_grid(self):
+        """
+        Create a list of segments evaluated on the pupil_grid.
+
+        Returns:
+        --------
+        seg_evaluated: list
+            all segments evaluated individually on self.pupil_grid
+        """
+        
+        # Create single hexagonal segment and full segmented aperture from the single segment, with segment positions
+        segment_field_generator = hcipy.hexagonal_aperture(self.segment_circumscribed_diameter, np.pi / 2)
+        _aper_in_sm, segs_in_sm = hcipy.make_segmented_aperture(segment_field_generator, self.seg_pos, return_segments=True)
+
+        # Evaluate all segments individually on the pupil_grid
+        seg_evaluated = []
+        for seg_tmp in segs_in_sm:
+            tmp_evaluated = hcipy.evaluate_supersampled(seg_tmp, self.pupil_grid, 1)
+            seg_evaluated.append(tmp_evaluated)
+        
+        return seg_evaluated
 
     def create_segmented_mirror(self, n_zernikes):
         """
@@ -72,15 +97,7 @@ class SegmentedTelescopeAPLC:
             how many Zernikes to create per segment
         """
 
-        # Create single hexagonal segment and full segmented aperture from the single segment, with segment positions
-        segment_field_generator = hcipy.hexagonal_aperture(self.segment_circumscribed_diameter, np.pi / 2)
-        _aper_in_sm, segs_in_sm = hcipy.make_segmented_aperture(segment_field_generator, self.seg_pos, return_segments=True)
-
-        # Evaluate all segments individually on the pupil_grid
-        seg_evaluated = []
-        for seg_tmp in segs_in_sm:
-            tmp_evaluated = hcipy.evaluate_supersampled(seg_tmp, self.pupil_grid, 1)
-            seg_evaluated.append(tmp_evaluated)
+        seg_evaluated = self._create_evaluated_segment_grid()
 
         # Create a single segment influence function with all Zernikes n_zernikes
         first_seg = 0    # Create this first influence function on the center segment only
@@ -104,6 +121,91 @@ class SegmentedTelescopeAPLC:
             local_zernike_basis.extend(local_zernike_basis_tmp)   # extend our basis with this new segment
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
+
+    def create_segmented_harris_mirror(self, filepath, pad_orientation):
+        """Generate a basis made of the thermal modes provided by Harris.
+
+        Thermal modes: a, h, i, j, k
+        Mechanical modes: e, f, g
+        Other modes: b, c, d
+
+        Parameters:
+        ----------
+        filepath : string
+            absolute path to the xls spreadsheet containing the Harris segment modes
+        pad_orientation : type?
+            orientation of the mounting pads of the primary, one array/list entry per segment?
+        """
+
+        # Read the spreadsheet containing the Harris segment modes
+        try:
+            df = pd.read_excel(filepath)
+        except FileNotFoundError:
+            log.warning(f"Could not find the Harris spreadsheet under '{filepath}', "
+                        f"please double-check your path and that the file exists.")
+            return
+
+        # Read all modes as arrays
+        valuesA = np.asarray(df.a)
+        valuesB = np.asarray(df.b)
+        valuesC = np.asarray(df.c)
+        valuesD = np.asarray(df.d)
+        valuesE = np.asarray(df.e)
+        valuesF = np.asarray(df.f)
+        valuesG = np.asarray(df.g)
+        valuesH = np.asarray(df.h)
+        valuesI = np.asarray(df.i)
+        valuesJ = np.asarray(df.j)
+        valuesK = np.asarray(df.k)
+        
+        seg_x = np.asarray(df.X)
+        seg_y = np.asarray(df.Y)
+        harris_seg_diameter = np.max([np.max(seg_x) - np.min(seg_x), np.max(seg_y) - np.min(seg_y)])
+        
+        pup_dims = self.pupil_grid.dims
+        x_grid = np.asarray(df.X) * self.segment_circumscribed_diameter / harris_seg_diameter
+        y_grid = np.asarray(df.Y) * self.segment_circumscribed_diameter / harris_seg_diameter
+        points = np.transpose(np.asarray([x_grid, y_grid]))
+
+        seg_evaluated = self._create_evaluated_segment_grid()
+
+        harris_base_thermal = []
+        for seg_num in range(0, 120):   # TODO: the 120 shouldn't be hard-coded, likely self.nseg, also it's the same like n_segs below
+
+            grid_seg = self.pupil_grid.shifted(-self.seg_pos[seg_num])
+            xL1D = np.asarray(grid_seg.x)
+            yL1D = np.asarray(grid_seg.y)
+
+            # Rotate the modes grids according to the orientation of the mounting pads
+            phi = pad_orientation[seg_num]
+            XRot = xL1D * np.cos(phi) + yL1D * np.sin(phi)
+            YRot = -xL1D * np.sin(phi) + yL1D * np.cos(phi)
+
+            # TODO: stick the following block in a loop over all modes
+            ZA = griddata(points, valuesA, (XRot, YRot), method='linear')
+            ZA[np.isnan(ZA)] = 0
+            ZA = ZA.ravel() * seg_evaluated[seg_num]
+            ZH = griddata(points, valuesH, (XRot, YRot), method='linear')
+            ZH[np.isnan(ZH)] = 0
+            ZH = ZH.ravel() * seg_evaluated[seg_num]
+            ZI = griddata(points, valuesI, (XRot, YRot), method='linear')
+            ZI[np.isnan(ZI)] = 0
+            ZI = ZI.ravel() * seg_evaluated[seg_num]
+            ZJ = griddata(points, valuesJ, (XRot, YRot), method='linear')
+            ZJ[np.isnan(ZJ)] = 0
+            ZJ = ZJ.ravel() * seg_evaluated[seg_num]
+            ZK = griddata(points, valuesK, (XRot, YRot), method='linear')
+            ZK[np.isnan(ZK)] = 0
+            ZK = ZK.ravel() * seg_evaluated[seg_num]
+            harris_base_thermal.append([ZA, ZH, ZI, ZJ, ZK])
+
+        harris_base_thermal = np.asarray(harris_base_thermal)
+        n_segs = harris_base_thermal.shape[0]
+        n_single_modes = harris_base_thermal.shape[1]
+        harris_base_thermal = harris_base_thermal.reshape(n_segs * n_single_modes, pup_dims[0] ** 2)
+        harris_thermal_mode_basis = hcipy.ModeBasis(np.transpose(harris_base_thermal), grid=self.pupil_grid)
+
+        self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
 
     def create_global_zernike_mirror(self, n_zernikes):
         """
@@ -194,6 +296,11 @@ class SegmentedTelescopeAPLC:
             wf_sm = self.sm(self.wf_aper)
         else:
             wf_sm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.harris_sm is not None:
+            wf_active_pupil = self.harris_sm(wf_active_pupil)
+            wf_harris_sm = self.harris_sm(self.wf_aper)
+        else:
+            wf_harris_sm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
         if self.zernike_mirror is not None:
             wf_active_pupil = self.zernike_mirror(wf_active_pupil)
             wf_zm = self.zernike_mirror(self.wf_aper)
@@ -248,7 +355,7 @@ class SegmentedTelescopeAPLC:
             plt.title('Deformable mirror phase')
 
             plt.subplot(3, 4, 5)
-            hcipy.imshow_field(hcipy.Wavefront(transparent_field, wavelength=self.wvln).phase, mask=self.aperture, cmap='RdBu')   # FIXME: drop in actual HM phase
+            hcipy.imshow_field(wf_harris_sm.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Harris mode mirror phase')
 
             plt.subplot(3, 4, 6)
@@ -328,6 +435,8 @@ class SegmentedTelescopeAPLC:
         """
         if self.sm is not None:
             self.sm.flatten()
+        if self.harris_sm is not None:
+            self.harris_sm.flatten()
         if self.zernike_mirror is not None:
             self.zernike_mirror.flatten()
         if self.ripple_mirror is not None:
