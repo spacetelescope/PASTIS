@@ -193,20 +193,20 @@ class SegmentedTelescopeAPLC:
         for seg_num in range(0, self.nseg):
 
             grid_seg = self.pupil_grid.shifted(-self.seg_pos[seg_num])
-            xL1D = np.asarray(grid_seg.x)
-            yL1D = np.asarray(grid_seg.y)
+            x_line_grid = np.asarray(grid_seg.x)
+            y_line_grid = np.asarray(grid_seg.y)
 
             # Rotate the modes grids according to the orientation of the mounting pads
             phi = pad_orientation[seg_num]
-            XRot = xL1D * np.cos(phi) + yL1D * np.sin(phi)
-            YRot = -xL1D * np.sin(phi) + yL1D * np.cos(phi)
+            x_rotation = x_line_grid * np.cos(phi) + y_line_grid * np.sin(phi)
+            y_rotation = -x_line_grid * np.sin(phi) + y_line_grid * np.cos(phi)
 
             # Transform all needed Harris modes from data to modes on our segmented aperture
-            ZA = _transform_harris_mode(valuesA, XRot, YRot, points, seg_evaluated, seg_num)
-            ZH = _transform_harris_mode(valuesH, XRot, YRot, points, seg_evaluated, seg_num)
-            ZI = _transform_harris_mode(valuesI, XRot, YRot, points, seg_evaluated, seg_num)
-            ZJ = _transform_harris_mode(valuesJ, XRot, YRot, points, seg_evaluated, seg_num)
-            ZK = _transform_harris_mode(valuesK, XRot, YRot, points, seg_evaluated, seg_num)
+            ZA = _transform_harris_mode(valuesA, x_rotation, y_rotation, points, seg_evaluated, seg_num)
+            ZH = _transform_harris_mode(valuesH, x_rotation, y_rotation, points, seg_evaluated, seg_num)
+            ZI = _transform_harris_mode(valuesI, x_rotation, y_rotation, points, seg_evaluated, seg_num)
+            ZJ = _transform_harris_mode(valuesJ, x_rotation, y_rotation, points, seg_evaluated, seg_num)
+            ZK = _transform_harris_mode(valuesK, x_rotation, y_rotation, points, seg_evaluated, seg_num)
 
             harris_base_thermal.append([ZA, ZH, ZI, ZJ, ZK])
 
