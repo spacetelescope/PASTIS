@@ -9,6 +9,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numpy
+  - openpyxl
   - pandas
   - pip
   - progressbar2
