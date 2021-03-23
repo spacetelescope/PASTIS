@@ -272,7 +272,7 @@ class SegmentedTelescopeAPLC:
         Parameters:
         ----------
         ref : bool
-            Keyword for additionally returning the refrence PSF without the FPM.
+            Keyword for additionally returning the reference PSF without the FPM.
         display_intermediate : bool
             Keyword for display of all planes.
         return_intermediate : string
@@ -286,7 +286,7 @@ class SegmentedTelescopeAPLC:
         wf_im_ref.intensity : Field, optional
             Reference image without FPM.
         intermediates : dict of Fields, optional
-            Intermediate plane intensity images; except for full wavefront on segmented mirror.
+            Intermediate plane intensity images; except for phases on DMs
         wf_im_coro : Wavefront
             Wavefront in last focal plane.
         wf_im_ref : Wavefront, optional
@@ -409,10 +409,13 @@ class SegmentedTelescopeAPLC:
 
         if return_intermediate == 'intensity':
 
-            # TODO make sure to also return all additional deformable mirrors
-
-            # Return the intensity in all planes; except phase on the SM (first plane)
+            # Return the intensity in all planes; except phases on all DMs, and combined phase from active pupils
             intermediates = {'seg_mirror': wf_sm.phase,
+                             'zernike_mirror': wf_zm.phase,
+                             'dm': wf_dm.phase,
+                             'harris_seg_mirror': wf_harris_sm.phase,
+                             'ripple_mirror': wf_ripples.phase,
+                             'active_pupil': wf_active_pupil.phase,
                              'apod': wf_apod.intensity,
                              'before_fpm': wf_before_fpm.intensity / wf_before_fpm.intensity.max(),
                              'after_fpm': int_after_fpm / wf_before_fpm.intensity.max(),
@@ -426,10 +429,13 @@ class SegmentedTelescopeAPLC:
 
         if return_intermediate == 'efield':
 
-            # TODO make sure to also return all additional deformable mirrors
-
             # Return the E-fields in all planes; except intensity in focal plane after FPM
             intermediates = {'seg_mirror': wf_sm,
+                             'zernike_mirror': wf_zm,
+                             'dm': wf_dm,
+                             'harris_seg_mirror': wf_harris_sm,
+                             'ripple_mirror': wf_ripples,
+                             'active_pupil': wf_active_pupil,
                              'apod': wf_apod,
                              'before_fpm': wf_before_fpm,
                              'after_fpm': int_after_fpm,
