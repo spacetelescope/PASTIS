@@ -42,6 +42,7 @@ class SegmentedTelescopeAPLC:
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         self.sm = SegmentedMirror(indexed_aperture=indexed_aperture, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
         self.zernike_mirror = None
+        self.ripple_mirror = None
         self.dm = None
 
         self.aperture = aper
@@ -119,6 +120,18 @@ class SegmentedTelescopeAPLC:
                                                                    starting_mode=1)
         self.zernike_mirror = hcipy.optics.DeformableMirror(global_zernike_basis)
 
+    def create_ripple_mirror(self, n_fourier):
+        """
+        Create a Dm that applies Fourier sine and cosine modes in the entrance pupil plane, up to n_fourier cycles per aperture.
+        Parameters:
+        ----------
+        n_fourier : int
+            Maximum number for cycles per apertures, use an odd number (!)
+        """
+        fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)
+        fourier_basis = hcipy.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
+        self.ripple_mirror = hcipy.optics.DeformableMirror(fourier_basis)
+
     def create_continuous_deformable_mirror(self, n_actuators_across):
         """
         Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
@@ -186,6 +199,11 @@ class SegmentedTelescopeAPLC:
             wf_zm = self.zernike_mirror(self.wf_aper)
         else:
             wf_zm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.ripple_mirror is not None:
+            wf_active_pupil = self.ripple_mirror(wf_active_pupil)
+            wf_ripples = self.ripple_mirror(self.wf_aper)
+        else:
+            wf_ripples = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
         if self.dm is not None:
             wf_active_pupil = self.dm(wf_active_pupil)
             wf_dm = self.dm(self.wf_aper)
@@ -234,7 +252,7 @@ class SegmentedTelescopeAPLC:
             plt.title('Harris mode mirror phase')
 
             plt.subplot(3, 4, 6)
-            hcipy.imshow_field(hcipy.Wavefront(transparent_field, wavelength=self.wvln).phase, mask=self.aperture, cmap='RdBu')   # FIXME: drop in actual FM phase
+            hcipy.imshow_field(wf_ripples.phase, mask=self.aperture, cmap='RdBu')
             plt.title('High modes mirror phase')
 
             plt.subplot(3, 4, 7)
@@ -312,6 +330,8 @@ class SegmentedTelescopeAPLC:
             self.sm.flatten()
         if self.zernike_mirror is not None:
             self.zernike_mirror.flatten()
+        if self.ripple_mirror is not None:
+            self.ripple_mirror.flatten()
         if self.dm is not None:
             self.dm.flatten()
 
