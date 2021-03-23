@@ -146,8 +146,8 @@ class SegmentedTelescopeAPLC:
         ----------
         filepath : string
             absolute path to the xls spreadsheet containing the Harris segment modes
-        pad_orientation : type?
-            orientation of the mounting pads of the primary, one array/list entry per segment?
+        pad_orientation : ndarray
+            angles of orientation of the mounting pads of the primary, in rad, one per segment
         """
 
         # Read the spreadsheet containing the Harris segment modes
