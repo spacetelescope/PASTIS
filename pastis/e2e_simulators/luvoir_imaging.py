@@ -20,6 +20,18 @@ log = logging.getLogger()
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
 
+    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
+    Use the deformable mirror methods to create more flexible DMs as class attributes:
+        self.sm
+        self.harris_sm
+        self.zernike_mirror
+        self.ripple_mirror
+        self.dm
+    You can retrieve the number of modes/influence functions/actuators of each DM by calling its num_actuators attribute, e.g.
+        self.harris_sm.num_actuators
+    You can command each DM by passing it an array of length "num_actuators", e.g.
+        self.sm.actuators = dm_command
+
     Parameters:
     ----------
     aper : Field
@@ -35,10 +47,11 @@ class SegmentedTelescopeAPLC:
         Lyot stop
     fpm : Field
         Focal plane mask
-    focal_grid :
+    focal_grid : hcipy focal grid
         Focal plane grid to put final image on
     params : dict
-        wavelength, telescope diameter, image radius in lambda/D, FPM radius in lambda/D, segment circumscribed diameter in m
+        wavelength in m, telescope diameter in m, image radius in lambda/D, FPM radius in lambda/D,
+        segment circumscribed diameter in m
     """
 
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
