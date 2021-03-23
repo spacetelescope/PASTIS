@@ -772,17 +772,18 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
 
 class PastisAnalysis:
-    def __init__(self, instrument, run_choice, design=None, c_target=1e-10, n_repeat=100,
-                 calculate_hockey_stick=True,
-                 calculate_modes=True,
-                 calculate_sigmas=True,
-                 run_monte_carlo_modes=True,
-                 calc_cumulative_contrast=True,
-                 calculate_mus=True,
-                 run_monte_carlo_segments=True,
-                 calculate_covariance_matrices=True,
-                 analytical_statistics=True,
-                 calculate_segment_based=True):
+    def __init__(self, instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
+
+        # calculate_hockey_stick = True,
+        # calculate_modes = True,
+        # calculate_sigmas = True,
+        # run_monte_carlo_modes = True,
+        # calc_cumulative_contrast = True,
+        # calculate_mus = True,
+        # run_monte_carlo_segments = True,
+        # calculate_covariance_matrices = True,
+        # analytical_statistics = True,
+        # calculate_segment_based = True
 
         self.instrument = instrument
         self.design = design
@@ -792,6 +793,9 @@ class PastisAnalysis:
 
         # Data directory
         self.workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
+        # Check for results directory and create if it doesn't exits
+        if not os.path.isdir(os.path.join(self.workdir, 'results')):
+            os.mkdir(os.path.join(self.workdir, 'results'))
 
         self.nseg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
         self.wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # [m]
@@ -804,8 +808,31 @@ class PastisAnalysis:
         self.matrix = fits.getdata(os.path.join(self.workdir, 'matrix_numerical', 'pastis_matrix.fits'))
 
     def run_analysis(self):
+
+        self.setup_simulator()
+        self.run_general_analysis()
+        self.run_tolerancing_analysis()
+
+        self.write_pdf_report()
         log.info(f"All saved in {os.path.join(self.workdir, 'results')}")
         log.info('Good job')
+
+    def run_general_analysis(self):
+        """Run parts of the analysis that do not do any tolerancing - hockey stick and calculate eigenmodes."""
+
+        self.calculate_modes()
+        self.compare_hockey_stick()
+
+    def run_tolerancing_analysis(self):
+        """Run tolerancing parts of the analysis"""
+        self.calculate_sigmas()
+        self.run_monte_carlo_modes()
+        self.calc_cumulative_contrast()
+        self.calculate_mus()
+        self.run_monte_carlo_segments()
+        self.calculate_covariance_matrices()
+        self.analytical_statistics()
+        self.calculate_segment_based()
 
     def setup_simulator(self):
         # Set up simulator, calculate reference PSF and dark hole mask
@@ -876,9 +903,13 @@ class PastisAnalysis:
         self.coro_floor = util.dh_mean(psf_unaber, self.dh_mask)
         log.info(f'Coronagraph floor: {self.coro_floor}')
 
-    def calculate_modes(self):
+    def compare_hockey_stick(self):
+        """Run a hockey stick experiment"""
+        pass   # TODO: add stuff
+
+    def calculate_modes(self, fresh=True):
         """Calculate PASTIS modes and singular values/eigenvalues"""
-        if calculate_modes_x:
+        if fresh:
             log.info('Calculating all PASTIS modes')
             self.pmodes, self.svals = modes_from_matrix(self.instrument, self.workdir)
 
@@ -889,9 +920,9 @@ class PastisAnalysis:
             log.info(f'Reading PASTIS modes from {self.workdir}')
             self.pmodes, self.svals = modes_from_file(self.workdir)
 
-    def calculate_sigmas(self):
+    def calculate_sigmas(self, fresh=True):
         """Calculate mode-based static constraints"""
-        if calculate_sigmas_x:
+        if fresh:
             log.info('Calculating static sigmas')
             self.sigmas = calculate_sigma(self.c_target, self.nseg, self.svals, self.coro_floor)
             np.savetxt(os.path.join(self.workdir, 'results', f'mode_requirements_{self.c_target}_uniform.txt'), self.sigmas)
@@ -940,9 +971,9 @@ class PastisAnalysis:
                                             c_target=self.c_target, segments=False, stddev=stddev_modes,
                                             save=True)
 
-    def calc_cumulative_contrast(self):
+    def calc_cumulative_contrast(self, fresh=True):
         """Calculate cumulative contrast plot with E2E simulator and matrix product"""
-        if calc_cumulative_contrast_x:
+        if fresh:
             log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
             self.cumulative_e2e = cumulative_contrast_e2e(instrument, self.pmodes, self.sigmas, self.sim_instance, self.dh_mask, self.norm)
             cumulative_pastis = cumulative_contrast_matrix(self.pmodes, self.sigmas, self.matrix, self.coro_floor)
@@ -962,9 +993,9 @@ class PastisAnalysis:
             log.info('Loading uniform cumulative contrast from disk.')
             self.cumulative_e2e = np.loadtxt(os.path.join(self.workdir, 'results', f'cumul_contrast_accuracy_e2e_{self.c_target}.txt'))
 
-    def calculate_mus(self):
+    def calculate_mus(self, fresh=True):
         """Calculate segment-based static constraints"""
-        if calculate_mus_x:
+        if fresh:
             log.info('Calculating segment-based constraints')
             mus = calculate_segment_constraints(self.matrix, self.c_target, self.coro_floor)
             np.savetxt(os.path.join(self.workdir, 'results', f'segment_requirements_{self.c_target}.txt'), mus)
@@ -984,7 +1015,7 @@ class PastisAnalysis:
                 psf_pure_mu_map = im_data.shaped
 
             if instrument == 'HiCAT':
-                sim_instance.iris_dm.flatten()
+                self.sim_instance.iris_dm.flatten()
                 for seg, mu in enumerate(mus):
                     self.sim_instance.iris_dm.set_actuator(seg, mu / 1e9, 0, 0)  # /1e9 converts to meters
                 im_data = self.sim_instance.calc_psf()
@@ -1004,7 +1035,7 @@ class PastisAnalysis:
         else:
             log.info(f'Reading mus from {self.workdir}')
             mus = np.loadtxt(os.path.join(self.workdir, 'results', f'segment_requirements_{self.c_target}.txt'))
-            self.mus *= u.nm
+            self.mus = mus * u.nm
 
     def run_monte_carlo_segments(self):
         """Calculate Monte Carlo confirmation for segments, with E2E"""
@@ -1048,9 +1079,9 @@ class PastisAnalysis:
                                             c_target=self.c_target, segments=True, stddev=stddev_segments,
                                             save=True)
 
-    def calculate_covariance_matrices(self):
+    def calculate_covariance_matrices(self, fresh=True):
         """Calculate covariance matrices"""
-        if calculate_covariance_matrices_x:
+        if fresh:
             log.info('Calculating covariance matrices')
             self.Ca = np.diag(np.square(self.mus.value))
             hcipy.write_fits(self.Ca,
