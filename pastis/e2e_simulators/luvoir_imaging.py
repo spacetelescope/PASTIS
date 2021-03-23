@@ -182,8 +182,15 @@ class SegmentedTelescopeAPLC:
 
         seg_evaluated = self._create_evaluated_segment_grid()
 
+        def _transform_harris_mode(values, xrot, yrot, points, seg_evaluated, seg_num):
+            """ Take imported Harris mode data and transform into a segment mode on our aperture."""
+            zval = griddata(points, values, (xrot, yrot), method='linear')
+            zval[np.isnan(zval)] = 0
+            zval = zval.ravel() * seg_evaluated[seg_num]
+            return zval
+
         harris_base_thermal = []
-        for seg_num in range(0, 120):   # TODO: the 120 shouldn't be hard-coded, likely self.nseg, also it's the same like n_segs below
+        for seg_num in range(0, self.nseg):
 
             grid_seg = self.pupil_grid.shifted(-self.seg_pos[seg_num])
             xL1D = np.asarray(grid_seg.x)
@@ -194,28 +201,19 @@ class SegmentedTelescopeAPLC:
             XRot = xL1D * np.cos(phi) + yL1D * np.sin(phi)
             YRot = -xL1D * np.sin(phi) + yL1D * np.cos(phi)
 
-            # TODO: stick the following block in a loop over all modes
-            ZA = griddata(points, valuesA, (XRot, YRot), method='linear')
-            ZA[np.isnan(ZA)] = 0
-            ZA = ZA.ravel() * seg_evaluated[seg_num]
-            ZH = griddata(points, valuesH, (XRot, YRot), method='linear')
-            ZH[np.isnan(ZH)] = 0
-            ZH = ZH.ravel() * seg_evaluated[seg_num]
-            ZI = griddata(points, valuesI, (XRot, YRot), method='linear')
-            ZI[np.isnan(ZI)] = 0
-            ZI = ZI.ravel() * seg_evaluated[seg_num]
-            ZJ = griddata(points, valuesJ, (XRot, YRot), method='linear')
-            ZJ[np.isnan(ZJ)] = 0
-            ZJ = ZJ.ravel() * seg_evaluated[seg_num]
-            ZK = griddata(points, valuesK, (XRot, YRot), method='linear')
-            ZK[np.isnan(ZK)] = 0
-            ZK = ZK.ravel() * seg_evaluated[seg_num]
+            # Transform all needed Harris modes from data to modes on our segmented aperture
+            ZA = _transform_harris_mode(valuesA, XRot, YRot, points, seg_evaluated, seg_num)
+            ZH = _transform_harris_mode(valuesH, XRot, YRot, points, seg_evaluated, seg_num)
+            ZI = _transform_harris_mode(valuesI, XRot, YRot, points, seg_evaluated, seg_num)
+            ZJ = _transform_harris_mode(valuesJ, XRot, YRot, points, seg_evaluated, seg_num)
+            ZK = _transform_harris_mode(valuesK, XRot, YRot, points, seg_evaluated, seg_num)
+
             harris_base_thermal.append([ZA, ZH, ZI, ZJ, ZK])
 
+        # Create full mode basis of all Harris modes on all segments
         harris_base_thermal = np.asarray(harris_base_thermal)
-        n_segs = harris_base_thermal.shape[0]
         n_single_modes = harris_base_thermal.shape[1]
-        harris_base_thermal = harris_base_thermal.reshape(n_segs * n_single_modes, pup_dims[0] ** 2)
+        harris_base_thermal = harris_base_thermal.reshape(self.nseg * n_single_modes, pup_dims[0] ** 2)
         harris_thermal_mode_basis = hcipy.ModeBasis(np.transpose(harris_base_thermal), grid=self.pupil_grid)
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
