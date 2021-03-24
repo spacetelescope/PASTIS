@@ -276,6 +276,32 @@ class SegmentedTelescope:
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
 
+    def set_harris_segment(self, segid, mode_number, amplitude):
+        """
+        Set an individual segment of the Harris segmented mirror to a single Harris mode.
+
+        Parameters:
+        ----------
+        segid : int
+            Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
+        mode_number : int
+            Which local Harris mode to apply to segment with ID segid. Ordering:
+                Thermal modes: 0, 7, 8, 9, 10
+                Mechanical modes: 4, 5, 6
+                Other modes: 1, 2, 3
+        amplitude : float
+            Aberration amplitude in  ? meters of surface.   # FIXME: meters? surface? rms or ptv?
+        """
+        if mode_number > self.n_harris_modes:
+            raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes per segment.")
+
+        if not self.center_segment:
+            segid -= 1
+
+        new_command = np.zeros(self.harris_sm.num_actuators)
+        new_command[self.n_harris_modes * segid + mode_number] = amplitude
+        self.harris_sm.actuators = new_command
+
     def create_global_zernike_mirror(self, n_zernikes):
         """
         Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
