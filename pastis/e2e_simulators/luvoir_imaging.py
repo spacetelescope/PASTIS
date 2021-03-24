@@ -167,6 +167,9 @@ class SegmentedTelescope:
         amplitude : float
             Aberration amplitude in meters of surface.   # FIXME: rms or ptv?
         """
+        if segid == 0 and not self.center_segment:
+            raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
+
         if isinstance(self.sm, hcipy.optics.DeformableMirror):
             if zernike_number > self.seg_n_zernikes:
                 raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike modes per segment.")
@@ -294,6 +297,9 @@ class SegmentedTelescope:
         """
         if mode_number > self.n_harris_modes:
             raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes per segment.")
+
+        if segid == 0 and not self.center_segment:
+            raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
         if not self.center_segment:
             segid -= 1
