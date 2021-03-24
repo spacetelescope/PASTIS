@@ -33,6 +33,11 @@ class SegmentedTelescope:
     You can command each DM by passing it an array of length "num_actuators", e.g.
         self.sm.actuators = dm_command
 
+    The segments are numbered in such a way that the center segment is *always* indexed with 0, no matter if it actually
+    exists or not. This means that e.g. for Luvoir A, the first segment in the innermost ring is still indexed with 1,
+    even if there is no active segment in the center of the pupil. For LUVOIR B or JWST, it is the same: the now present
+    center segment is indexed with 0, and all consecutive segments are indexed with 1, 2, 3, ..., self.nseg.
+
     Parameters:
     ----------
     wvln : float
@@ -64,7 +69,7 @@ class SegmentedTelescope:
         self.seg_pos = seg_pos
         self.segment_circumscribed_diameter = seg_diameter
         self.nseg = seg_pos.size
-        self.center_segment = False    # Currently only working with telescopes without center segment
+        self.center_segment = False    # Currently only working with telescopes without active center segment
 
         self.pupil_grid = indexed_aper.grid
         self.focal_det = focal_grid
@@ -119,7 +124,7 @@ class SegmentedTelescope:
         seg_evaluated = self._create_evaluated_segment_grid()
 
         # Create a single segment influence function with all Zernikes n_zernikes
-        first_seg = 0  # Create this first influence function on the center segment only
+        first_seg = 0  # Create this first influence function on the first segment only
         local_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                   self.segment_circumscribed_diameter,
                                                                   self.pupil_grid.shifted(-self.seg_pos[first_seg]),
