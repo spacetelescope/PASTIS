@@ -328,7 +328,7 @@ class SegmentedTelescope:
         if self.dm is not None:
             self.dm.flatten()
 
-    def propagate_active_pupils(self):
+    def _propagate_active_pupils(self):
         """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
         Returns:
         --------
@@ -393,7 +393,7 @@ class SegmentedTelescope:
         """
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         wf_image = self.prop(wf_active_pupil)
 
@@ -474,7 +474,7 @@ class SegmentedTelescope:
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         ob_wfs = self.zwfs(wf_active_pupil)
         return ob_wfs
@@ -546,7 +546,7 @@ class SegmentedAPLC(SegmentedTelescope):
         """
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # Create fake FPM for plotting
         fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
@@ -686,7 +686,7 @@ class SegmentedAPLC(SegmentedTelescope):
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
