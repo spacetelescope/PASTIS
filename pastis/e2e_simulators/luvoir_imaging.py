@@ -174,8 +174,9 @@ class SegmentedTelescope:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
         if isinstance(self.sm, hcipy.optics.DeformableMirror):
-            if zernike_number > self.seg_n_zernikes:
-                raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike modes per segment.")
+            if zernike_number >= self.seg_n_zernikes:
+                raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike "
+                                          f"modes per segment, indexed with 0.")
 
             if not self.center_segment:
                 segid -= 1
@@ -304,8 +305,9 @@ class SegmentedTelescope:
             Whether to override all other segment commands with zero, default False, which means the new segment
             aberration will be added to what is already on the segmented mirror.
         """
-        if mode_number > self.n_harris_modes:
-            raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes per segment.")
+        if mode_number >= self.n_harris_modes:
+            raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes "
+                                      f"per segment, indexed with 0.")
 
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
