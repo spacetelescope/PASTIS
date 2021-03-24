@@ -20,6 +20,40 @@ log = logging.getLogger()
 class SegmentedTelescope:
     """
     A segmented telescope with active components in the pupil plane (DMs).
+
+    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
+    Use the deformable mirror methods to create more flexible DMs as class attributes:
+        self.sm
+        self.harris_sm
+        self.zernike_mirror
+        self.ripple_mirror
+        self.dm
+    You can retrieve the number of total modes/influence functions/actuators of each DM by calling its num_actuators attribute, e.g.
+        self.harris_sm.num_actuators
+    You can command each DM by passing it an array of length "num_actuators", e.g.
+        self.sm.actuators = dm_command
+
+    Parameters:
+    ----------
+    wvln : float
+        Wavelength in meters
+    diameter : flaot
+        Telescope diameter in meters
+    aper : Field
+        Telescope aperture
+    indexed_aper : Field
+        The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
+        segment identification. Segment gaps must be strictly zero.
+    seg_pos : CartesianGrid(UnstructuredCoords)
+        Segment positions of the aperture
+    seg_diameter : float
+        Circumscribed diameter of an individual segment in meters
+    focal_grid : hcipy focal grid
+        Focal plane grid to put final image on
+    sampling : float
+        Sampling in focal plane in pixels per lambda/D
+    imlamD : float
+        Detector image half-size in lambda/D
     """
     def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD):
 
@@ -389,6 +423,7 @@ class SegmentedTelescope:
 
     def calc_out_of_band_wfs(self):
         """ Propagate pupil through an out-of-band wavefront sensor.
+
         Returns:
         --------
         ob_wfs : hcipy.Wavefront
@@ -407,7 +442,25 @@ class SegmentedTelescope:
 
 
 class SegmentedAPLC(SegmentedTelescope):
-    """ A segmented Apodized Pupil Lyot Coronagraph (APLC) """
+    """ A segmented Apodized Pupil Lyot Coronagraph (APLC)
+
+    Parameters:
+    ----------
+    apod : Field
+        Apodizer
+    lyot_stop : Field
+        Lyot Stop
+    fpm : Field
+        Focal plane mask (FPM)
+    fpm_rad : float
+        FPM radius in lambda/D
+    iwa : float
+        Inner working angle in lambda/D
+    owa : float
+        Outer working angle in lambda/D
+    **kwargs :
+        Keyword arguments passed through to SegmentedTelescope, see documentation there
+    """
     def __init__(self, apod, lyot_stop, fpm, fpm_rad, iwa, owa, **kwargs):
         self.apodizer = apod
         self.lyotstop = lyot_stop
@@ -582,6 +635,7 @@ class SegmentedAPLC(SegmentedTelescope):
 
     def calc_low_order_wfs(self):
         """ Propagate pupil through a low-order wavefront sensor.
+
         Returns:
         --------
         lowfs : hcipy.Wavefront
@@ -604,7 +658,17 @@ class SegmentedAPLC(SegmentedTelescope):
 
 
 class LuvoirA_APLC(SegmentedAPLC):
-    """ LUVOIR A with APLC simulator """
+    """ LUVOIR A with APLC simulator
+
+    Parameters:
+    ----------
+    input dir : string
+        Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
+    apod_design : string
+        Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
+    sampling : float
+        Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
+    """
     def __init__(self, input_dir, apod_design, sampling):
         self.apod_design = apod_design
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
