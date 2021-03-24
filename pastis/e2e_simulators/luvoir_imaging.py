@@ -173,6 +173,11 @@ class SegmentedTelescope:
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
+        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg-1
+        if segid > segment_cutoff_id:
+            raise NotImplementedError(f"Your telescope has {self.nseg} active segments and the highest existing "
+                                      f"segment index is segment number {segment_cutoff_id}; you requested {segid}.")
+
         if isinstance(self.sm, hcipy.optics.DeformableMirror):
             if zernike_number >= self.seg_n_zernikes:
                 raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike "
@@ -311,6 +316,11 @@ class SegmentedTelescope:
 
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
+
+        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg-1
+        if segid > segment_cutoff_id:
+            raise NotImplementedError(f"Your telescope has {self.nseg} active segments and the highest existing "
+                                      f"segment index is segment number {segment_cutoff_id}; you requested {segid}.")
 
         if not self.center_segment:
             segid -= 1
