@@ -151,7 +151,7 @@ class SegmentedTelescope:
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
 
-    def set_segment(self, segid, zernike_number, amplitude):
+    def set_segment(self, segid, zernike_number, amplitude, override=False):
         """
         Set an individual segment of the segmented mirror to a single Zernike mode.
 
@@ -166,6 +166,9 @@ class SegmentedTelescope:
             Which local Zernike mode to apply to segment ID segid. Ordered after Noll and they start with 0 (piston).
         amplitude : float
             Aberration amplitude in meters rms of surface.
+        override : bool
+            Whether to override all other segment commands with zero, default False, which means the new segment
+            aberration will be added to what is already on the segmented mirror.
         """
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
@@ -177,7 +180,10 @@ class SegmentedTelescope:
             if not self.center_segment:
                 segid -= 1
 
-            new_command = np.zeros(self.sm.num_actuators)
+            if override:
+                new_command = np.zeros(self.sm.num_actuators)
+            else:
+                new_command = np.copy(self.sm.actuators)
             new_command[self.seg_n_zernikes * segid + zernike_number] = amplitude
             self.sm.actuators = new_command
 
@@ -279,7 +285,7 @@ class SegmentedTelescope:
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
 
-    def set_harris_segment(self, segid, mode_number, amplitude):
+    def set_harris_segment(self, segid, mode_number, amplitude, override=False):
         """
         Set an individual segment of the Harris segmented mirror to a single Harris mode.
 
@@ -294,6 +300,9 @@ class SegmentedTelescope:
                 Other modes: 1, 2, 3
         amplitude : float
             Aberration amplitude in  ? meters of surface.   # FIXME: meters? surface? rms or ptv?
+        override : bool
+            Whether to override all other segment commands with zero, default False, which means the new segment
+            aberration will be added to what is already on the segmented mirror.
         """
         if mode_number > self.n_harris_modes:
             raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes per segment.")
@@ -304,7 +313,10 @@ class SegmentedTelescope:
         if not self.center_segment:
             segid -= 1
 
-        new_command = np.zeros(self.harris_sm.num_actuators)
+        if override:
+            new_command = np.zeros(self.harris_sm.num_actuators)
+        else:
+            new_command = np.copy(self.harris_sm.actuators)
         new_command[self.n_harris_modes * segid + mode_number] = amplitude
         self.harris_sm.actuators = new_command
 
