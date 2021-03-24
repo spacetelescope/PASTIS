@@ -265,8 +265,8 @@ class SegmentedTelescope:
 
         # Create full mode basis of all Harris modes on all segments
         harris_base_thermal = np.asarray(harris_base_thermal)
-        n_single_modes = harris_base_thermal.shape[1]
-        harris_base_thermal = harris_base_thermal.reshape(self.nseg * n_single_modes, pup_dims[0] ** 2)
+        self.n_harris_modes = harris_base_thermal.shape[1]
+        harris_base_thermal = harris_base_thermal.reshape(self.nseg * self.n_harris_modes, pup_dims[0] ** 2)
         harris_thermal_mode_basis = hcipy.ModeBasis(np.transpose(harris_base_thermal), grid=self.pupil_grid)
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
@@ -981,8 +981,8 @@ class SegmentedTelescopeAPLC:
 
         # Create full mode basis of all Harris modes on all segments
         harris_base_thermal = np.asarray(harris_base_thermal)
-        n_single_modes = harris_base_thermal.shape[1]
-        harris_base_thermal = harris_base_thermal.reshape(self.nseg * n_single_modes, pup_dims[0] ** 2)
+        self.n_harris_modes = harris_base_thermal.shape[1]
+        harris_base_thermal = harris_base_thermal.reshape(self.nseg * self.n_harris_modes, pup_dims[0] ** 2)
         harris_thermal_mode_basis = hcipy.ModeBasis(np.transpose(harris_base_thermal), grid=self.pupil_grid)
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
