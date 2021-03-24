@@ -386,11 +386,11 @@ class SegmentedTelescope:
             plt.title('High modes mirror phase')
 
             plt.subplot(3, 3, 7)
-            hcipy.imshow(wf_active_pupil.phase, mask=self.aperture, cmap='RdBu')
+            hcipy.imshow_field(wf_active_pupil.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Total phase in entrance pupil')
 
             plt.subplot(3, 3, 8)
-            hcipy.imshow(wf_image.intensity / wf_image.intensity.max(), cmap='inferno')
+            hcipy.imshow_field(wf_image.intensity / wf_image.intensity.max(), norm=LogNorm(), cmap='inferno')
             plt.title('Focal plane image')
 
         if return_intermediate == 'efield':
