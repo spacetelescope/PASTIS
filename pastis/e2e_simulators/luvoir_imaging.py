@@ -812,6 +812,9 @@ class LuvoirA_APLC(SegmentedAPLC):
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
 
+    !-- NOTE: This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new
+    implementations. --!
+
     By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
     Use the deformable mirror methods to create more flexible DMs as class attributes:
         self.sm
@@ -1350,6 +1353,8 @@ class SegmentedTelescopeAPLC:
 
 class LuvoirAPLC(SegmentedTelescopeAPLC):
     """ Simple E2E simulator for LUVOIR A (with APLC).
+
+    !-- NOTE: This class only still exists for back-compatibility. Please use LuvoirA_APLC for new implementations. --!
 
     All this does is instantiate a SegmentedTelescopeAPLC() by feeding it the appropriate parameters to make it a
     LUVOIR A simulator with one of the three baseline APLC designs.
