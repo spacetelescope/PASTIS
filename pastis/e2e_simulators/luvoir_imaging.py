@@ -344,6 +344,26 @@ class SegmentedTelescope:
                                                                       actuator_spacing)
         self.dm = hcipy.DeformableMirror(influence_functions)
 
+    def remove_segmented_mirror(self):
+        """ Remove the segmented mirror with local Zernikes as class attribute, replace with PTT segmented mirror. """
+        self.sm = SegmentedMirror(indexed_aperture=self.aper_ind, seg_pos=self.seg_pos)
+
+    def remove_segmented_harris_mirror(self):
+        """ Remove the segmented Harris mirror as class attribute. """
+        self.harris_sm = None
+
+    def remove_global_zernike_mirror(self):
+        """ Remove the global Zernike mirror as class attribute. """
+        self.zernike_mirror = None
+
+    def remove_ripple_mirror(self):
+        """ Remove the high-spatial frequency ripple mirror as class attribute. """
+        self.ripple_mirror = None
+
+    def remove_continuous_deformable_mirror(self):
+        """ Remove the continuous deformable mirror as class attribute. """
+        self.dm = None
+
     def flatten(self):
         """
         Flatten all deformable mirrors in this simulator instance, if they exist.
