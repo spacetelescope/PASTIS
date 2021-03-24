@@ -17,6 +17,64 @@ from pastis.e2e_simulators.indexed_segmented_mirror import SegmentedMirror
 log = logging.getLogger()
 
 
+class SegmentedTelescope:
+    """
+    A segmented telescope with active components in the pupil plane (DMs).
+    """
+    def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid):
+
+        self.wvln = wvln
+        self.diam = diameter
+        self.aperture = aper
+        self.aper_ind = indexed_aper
+        self.seg_pos = seg_pos
+        self.segment_circumscribed_diameter = seg_diameter
+        self.nseg
+
+        self.pupil_grid = indexed_aper.grid
+        self.focal_det = focal_grid
+        self.sampling
+        self.imlamD
+        self.lam_over_d
+
+        self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
+        self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+
+        self.sm = SegmentedMirror(indexed_aperture=indexed_aper, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
+        self.harris_sm = None
+        self.zernike_mirror = None
+        self.ripple_mirror = None
+        self.dm = None
+        self.zwfs = None
+
+
+class SegmentedAPLC:
+    """ A segmented APLC """
+    def __init__(self):
+        super().__init__()
+
+        self.apodizer
+        self.lyotstop
+        self.fpm
+        self.fpm_rad
+        self.coro
+        self.coro_no_ls
+        self.dh_mask
+
+
+class LuvoirA_APLC:
+    """ LUVOIR A with APLC simulator """
+    def __init__(self, input_dir, apod_design):
+
+        self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
+                                    'fname': '0_LUVOIR_N1000_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
+                          'medium': {'pxsize': 1000, 'fpm_rad': 6.82, 'fpm_px': 250, 'iwa': 6.72, 'owa': 23.72,
+                                     'fname': '0_LUVOIR_N1000_FPM682M0250_IWA0672_OWA02372_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'},
+                          'large': {'pxsize': 1000, 'fpm_rad': 13.38, 'fpm_px': 400, 'iwa': 13.28, 'owa': 46.88,
+                                    'fname': '0_LUVOIR_N1000_FPM1338M0400_IWA1328_OWA04688_C10_BW10_Nlam5_LS_IDD0120_OD0982_no_ls_struts.fits'}}
+        super().__init__()
+
+
 class SegmentedTelescopeAPLC:
     """ A segmented telescope with an APLC and actuated segments.
 
