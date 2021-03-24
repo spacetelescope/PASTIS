@@ -576,6 +576,10 @@ class SegmentedAPLC(SegmentedTelescope):
             Intermediate plane E-fields; except intensity in focal plane after FPM.
         """
 
+        if isinstance(return_intermediate, bool):
+            raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "
+                            f"E-fields returned by 'calc_psf()'.")
+
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
@@ -1134,6 +1138,10 @@ class SegmentedTelescopeAPLC:
         intermediates : dict of Wavefronts, optional
             Intermediate plane E-fields; except intensity in focal plane after FPM.
         """
+        
+        if isinstance(return_intermediate, bool):
+            raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "
+                            f"E-fields returned by 'calc_psf()'.")
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
