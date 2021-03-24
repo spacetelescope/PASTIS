@@ -163,9 +163,9 @@ class SegmentedTelescope:
         segid : int
             Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
         zernike_number : int
-            Which local Zernike mode to apply to segment with ID segid. Ordered with Noll and starts with 1.   FIXME: double-check Zernike numbering
+            Which local Zernike mode to apply to segment ID segid. Ordered after Noll and they start with 0 (piston).
         amplitude : float
-            Aberration amplitude in meters of surface.   # FIXME: rms or ptv?
+            Aberration amplitude in meters rms of surface.
         """
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
