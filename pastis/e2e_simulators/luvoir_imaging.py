@@ -61,6 +61,8 @@ class SegmentedTelescopeAPLC:
         self.ripple_mirror = None
         self.dm = None
 
+        self.zwfs = None
+
         self.aperture = aper
         self.apodizer = apod
         self.lyotstop = lyotst
@@ -266,40 +268,13 @@ class SegmentedTelescopeAPLC:
                                                                       actuator_spacing)
         self.dm = hcipy.DeformableMirror(influence_functions)
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
-        """Calculate the PSF of the segmented telescope, normalized to contrast units.
-
-        Parameters:
-        ----------
-        ref : bool
-            Keyword for additionally returning the reference PSF without the FPM.
-        display_intermediate : bool
-            Keyword for display of all planes.
-        return_intermediate : string
-            Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
-            or 'efield', return the E-fields in all planes. Default none.
+    def propagate_active_pupils(self):
+        """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
         Returns:
         --------
-        wf_im_coro.intensity : Field
-            Coronagraphic image, normalized to contrast units by max of reference image (even when ref
-            not returned).
-        wf_im_ref.intensity : Field, optional
-            Reference image without FPM.
-        intermediates : dict of Fields, optional
-            Intermediate plane intensity images; except for phases on DMs
-        wf_im_coro : Wavefront
-            Wavefront in last focal plane.
-        wf_im_ref : Wavefront, optional
-            Wavefront of reference image without FPM.
-        intermediates : dict of Wavefronts, optional
-            Intermediate plane E-fields; except intensity in focal plane after FPM.
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
+            E-field after each respective DM individually; all DMs in the case of wf_active_pupil
         """
-
-        # Create fake FPM for plotting
-        fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
-
-        # Create apodozer as hcipy.Apodizer() object to be able to propagate through it
-        apod_prop = hcipy.Apodizer(self.apodizer)
 
         # Create empty field for components that are None
         values = np.ones_like(self.pupil_grid.x)
@@ -333,6 +308,46 @@ class SegmentedTelescopeAPLC:
             wf_dm = self.dm(self.wf_aper)
         else:
             wf_dm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+
+        return wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm
+
+    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+        """Calculate the PSF of the segmented telescope, normalized to contrast units.
+
+        Parameters:
+        ----------
+        ref : bool
+            Keyword for additionally returning the reference PSF without the FPM.
+        display_intermediate : bool
+            Keyword for display of all planes.
+        return_intermediate : string
+            Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
+            or 'efield', return the E-fields in all planes. Default none.
+        Returns:
+        --------
+        wf_im_coro.intensity : Field
+            Coronagraphic image, normalized to contrast units by max of reference image (even when ref
+            not returned).
+        wf_im_ref.intensity : Field, optional
+            Reference image without FPM.
+        intermediates : dict of Fields, optional
+            Intermediate plane intensity images; except for phases on DMs
+        wf_im_coro : Wavefront
+            Wavefront in last focal plane.
+        wf_im_ref : Wavefront, optional
+            Wavefront of reference image without FPM.
+        intermediates : dict of Wavefronts, optional
+            Intermediate plane E-fields; except intensity in focal plane after FPM.
+        """
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+
+        # Create fake FPM for plotting
+        fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
+
+        # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
+        apod_prop = hcipy.Apodizer(self.apodizer)
 
         # Calculate wavefront after apodizer plane
         wf_apod = apod_prop(wf_active_pupil)
@@ -453,6 +468,7 @@ class SegmentedTelescopeAPLC:
         return wf_im_coro.intensity
 
     def create_zernike_wfs(self, step=None, spot_diam=None, spot_points=None):
+        """ Create a Zernike wavefront sensor object. """
         if step is None:
             step = np.pi / 2
         if spot_diam is None:
@@ -466,6 +482,46 @@ class SegmentedTelescopeAPLC:
                                                                          num_pix=spot_points,
                                                                          pupil_diameter=1/self.diam,
                                                                          reference_wavelength=1/self.wvln)
+
+    def calc_out_of_band_wfs(self):
+        """ Propagate pupil through an out-of-band wavefront sensor.
+        Returns:
+        --------
+        ob_wfs : hcipy.Wavefront
+            E-field on OBWFS detector
+        """
+
+        # If ZWFS hasn't been created yet, do it now
+        if self.zwfs is None:
+            self.create_zernike_wfs()
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+
+        ob_wfs = self.zwfs(wf_active_pupil)
+        return ob_wfs
+
+    def calc_low_order_wfs(self):
+        """ Propagate pupil through a low-order wavefront sensor.
+        Returns:
+        --------
+        lowfs : hcipy.Wavefront
+            E-field on LOWFS detector
+        """
+
+        # If ZWFS hasn't been created yet, do it now
+        if self.zwfs is None:
+            self.create_zernike_wfs()
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self.propagate_active_pupils()
+
+        # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
+        apod_prop = hcipy.Apodizer(self.apodizer)
+
+        wf_pre_lowfs = apod_prop(wf_active_pupil)
+        lowfs = self.zwfs(wf_pre_lowfs)
+        return lowfs
 
     def flatten(self):
         """
