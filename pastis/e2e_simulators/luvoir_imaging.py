@@ -691,7 +691,11 @@ class SegmentedAPLC(SegmentedTelescope):
         # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
 
-        wf_pre_lowfs = apod_prop(wf_active_pupil)
+        # Apply spatial filter
+        apod_plane = apod_prop(wf_active_pupil)
+        through_fpm = apod_plane.electric_field - self.coro_no_ls(apod_plane).electric_field
+        wf_pre_lowfs = hcipy.Wavefront(through_fpm, self.wvln)
+
         lowfs = self.zwfs(wf_pre_lowfs)
         return lowfs
 
