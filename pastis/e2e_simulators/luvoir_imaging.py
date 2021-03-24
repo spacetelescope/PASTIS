@@ -452,6 +452,21 @@ class SegmentedTelescopeAPLC:
 
         return wf_im_coro.intensity
 
+    def create_zernike_wfs(self, step=None, spot_diam=None, spot_points=None):
+        if step is None:
+            step = np.pi / 2
+        if spot_diam is None:
+            spot_diam = 1.06
+        if spot_points is None:
+            spot_points = 128
+
+        self.zwfs = hcipy.wavefront_sensing.ZernikeWavefrontSensorOptics(self.pupil_grid,
+                                                                         phase_step=step,
+                                                                         phase_dot_diameter=spot_diam,
+                                                                         num_pix=spot_points,
+                                                                         pupil_diameter=1/self.diam,
+                                                                         reference_wavelength=1/self.wvln)
+
     def flatten(self):
         """
         Flatten all deformable mirrors in this simulator instance, if they exist.
