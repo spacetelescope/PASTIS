@@ -53,7 +53,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
         # Calculate reference images for contrast normalization and coronagraph floor
-        unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=False)
+        unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=None)
         norm = np.max(direct)
         direct_psf = direct.shaped
         coro_psf = unaberrated_coro_psf.shaped / norm
