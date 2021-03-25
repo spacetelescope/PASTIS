@@ -875,7 +875,6 @@ class LuvoirA_APLC(SegmentedAPLC):
 class SegmentedTelescopeAPLC:
     """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
-    Will by default to the small angle APLC on LUVOIR A.
     """
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
         wvln = params['wavelength']    # m
