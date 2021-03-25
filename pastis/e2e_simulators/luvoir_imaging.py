@@ -87,6 +87,30 @@ class SegmentedTelescope:
         self.dm = None
         self.zwfs = None
 
+    def set_segment(self, segid, piston, tip, tilt):
+        """
+        Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
+
+        This method only works with a segmented Dm of type pastis.e2e_simulators.indexed_segmented_mirror.SegmentedMirror
+        and only exists for back-compatibility.
+
+        Parameters:
+        ----------
+        segid : int
+            Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
+        piston : float
+            Piston aberration amplitude in meters rms of surface.
+        tip : float
+            Tip aberration amplitude in meters rms of surface.
+        tilt : float
+            Tilt aberration amplitude in meters rms of surface.
+        """
+        if not isinstance(self.sm, SegmentedMirror):
+            raise TypeError("This function is only for usage with a segmented mirror of type "
+                            "'pastis.e2e_simulators.indexed_segmented_mirror.SegmentedMirror'. You are currently "
+                            "using a multi-mode Zernike mirror.")
+        self.sm.set_segment(segid, piston, tip, tilt)
+
     def _create_evaluated_segment_grid(self):
         """
         Create a list of segments evaluated on the pupil_grid.
@@ -151,12 +175,13 @@ class SegmentedTelescope:
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
 
-    def set_segment(self, segid, zernike_number, amplitude, override=False):
+    def set_sm_segment(self, segid, zernike_number, amplitude, override=False):
         """
-        Set an individual segment of the segmented mirror to a single Zernike mode.
+        Set an individual segment of the multi-mode segmented DM to a single Zernike mode.
 
-        If this is a simple SegmentedMirror, you can only do piston or tip or tilt, by passing 0, 1 or 2 to zernike_number.
-        If this is a multi-Zernike segmented DM, you can use Zernikes up to the number you created the SM with.
+        This works only on the new multi-mode segmented DM that is a hcipy.optics.DeformableMirror. You can use
+        Zernikes up to the number you created the SM with. For commanding individual segments of the internal
+        SegmentedMirror, use self.set_segment(), which exists purely for back-compatibility.
 
         Parameters:
         ----------
@@ -170,6 +195,10 @@ class SegmentedTelescope:
             Whether to override all other segment commands with zero, default False, which means the new segment
             aberration will be added to what is already on the segmented mirror.
         """
+        if not isinstance(self.sm, hcipy.optics.DeformableMirror):
+            raise TypeError("This function is only for usage with the multi-mode segmented DM. You are currently "
+                            "using a 'pastis.e2e_simulators.indexed_segmented_mirror.SegmentedMirror'.")
+
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
@@ -178,30 +207,19 @@ class SegmentedTelescope:
             raise NotImplementedError(f"Your telescope has {self.nseg} active segments and the highest existing "
                                       f"segment index is segment number {segment_cutoff_id}; you requested {segid}.")
 
-        if isinstance(self.sm, hcipy.optics.DeformableMirror):
-            if zernike_number >= self.seg_n_zernikes:
-                raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike "
-                                          f"modes per segment, indexed with 0.")
+        if zernike_number >= self.seg_n_zernikes:
+            raise NotImplementedError(f"'self.sm' has only been instantiated for {self.seg_n_zernikes} Zernike "
+                                      f"modes per segment, indexed with 0.")
 
-            if not self.center_segment:
-                segid -= 1
+        if not self.center_segment:
+            segid -= 1
 
-            if override:
-                new_command = np.zeros(self.sm.num_actuators)
-            else:
-                new_command = np.copy(self.sm.actuators)
-            new_command[self.seg_n_zernikes * segid + zernike_number] = amplitude
-            self.sm.actuators = new_command
-
-        elif isinstance(self.sm, SegmentedMirror):
-            if zernike_number > 2:
-                raise NotImplementedError("This type of SegmentedMirror only allows piston, tip, tilt commands on it.")
-            elif zernike_number == 0:
-                self.sm.set_segment(segid, amplitude, 0, 0)
-            elif zernike_number == 1:
-                self.sm.set_segment(segid, 0, amplitude, 0)
-            elif zernike_number == 2:
-                self.sm.set_segment(segid, 0, 0, amplitude)
+        if override:
+            new_command = np.zeros(self.sm.num_actuators)
+        else:
+            new_command = np.copy(self.sm.actuators)
+        new_command[self.seg_n_zernikes * segid + zernike_number] = amplitude
+        self.sm.actuators = new_command
 
     def create_segmented_harris_mirror(self, filepath, pad_orientation):
         """Generate a basis made of the thermal modes provided by Harris.
