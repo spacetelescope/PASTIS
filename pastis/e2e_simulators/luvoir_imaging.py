@@ -434,13 +434,16 @@ class SegmentedTelescope:
     def _propagate_active_pupils(self, norm_one_photon=False):
         """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
 
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
         Returns:
         --------
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
-        norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
-        """
+       """
 
         # Create empty field for components that are None
         values = np.ones_like(self.pupil_grid.x)
