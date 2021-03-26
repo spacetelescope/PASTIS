@@ -431,22 +431,28 @@ class SegmentedTelescope:
         if self.dm is not None:
             self.dm.flatten()
 
-    def _propagate_active_pupils(self):
+    def _propagate_active_pupils(self, norm_one_photon=False):
         """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
 
         Returns:
         --------
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
 
         # Create empty field for components that are None
         values = np.ones_like(self.pupil_grid.x)
         transparent_field = hcipy.Field(values, self.pupil_grid)
 
-        # Calculate wavefront after all active pupil components depending on which of the DMs exist
-        wf_active_pupil = self.wf_aper
+        # Create E-field on primary mirror
+        if norm_one_photon:
+            wf_active_pupil = hcipy.Wavefront(self.norm_phot * self.wf_aper.electric_field, self.wvln)
+        else:
+            wf_active_pupil = self.wf_aper
 
+        # Calculate wavefront after all active pupil components depending on which of the DMs exist
         if self.sm is not None:
             wf_active_pupil = self.sm(wf_active_pupil)
             wf_sm = self.sm(self.wf_aper)
