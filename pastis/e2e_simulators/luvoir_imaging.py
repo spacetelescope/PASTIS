@@ -58,6 +58,41 @@ class SegmentedTelescope:
         Sampling in focal plane in pixels per lambda/D
     imlamD : float
         Detector image half-size in lambda/D
+
+    Attributes:
+    ----------
+    wvln : float
+        Wavelength in meters
+    diam : float
+        Telescope diameter in meters
+    aperture : hcipy.Field
+        Telescope aperture
+    aper_ind : hcipy.Field
+        Indexed telescope aperture
+    seg_pos : CartesianGrid(UnstructuredCoords)
+        Segment positions of the aperture
+    segment_circumscribed_diameter : float
+        Circumscribed diameter of an individual segment in meters
+    nseg : int
+        Number of active segments on telescope primary mirror
+    center_segment : bool
+        Whether or not the center segment is actively controllable (unobscured) or not
+    pupil_grid : hcipy.Grid
+        Grid of pupil plane coordinates that all pupil plane optics get sampled on.
+    focal_det : hcipy.Grid
+        Grid of focal plane coordinates that the final detector image gets sampled on.
+    sampling : float
+        Sampling in focal plane in pixels per lambda/D
+    imlamD : float
+        Detector image half-size in lambda/D
+    lam_over_d :
+        lambda/D of the system in radians
+    prop : hcipy.FraunhoferPropagator
+        Propagation method for Fraunhofer propagation between a pupil plane and a focal plane
+    wf_aper : hcipy.Wavefront
+        E-field on the segmented primary
+    norm_phot : float
+        Method that performs slef.prop, but normalized ot one photon in the pupil.
     """
     def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD):
 
@@ -78,6 +113,7 @@ class SegmentedTelescope:
 
         self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
         self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+        self.norm_phot = 1 / np.sqrt(np.sum(self.wf_aper.intensity))
 
         self.sm = SegmentedMirror(indexed_aperture=indexed_aper, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
         self.harris_sm = None
@@ -85,6 +121,19 @@ class SegmentedTelescope:
         self.ripple_mirror = None
         self.dm = None
         self.zwfs = None
+
+    def prop_norm_one_photon(self, input_efield):
+        """ Perform a Fraunhofer propagation, normalized to one photon.
+
+        Parameters:
+        ----------
+        input_efield : hcipy.Wavefront
+        """
+        norm_fac = np.max(self.focal_det.x) * self.pupil_grid.dims[0] / np.max(self.pupil_grid.x) / self.focal_det.dims[0]
+        prop_before_norm = self.prop(input_efield)
+        normalize = norm_fac * prop_before_norm.electric_field
+        normalized_efield = hcipy.Wavefront(normalize, self.wvln)
+        return normalized_efield
 
     def set_segment(self, segid, piston, tip, tilt):
         """ Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
@@ -417,22 +466,31 @@ class SegmentedTelescope:
         if self.dm is not None:
             self.dm.flatten()
 
-    def _propagate_active_pupils(self):
+    def _propagate_active_pupils(self, norm_one_photon=False):
         """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
-        """
+       """
 
         # Create empty field for components that are None
         values = np.ones_like(self.pupil_grid.x)
         transparent_field = hcipy.Field(values, self.pupil_grid)
 
-        # Calculate wavefront after all active pupil components depending on which of the DMs exist
-        wf_active_pupil = self.wf_aper
+        # Create E-field on primary mirror
+        if norm_one_photon:
+            wf_active_pupil = hcipy.Wavefront(self.norm_phot * self.wf_aper.electric_field, self.wvln)
+        else:
+            wf_active_pupil = self.wf_aper
 
+        # Calculate wavefront after all active pupil components depending on which of the DMs exist
         if self.sm is not None:
             wf_active_pupil = self.sm(wf_active_pupil)
             wf_sm = self.sm(self.wf_aper)
@@ -461,7 +519,7 @@ class SegmentedTelescope:
 
         return wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm
 
-    def calc_psf(self, display_intermediate=False, return_intermediate=None):
+    def calc_psf(self, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of this segmented telescope, and return optionally all E-fields.
 
         Parameters:
@@ -470,6 +528,8 @@ class SegmentedTelescope:
             Whether or not to display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -482,9 +542,14 @@ class SegmentedTelescope:
         """
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
-        wf_image = self.prop(wf_active_pupil)
+        if norm_one_photon:
+            prop_method = self.prop_norm_one_photon
+        else:
+            prop_method = self.prop
+
+        wf_image = prop_method(wf_active_pupil)
 
         if display_intermediate:
             plt.figure(figsize=(15, 15))
@@ -549,8 +614,13 @@ class SegmentedTelescope:
                                                                          pupil_diameter=1/self.diam,
                                                                          reference_wavelength=1/self.wvln)
 
-    def calc_out_of_band_wfs(self):
+    def calc_out_of_band_wfs(self, norm_one_photon=False):
         """ Propagate pupil through an out-of-band wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -563,7 +633,7 @@ class SegmentedTelescope:
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
         ob_wfs = self.zwfs(wf_active_pupil)
         return ob_wfs
@@ -588,6 +658,28 @@ class SegmentedAPLC(SegmentedTelescope):
         Outer working angle in lambda/D
     **kwargs :
         Keyword arguments passed through to SegmentedTelescope, see documentation there
+
+    Attributes:
+    ----------
+    apodizer : hcipy.Field
+        Apodizer
+    lyotstop : hcipy.Field
+        Lyot Stop
+    fpm : hcipy.Field
+        Focal Plane Mask
+    fpm_rad : float
+        Radius of your FPM in lambda/D
+    coro : hcipy.LyotCoronagraph
+        Lyot-style coronagraph propagator, includes multiplication by Lyot stop
+    coro_no_ls : hcipy.LyotCoronagraph
+        Lyot-style coronagraph propagator, excludes multiplication by Lyot stop
+    iwa : float
+        Inner working angle of the APLC
+    owa : float
+        Outer working angle of the APLC
+    dh_mask : hcipy.Field
+        DH mask of your APLC as a boolean array
+    and all attributes of SegmentedTelescope
     """
     def __init__(self, apod, lyot_stop, fpm, fpm_rad, iwa, owa, **kwargs):
         self.apodizer = apod
@@ -604,7 +696,7 @@ class SegmentedAPLC(SegmentedTelescope):
         dh_inner = hcipy.circular_aperture(2 * iwa * self.lam_over_d)(self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of the segmented APLC, normalized to contrast units. Optionally return reference (direct
         PSF) and/or E-fields in all planes.
 
@@ -617,6 +709,8 @@ class SegmentedAPLC(SegmentedTelescope):
         return_intermediate : string
             Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
             or 'efield', return the E-fields in all planes. Default none.
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -640,7 +734,14 @@ class SegmentedAPLC(SegmentedTelescope):
                             f"E-fields returned by 'calc_psf()'.")
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
+
+        if norm_one_photon:
+            prop_method = self.prop_norm_one_photon
+            norm_factor = self.norm_phot
+        else:
+            prop_method = self.prop
+            norm_factor = 1
 
         # Create fake FPM for plotting
         fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
@@ -653,16 +754,16 @@ class SegmentedAPLC(SegmentedTelescope):
 
         # Calculate wavefronts of the full coronagraphic propagation
         wf_lyot = self.coro(wf_apod)
-        wf_im_coro = self.prop(wf_lyot)
+        wf_im_coro = prop_method(wf_lyot)
 
         # Calculate wavefronts in extra planes
-        wf_before_fpm = self.prop(wf_apod)
+        wf_before_fpm = prop_method(wf_apod)
         int_after_fpm = np.log10(wf_before_fpm.intensity / wf_before_fpm.intensity.max()) * fpm_plot  # this is the intensity straight
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Calculate wavefronts of the reference propagation (no FPM)
-        wf_ref_pup = hcipy.Wavefront(self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
-        wf_im_ref = self.prop(wf_ref_pup)
+        wf_ref_pup = hcipy.Wavefront(norm_factor * self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_im_ref = prop_method(wf_ref_pup)
 
         # Display intermediate planes
         if display_intermediate:
@@ -766,8 +867,13 @@ class SegmentedAPLC(SegmentedTelescope):
 
         return wf_im_coro.intensity
 
-    def calc_low_order_wfs(self):
+    def calc_low_order_wfs(self, norm_one_photon=False):
         """ Propagate pupil through a low-order wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -780,7 +886,7 @@ class SegmentedAPLC(SegmentedTelescope):
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
         # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
