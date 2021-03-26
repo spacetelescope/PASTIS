@@ -631,7 +631,7 @@ class SegmentedAPLC(SegmentedTelescope):
         dh_inner = hcipy.circular_aperture(2 * iwa * self.lam_over_d)(self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of the segmented APLC, normalized to contrast units. Optionally return reference (direct
         PSF) and/or E-fields in all planes.
 
@@ -644,6 +644,8 @@ class SegmentedAPLC(SegmentedTelescope):
         return_intermediate : string
             Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
             or 'efield', return the E-fields in all planes. Default none.
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -667,7 +669,14 @@ class SegmentedAPLC(SegmentedTelescope):
                             f"E-fields returned by 'calc_psf()'.")
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
+
+        if norm_one_photon:
+            prop_method = self.prop_norm_one_photon
+            norm_factor = self.norm_phot
+        else:
+            prop_method = self.prop
+            norm_factor = 1
 
         # Create fake FPM for plotting
         fpm_plot = 1 - hcipy.circular_aperture(2 * self.fpm_rad * self.lam_over_d)(self.focal_det)
@@ -680,16 +689,16 @@ class SegmentedAPLC(SegmentedTelescope):
 
         # Calculate wavefronts of the full coronagraphic propagation
         wf_lyot = self.coro(wf_apod)
-        wf_im_coro = self.prop(wf_lyot)
+        wf_im_coro = prop_method(wf_lyot)
 
         # Calculate wavefronts in extra planes
-        wf_before_fpm = self.prop(wf_apod)
+        wf_before_fpm = prop_method(wf_apod)
         int_after_fpm = np.log10(wf_before_fpm.intensity / wf_before_fpm.intensity.max()) * fpm_plot  # this is the intensity straight
         wf_before_lyot = self.coro_no_ls(wf_apod)
 
         # Calculate wavefronts of the reference propagation (no FPM)
-        wf_ref_pup = hcipy.Wavefront(self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
-        wf_im_ref = self.prop(wf_ref_pup)
+        wf_ref_pup = hcipy.Wavefront(norm_factor * self.aperture * self.apodizer * self.lyotstop, wavelength=self.wvln)
+        wf_im_ref = prop_method(wf_ref_pup)
 
         # Display intermediate planes
         if display_intermediate:
