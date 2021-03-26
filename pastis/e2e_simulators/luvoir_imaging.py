@@ -78,6 +78,7 @@ class SegmentedTelescope:
 
         self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
         self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+        self.norm_phot = 1 / np.sqrt(np.sum(self.wf_aper.intensity))
 
         self.sm = SegmentedMirror(indexed_aperture=indexed_aper, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
         self.harris_sm = None
