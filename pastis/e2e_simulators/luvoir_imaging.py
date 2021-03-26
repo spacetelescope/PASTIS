@@ -87,6 +87,19 @@ class SegmentedTelescope:
         self.dm = None
         self.zwfs = None
 
+    def prop_norm_one_photon(self, input_efield):
+        """ Perform a Fraunhofer propagation, normalized to one photon.
+
+        Parameters:
+        ----------
+        input_efield : hcipy.Wavefront
+        """
+        norm_fac = np.max(self.focal_det.x) * self.pupil_grid.dims[0] / np.max(self.pupil_grid.x) / self.focal_det.dims[0]
+        prop_before_norm = self.prop(input_efield)
+        normalize = norm_fac * prop_before_norm.electric_field
+        normalized_efield = hcipy.Wavefront(normalize, self.wvln)
+        return normalized_efield
+
     def set_segment(self, segid, piston, tip, tilt):
         """ Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
 
