@@ -658,6 +658,28 @@ class SegmentedAPLC(SegmentedTelescope):
         Outer working angle in lambda/D
     **kwargs :
         Keyword arguments passed through to SegmentedTelescope, see documentation there
+
+    Attributes:
+    ----------
+    apodizer : hcipy.Field
+        Apodizer
+    lyotstop : hcipy.Field
+        Lyot Stop
+    fpm : hcipy.Field
+        Focal Plane Mask
+    fpm_rad : float
+        Radius of your FPM in lambda/D
+    coro : hcipy.LyotCoronagraph
+        Lyot-style coronagraph propagator, includes multiplication by Lyot stop
+    coro_no_ls : hcipy.LyotCoronagraph
+        Lyot-style coronagraph propagator, excludes multiplication by Lyot stop
+    iwa : float
+        Inner working angle of the APLC
+    owa : float
+        Outer working angle of the APLC
+    dh_mask : hcipy.Field
+        DH mask of your APLC as a boolean array
+    and all attributes of SegmentedTelescope
     """
     def __init__(self, apod, lyot_stop, fpm, fpm_rad, iwa, owa, **kwargs):
         self.apodizer = apod
