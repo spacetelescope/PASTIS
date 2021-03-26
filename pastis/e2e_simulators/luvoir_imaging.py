@@ -579,8 +579,13 @@ class SegmentedTelescope:
                                                                          pupil_diameter=1/self.diam,
                                                                          reference_wavelength=1/self.wvln)
 
-    def calc_out_of_band_wfs(self):
+    def calc_out_of_band_wfs(self, norm_one_photon=False):
         """ Propagate pupil through an out-of-band wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -593,7 +598,7 @@ class SegmentedTelescope:
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
         ob_wfs = self.zwfs(wf_active_pupil)
         return ob_wfs
@@ -805,8 +810,13 @@ class SegmentedAPLC(SegmentedTelescope):
 
         return wf_im_coro.intensity
 
-    def calc_low_order_wfs(self):
+    def calc_low_order_wfs(self, norm_one_photon=False):
         """ Propagate pupil through a low-order wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -819,7 +829,7 @@ class SegmentedAPLC(SegmentedTelescope):
             self.create_zernike_wfs()
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
         # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
         apod_prop = hcipy.Apodizer(self.apodizer)
