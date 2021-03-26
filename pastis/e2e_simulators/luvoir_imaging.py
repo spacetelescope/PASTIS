@@ -58,6 +58,41 @@ class SegmentedTelescope:
         Sampling in focal plane in pixels per lambda/D
     imlamD : float
         Detector image half-size in lambda/D
+
+    Attributes:
+    ----------
+    wvln : float
+        Wavelength in meters
+    diam : float
+        Telescope diameter in meters
+    aperture : hcipy.Field
+        Telescope aperture
+    aper_ind : hcipy.Field
+        Indexed telescope aperture
+    seg_pos : CartesianGrid(UnstructuredCoords)
+        Segment positions of the aperture
+    segment_circumscribed_diameter : float
+        Circumscribed diameter of an individual segment in meters
+    nseg : int
+        Number of active segments on telescope primary mirror
+    center_segment : bool
+        Whether or not the center segment is actively controllable (unobscured) or not
+    pupil_grid : hcipy.Grid
+        Grid of pupil plane coordinates that all pupil plane optics get sampled on.
+    focal_det : hcipy.Grid
+        Grid of focal plane coordinates that the final detector image gets sampled on.
+    sampling : float
+        Sampling in focal plane in pixels per lambda/D
+    imlamD : float
+        Detector image half-size in lambda/D
+    lam_over_d :
+        lambda/D of the system in radians
+    prop : hcipy.FraunhoferPropagator
+        Propagation method for Fraunhofer propagation between a pupil plane and a focal plane
+    wf_aper : hcipy.Wavefront
+        E-field on the segmented primary
+    norm_phot : float
+        Method that performs slef.prop, but normalized ot one photon in the pupil.
     """
     def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD):
 
