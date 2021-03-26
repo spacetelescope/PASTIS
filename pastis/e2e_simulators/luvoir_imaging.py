@@ -481,7 +481,7 @@ class SegmentedTelescope:
 
         return wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm
 
-    def calc_psf(self, display_intermediate=False, return_intermediate=None):
+    def calc_psf(self, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of this segmented telescope, and return optionally all E-fields.
 
         Parameters:
@@ -490,6 +490,8 @@ class SegmentedTelescope:
             Whether or not to display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------
@@ -502,9 +504,14 @@ class SegmentedTelescope:
         """
 
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
-        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
 
-        wf_image = self.prop(wf_active_pupil)
+        if norm_one_photon:
+            prop_method = self.prop_norm_one_photon
+        else:
+            prop_method = self.prop
+
+        wf_image = prop_method(wf_active_pupil)
 
         if display_intermediate:
             plt.figure(figsize=(15, 15))
