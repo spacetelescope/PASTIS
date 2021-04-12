@@ -978,7 +978,7 @@ class LuvoirA_APLC(SegmentedAPLC):
                          seg_diameter=seg_diameter_circumscribed, focal_grid=focal_det, sampling=sampling, imlamD=imlamD)
 
 
-class SegmentedTelescopeAPLC:
+class SegmentedTelescopeAPLC(SegmentedAPLC):
     """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
     """
