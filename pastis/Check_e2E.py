@@ -1,7 +1,12 @@
 """
-This module contains functions that calculates the field sensitivities for a given coronagraph design
+This module contains functions that construct the matrix M for PASTIS *NUMERICALLY FROM THE RESPECTIVE E2E SIMULATOR*
+ and saves it.
 
-"""
+ Currently supported:
+ JWST
+ LUVOIR
+ #TODO: HiCAT (already exists in notebook HiCAT/4)
+ """
 
 import os
 import time
@@ -20,7 +25,7 @@ from e2e_simulators.luvoir_imaging_onephot import LuvoirAPLC
 
 def num_fields_luvoir(design, savepsfs=True, saveopds=True):
     """
-    Generate a numerical response matrices for a LUVOIR A coronagraph.
+    Generate a numerical PASTIS matrix for a LUVOIR A coronagraph.
 
     All inputs are read from the (local) configfile and saved to the specified output directory.
     The LUVOIR STDT delivery in May 2018 included three different apodizers
@@ -36,9 +41,7 @@ def num_fields_luvoir(design, savepsfs=True, saveopds=True):
     ### Parameters
 
     # System parameters
-    root_dir = CONFIG_INI.get('local', 'local_data_path')
-    output_dir = CONFIG_INI.get('local', 'output_data_folder')
-    overall_dir = root_dir + output_dir + 'luvoirA-'+design
+    overall_dir = util.create_data_path(CONFIG_INI.get('local', 'local_data_path'), telescope = 'luvoir-'+design)
     os.makedirs(overall_dir, exist_ok=True)
     resDir = os.path.join(overall_dir, 'matrix_numerical')
 
@@ -185,7 +188,6 @@ def num_fields_luvoir(design, savepsfs=True, saveopds=True):
     end_time = time.time()
     print('Runtime for LO modes:', end_time - start_time, 'sec =', (end_time - start_time) / 60, 'min')
     print('Data saved to {}'.format(resDir))
-
 
     ### Generating the Efield for MID modes to science plane
 
