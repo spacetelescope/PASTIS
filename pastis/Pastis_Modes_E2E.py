@@ -105,10 +105,10 @@ G_OBWFS_real = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename
 filename_matrix = 'EFIELD_OBWFS_Im_matrix_num_MID_' + str(max_MID) +'.fits'
 G_OBWFS_imag = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename_matrix))
 
-filename_matrix = 'EFIELD_Re_matrix_num_LO_15_OLD.fits'
-G_LO_real_OLD = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename_matrix))
-filename_matrix = 'EFIELD_Im_matrix_num_LO_15_OLD.fits'
-G_LO_imag_OLD = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename_matrix))
+# filename_matrix = 'EFIELD_Re_matrix_num_LO_15_OLD.fits'
+# G_LO_real_OLD = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename_matrix))
+# filename_matrix = 'EFIELD_Im_matrix_num_LO_15_OLD.fits'
+# G_LO_imag_OLD = fits.getdata(os.path.join(savedpath, 'matrix_numerical', filename_matrix))
 
 
 ### Instantiate the moving parts as a DMs a la HCIPy
