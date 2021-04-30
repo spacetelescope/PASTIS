@@ -314,7 +314,8 @@ class LuvoirBVortex(SegmentedTelescope):
                              'active_pupil': wf_active_pupil,
                              'apod': wf_apod_stop,
                              'before_lyot': wf_before_lyot,
-                             'after_lyot': wf_lyot}
+                             'after_lyot': wf_lyot,
+                             'at_science_focus': wf_im_coro}
 
             if ref:
                 return wf_im_coro, wf_im_ref, intermediates
