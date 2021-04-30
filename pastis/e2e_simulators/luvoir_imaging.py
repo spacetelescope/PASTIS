@@ -855,7 +855,8 @@ class SegmentedAPLC(SegmentedTelescope):
                              'before_fpm': wf_before_fpm,
                              'after_fpm': int_after_fpm,
                              'before_lyot': wf_before_lyot,
-                             'after_lyot': wf_lyot}
+                             'after_lyot': wf_lyot,
+                             'at_science_focus': wf_im_coro}
 
             if ref:
                 return wf_im_coro, wf_im_ref, intermediates
