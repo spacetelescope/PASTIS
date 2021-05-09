@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pandas as pd
 from scipy.interpolate import griddata
+from scipy.ndimage import label
 from astropy.io import fits
 import hcipy
 
@@ -1002,3 +1003,195 @@ class LuvoirAPLC(LuvoirA_APLC):
     """
     def __init__(self, input_dir, apod_design, samp):
         super().__init__(input_dir, apod_design, samp)
+
+
+class LuvoirBVortex(SegmentedTelescope):
+    """ A segmented Vortex coronagraph
+
+    Parameters:
+    ----------
+    input_dir : string
+        Path to input files: DMs, aperture, indexed aperture, Lyot stop, etc.
+    charge : int
+        charge of vortex coronagraph
+    """
+
+    def __init__(self, input_dir, charge):
+        self.input_dir = input_dir
+        self.set_up_telescope()
+        super().__init__(self.wavelength, self.D_pup, self.aperture, self.aperture, self.seg_pos,
+                         self.segment_circumscribed_diameter, self.focal_grid, self.samp_foc, self.rad_foc)
+
+        # Propagators
+        self.fresnel = hcipy.propagation.FresnelPropagator(self.pupil_grid, self.zDM, num_oversampling=1)
+        self.fresnel_back = hcipy.propagation.FresnelPropagator(self.pupil_grid, -self.zDM, num_oversampling=1)
+        self.charge = charge
+        self.coro = hcipy.VortexCoronagraph(self.pupil_grid, charge, scaling_factor=4)
+
+    def set_up_telescope(self):
+
+        # Read all input data files
+        datadir = self.input_dir
+        aperture_data = fits.getdata(os.path.join(datadir, 'Pupil1.fits'))
+        apod_data = fits.getdata(os.path.join(datadir, 'APOD.fits'))
+        dm2_stop_data = fits.getdata(os.path.join(datadir, 'DM2stop.fits'))
+        lyot_stop_data = fits.getdata(os.path.join(datadir, 'LS.fits'))
+        dm1_data = fits.getdata(os.path.join(datadir, 'surfDM1.fits'))
+        dm2_data = fits.getdata(os.path.join(datadir, 'surfDM2.fits'))
+
+        # Parameters
+        nPup = CONFIG_PASTIS.getfloat('LUVOIR-B', 'pupil_pixels')
+        self.D_pup = CONFIG_PASTIS.getfloat('LUVOIR-B', 'D_pup')
+        self.samp_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
+        self.rad_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'imlamD')
+        self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'wavelength')
+
+        nPup_arrays = apod_data.shape[0]
+        nPup_dms = dm1_data.shape[0]
+        self.zDM = (self.D_pup / 2) ** 2 / (self.wavelength * 549.1429)
+
+        # Pad arrays to correct sizes
+        apod_data_pad = np.pad(apod_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
+        DM2Stop_data_pad = np.pad(dm2_stop_data, int((nPup_dms - nPup_arrays - 10) / 2), mode='constant')
+        lyot_stop_data_pad = np.pad(lyot_stop_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
+        aperture_data_pad = np.pad(aperture_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
+
+        # Create pupil grids and focal grid
+        pupil_grid_arrays = hcipy.make_pupil_grid(nPup * (nPup_arrays / nPup), self.D_pup * (nPup_arrays / nPup))
+        pupil_grid_dms = hcipy.make_pupil_grid(nPup * (nPup_dms / nPup), self.D_pup * (nPup_dms / nPup))
+        self.focal_grid = hcipy.make_focal_grid(self.samp_foc, self.rad_foc, pupil_diameter=self.D_pup, focal_length=1.,
+                                                reference_wavelength=self.wavelength)
+
+        # Create all optical components on DM pupil grids
+        self.aperture = hcipy.Field(np.reshape(apod_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.DM2_circle = hcipy.Field(np.reshape(DM2Stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.lyot_mask = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.lyot_stop = hcipy.Apodizer(self.lyot_mask)
+        self.primary = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.DM1 = hcipy.Field(np.reshape(dm1_data, nPup_dms ** 2), pupil_grid_dms)
+        self.DM2 = hcipy.Field(np.reshape(dm2_data, nPup_dms ** 2), pupil_grid_dms)
+
+        # Extract the segment positions from primary mirror
+        segments, num_segments = label(aperture_data > 0.154)  # Fudged number based on what "looks right"
+        centroids = []
+        for i in range(num_segments):
+            seg = (segments == (i + 1)).ravel()
+            c_x = np.sum(seg * pupil_grid_arrays.x) / np.sum(seg)
+            c_y = np.sum(seg * pupil_grid_arrays.y) / np.sum(seg)
+            centroids.append(np.array([c_x, c_y]))
+        self.segment_circum_diameter = self.D_pup * (nPup_arrays / 962) / 8 * 1.024  # Fudged number based on what "looks right"
+        seg_pos_pre = np.transpose(np.array(centroids))
+        self.seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(seg_pos_pre))
+
+    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+
+        if isinstance(return_intermediate, bool):
+            raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "
+                            f"E-fields returned by 'calc_psf()'.")
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
+
+        # All E-field propagations
+        wf = hcipy.Wavefront(wf_active_pupil.electric_field * self.primary * np.exp(4*1j*np.pi/self.wavelength * self.DM1), self.wavelength)
+        wf2 = self.fresnel(wf)
+        wf3 = hcipy.Wavefront(wf2.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
+        wf4 = self.fresnel_back(wf3)
+        wf5 = hcipy.Wavefront(wf4.electric_field * self.aperture, self.wavelength)
+
+        wf_before_lyot = self.coro(wf5)
+        wf_lyot = self.lyot_stop(wf_before_lyot)
+        wf_lyot.wavelength = self.wavelength
+
+        wf_im_coro = self.prop(wf_lyot)
+        wf_im_ref = self.prop(wf4)
+
+        # Display intermediate planes
+        if display_intermediate:
+
+            plt.figure(figsize=(15, 15))
+
+            plt.subplot(3, 4, 1)
+            hcipy.imshow_field(self.wf_aper.intensity, mask=self.aperture, cmap='Greys_r')
+            plt.title('Primary mirror')
+
+            plt.subplot(3, 4, 2)
+            hcipy.imshow_field(wf_sm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Segmented mirror phase')
+
+            plt.subplot(3, 4, 3)
+            hcipy.imshow_field(wf_zm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Global Zernike phase')
+
+            plt.subplot(3, 4, 4)
+            hcipy.imshow_field(wf_dm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Deformable mirror phase')
+
+            plt.subplot(3, 4, 5)
+            hcipy.imshow_field(wf_harris_sm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Harris mode mirror phase')
+
+            plt.subplot(3, 4, 6)
+            hcipy.imshow_field(wf_ripples.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('High modes mirror phase')
+
+            plt.subplot(3, 4, 7)
+            hcipy.imshow_field(wf5.intensity, cmap='inferno')
+            plt.title('wf5')
+
+            plt.subplot(3, 4, 8)
+            hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
+                               norm=LogNorm(vmin=1e-3, vmax=1), cmap='inferno')
+            plt.title('Before Lyot stop')
+
+            plt.subplot(3, 4, 9)
+            hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
+                               norm=LogNorm(vmin=-5, vmax=1), cmap='inferno', mask=self.lyot_mask)
+            plt.title('After Lyot stop')
+
+            plt.subplot(3, 4, 10)
+            hcipy.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(),
+                               norm=LogNorm(vmin=1e-10, vmax=1e-3), cmap='inferno')
+            plt.title('Coro image')
+            plt.colorbar()
+
+        if return_intermediate == 'intensity':
+
+            # Return the intensity in all planes; except phases on all DMs, and combined phase from active pupils
+            intermediates = {'seg_mirror': wf_sm.phase,
+                             'zernike_mirror': wf_zm.phase,
+                             'dm': wf_dm.phase,
+                             'harris_seg_mirror': wf_harris_sm.phase,
+                             'ripple_mirror': wf_ripples.phase,
+                             'active_pupil': wf_active_pupil.phase,
+                             'apod': wf5.intensity,
+                             'before_lyot': wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
+                             'after_lyot': wf_lyot.intensity / wf_lyot.intensity.max()}
+
+            if ref:
+                return wf_im_coro.intensity, wf_im_ref.intensity, intermediates
+            else:
+                return wf_im_coro.intensity, intermediates
+
+        if return_intermediate == 'efield':
+
+            # Return the E-fields in all planes; except intensity in focal plane after FPM
+            intermediates = {'seg_mirror': wf_sm,
+                             'zernike_mirror': wf_zm,
+                             'dm': wf_dm,
+                             'harris_seg_mirror': wf_harris_sm,
+                             'ripple_mirror': wf_ripples,
+                             'active_pupil': wf_active_pupil,
+                             'apod': wf5,
+                             'before_lyot': wf_before_lyot,
+                             'after_lyot': wf_lyot}
+
+            if ref:
+                return wf_im_coro, wf_im_ref, intermediates
+            else:
+                return wf_im_coro, intermediates
+
+        if ref:
+            return wf_im_coro.intensity, wf_im_ref.intensity
+
+        return wf_im_coro.intensity
