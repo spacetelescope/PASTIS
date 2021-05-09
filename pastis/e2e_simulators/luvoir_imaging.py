@@ -1019,8 +1019,8 @@ class LuvoirBVortex(SegmentedTelescope):
     def __init__(self, input_dir, charge):
         self.input_dir = input_dir
         self.set_up_telescope()
-        super().__init__(self.wavelength, self.D_pup, self.aperture, self.aperture, self.seg_pos,
-                         self.segment_circumscribed_diameter, self.focal_grid, self.samp_foc, self.rad_foc)
+        super().__init__(self.wavelength, self.D_pup, self.primary, self.primary, self.seg_pos,
+                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc)
 
         # Propagators
         self.fresnel = hcipy.propagation.FresnelPropagator(self.pupil_grid, self.zDM, num_oversampling=1)
@@ -1146,7 +1146,7 @@ class LuvoirBVortex(SegmentedTelescope):
 
             plt.subplot(3, 4, 9)
             hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
-                               norm=LogNorm(vmin=-5, vmax=1), cmap='inferno', mask=self.lyot_mask)
+                               norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyot_mask)
             plt.title('After Lyot stop')
 
             plt.subplot(3, 4, 10)
