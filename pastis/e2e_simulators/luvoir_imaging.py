@@ -905,7 +905,7 @@ class LuvoirA_APLC(SegmentedAPLC):
 
     Parameters:
     ----------
-    input dir : string
+    input_dir : string
         Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
     apod_design : string
         Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
