@@ -5,7 +5,7 @@ import os
 
 from pastis.config import CONFIG_PASTIS
 from pastis.hockeystick_contrast_curve import hockeystick_curve
-from pastis.matrix_building_numerical import PastisMatrixIntensities
+from pastis.matrix_building_numerical import MatrixIntensityJWST
 from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
 
@@ -13,7 +13,7 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # Generate the matrix
-    run_matrix = PastisMatrixIntensities(instrument='JWST', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix = MatrixIntensityJWST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
