@@ -39,7 +39,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
-    :param save: bool, if True, will save direct and coro PSF images to disk, default False
+    :param save_coro_floor: bool, if True, will save coro floor value to txt file, default False
+    :param save_psfs: bool, if True, will save direct and coro PSF images to disk, default False
     :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
@@ -119,22 +120,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
             file.write(f'Coronagraph floor: {contrast_floor}')
 
     if save_psfs:
-
-        # Save direct PSF, unaberrated coro PSF and DH masked coro PSF as PDF
-        plt.figure(figsize=(18, 6))
-        plt.subplot(1, 3, 1)
-        plt.title("Direct PSF")
-        plt.imshow(direct_psf, norm=LogNorm())
-        plt.colorbar()
-        plt.subplot(1, 3, 2)
-        plt.title("Unaberrated coro PSF")
-        plt.imshow(coro_psf, norm=LogNorm())
-        plt.colorbar()
-        plt.subplot(1, 3, 3)
-        plt.title("Dark hole coro PSF")
-        plt.imshow(np.ma.masked_where(~dh_mask, coro_psf), norm=LogNorm())
-        plt.colorbar()
-        plt.savefig(os.path.join(outpath, 'unaberrated_dh.pdf'))
+        ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
 
     if return_coro_simulator:
         return contrast_floor, norm, coro_simulator
@@ -416,7 +402,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     """
     Generate a numerical/semi-analytical PASTIS matrix.
 
-    -- DEPRECATED !! -- This functionis deprecated, use the class PastisMatrixIntensities instead.
+    -- DEPRECATED !! -- This function is deprecated, use the class PastisMatrixIntensities instead.
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
@@ -593,24 +579,33 @@ class PastisMatrix:
 
     def calc(self):
         """ This is the main method that should be called to calculate a PASTIS matrix. """
-        pass
+        raise NotImplementedError("Main class 'PastisMatrix' does not implement this method.")
 
 
 class PastisMatrixIntensities(PastisMatrix):
+    instrument = None
 
-    def __init__(self, instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
 
-        super().__init__(instrument=instrument, design=design, initial_path=initial_path)
+        super().__init__(instrument=self.instrument, design=design, initial_path=initial_path)
 
         self.savepsfs = savepsfs
         self.saveopds = saveopds
+        self.calculate_matrix_pair = None
 
-    def calculate_ref_image(self):
+    def calc(self):
+        start_time = time.time()
+
         # Calculate coronagraph floor, and normalization factor from direct image
-        self.contrast_floor, self.norm = calculate_unaberrated_contrast_and_normalization(self.instrument, self.design,
-                                                                                return_coro_simulator=False,
-                                                                                save_coro_floor=True, save_psfs=False,
-                                                                                outpath=self.overall_dir)
+        self.calculate_ref_image()
+        self.setup_one_pair_function()
+        self.calculate_contrast_matrix()
+        self.calculate_pastis_from_contrast_matrix()
+
+        end_time = time.time()
+        log.info(
+            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+        log.info(f'Data saved to {self.resDir}')
 
     def calculate_contrast_matrix(self):
 
@@ -636,27 +631,10 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(
             f"Multiprocess PASTIS matrix for {self.instrument} will use {num_processes} processes (with {num_core_per_process} threads per process)")
 
-        # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
-        if self.instrument == 'LUVOIR':
-            calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
-                                                      self.resDir, self.savepsfs, self.saveopds)
-
-        if self.instrument == 'HiCAT':
-            # Copy used BostonDM maps to matrix folder
-            shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
-                            os.path.join(self.resDir, 'hicat_boston_dm_commands'))
-
-            calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
-                                                      self.savepsfs, self.saveopds)
-
-        if self.instrument == 'JWST':
-            calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
-                                                      self.savepsfs, self.saveopds)
-
         # Iterate over all segment pairs via a multiprocess pool
         mypool = multiprocessing.Pool(num_processes)
         t_start = time.time()
-        results = mypool.map(calculate_matrix_pair,
+        results = mypool.map(self.calculate_matrix_pair,
                              util.segment_pairs_non_repeating(self.nb_seg))  # this util function returns a generator
         t_stop = time.time()
 
@@ -688,19 +666,17 @@ class PastisMatrixIntensities(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
-    def calc(self):
-        start_time = time.time()
+    def setup_one_pair_function(self):
+        """ This needs to create an attribute that is the partial function that can calculate the contrast from one
+        aberrated segment pair. This needs to create self.calculate_matrix_pair."""
+        raise NotImplementedError("The class 'PastisMatrixIntensities' itself does not implement this method.")
 
-        self.calculate_ref_image()
-        self.calculate_contrast_matrix()
-        self.calculate_pastis_from_contrast_matrix()
-
-        end_time = time.time()
-        log.info(
-            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
-        log.info(f'Data saved to {self.resDir}')
+    def calculate_ref_image(self):
+        """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
+        raise NotImplementedError("The class 'PastisMatrixIntensities' itself does not implement this method.")
 
 
+""" WIP
 class PastisMatrixEfield(PastisMatrix):
 
     def __init__(self, instrument, design=None, initial_path=''):
@@ -726,9 +702,146 @@ class PastisMatrixEfield(PastisMatrix):
         log.info(
             f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
         log.info(f'Data saved to {self.resDir}')
+"""
+
+
+class MatrixIntensityLuvoirA(PastisMatrixIntensities):
+    instrument = 'LUVOIR'
+
+    def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
+                                                       self.resDir, self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        # Instantiate LuvoirAPLC class
+        sampling = CONFIG_PASTIS.getfloat(self.instrument, 'sampling')
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        if self.design is None:
+            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+        luvoir = LuvoirAPLC(optics_input, self.design, sampling)
+
+        # Calculate reference images for contrast normalization and coronagraph floor
+        unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=None)
+        self.norm = np.max(direct)
+        direct_psf = direct.shaped
+        coro_psf = unaberrated_coro_psf.shaped / self.norm
+
+        # Return the coronagraphic simulator and DH mask
+        self.coro_simulator = luvoir
+        dh_mask = luvoir.dh_mask.shaped
+
+        # Calculate coronagraph floor in dark hole
+        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {self.contrast_floor}')
+
+        if save_psfs:
+            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
+
+        if save_coro_floor:
+            # Save contrast floor to text file
+            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
+                file.write(f'Coronagraph floor: {self.contrast_floor}')
+
+
+class MatrixIntensityHicat(PastisMatrixIntensities):
+    instrument = 'HiCAT'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        # Copy used BostonDM maps to matrix folder
+        shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
+                        os.path.join(self.resDir, 'hicat_boston_dm_commands'))
+        self.calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                       self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        # Set up HiCAT simulator in correct state
+        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
+
+        # Calculate direct reference images for contrast normalization
+        hicat_sim.include_fpm = False
+        direct = hicat_sim.calc_psf()
+        direct_psf = direct[0].data
+        self.norm = direct_psf.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        hicat_sim.include_fpm = True
+        coro_image = hicat_sim.calc_psf()
+        coro_psf = coro_image[0].data / self.norm
+
+        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
+
+        # Return the coronagraphic simulator
+        self.coro_simulator = hicat_sim
+
+        # Calculate coronagraph floor in dark hole
+        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {self.contrast_floor}')
+
+        if save_psfs:
+            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
+
+        if save_coro_floor:
+            # Save contrast floor to text file
+            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
+                file.write(f'Coronagraph floor: {self.contrast_floor}')
+
+
+class MatrixIntensityJWST(PastisMatrixIntensities):
+    instrument = 'JWST'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                       self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        # Instantiate NIRCAM object
+        jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
+
+        # Calculate direct reference images for contrast normalization
+        jwst_sim[0].image_mask = None
+        direct = jwst_sim[0].calc_psf(nlambda=1)
+        direct_psf = direct[0].data
+        self.norm = direct_psf.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
+        coro_image = jwst_sim[0].calc_psf(nlambda=1)
+        coro_psf = coro_image[0].data / self.norm
+
+        iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
+        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
+
+        # Return the coronagraphic simulator (a tuple in the JWST case!)
+        self.coro_simulator = jwst_sim
+
+        # Calculate coronagraph floor in dark hole
+        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {self.contrast_floor}')
+
+        if save_psfs:
+            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
+
+        if save_coro_floor:
+            # Save contrast floor to text file
+            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
+                file.write(f'Coronagraph floor: {self.contrast_floor}')
 
 
 if __name__ == '__main__':
 
-        #PastisMatrixIntensities(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
-        PastisMatrixIntensities(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        #MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
