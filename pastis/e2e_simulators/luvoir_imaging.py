@@ -1095,7 +1095,7 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # All E-field propagations
-        wf_dm1_coro = hcipy.Wavefront(wf_active_pupil.electric_field * self.aperture * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
+        wf_dm1_coro = hcipy.Wavefront(wf_active_pupil.electric_field * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
         wf_dm2_coro_before = self.fresnel(wf_dm1_coro)
         wf_dm2_coro_after = hcipy.Wavefront(wf_dm2_coro_before.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
         wf_back_at_dm1 = self.fresnel_back(wf_dm2_coro_after)
