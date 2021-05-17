@@ -95,7 +95,7 @@ class SegmentedTelescope:
     norm_phot : float
         Method that performs slef.prop, but normalized ot one photon in the pupil.
     """
-    def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD):
+    def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD, center_segment=False):
 
         self.wvln = wvln
         self.diam = diameter
@@ -104,7 +104,7 @@ class SegmentedTelescope:
         self.seg_pos = seg_pos
         self.segment_circumscribed_diameter = seg_diameter
         self.nseg = seg_pos.size
-        self.center_segment = False    # Currently only working with telescopes without active center segment
+        self.center_segment = center_segment
 
         self.pupil_grid = indexed_aper.grid
         self.focal_det = focal_grid
@@ -1020,7 +1020,7 @@ class LuvoirBVortex(SegmentedTelescope):
         self.input_dir = input_dir
         self.set_up_telescope()
         super().__init__(self.wavelength, self.D_pup, self.aperture, self.aperture, self.seg_pos,
-                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc)
+                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=True)
         # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
         # Propagators
