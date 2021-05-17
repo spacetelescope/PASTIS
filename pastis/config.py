@@ -12,7 +12,7 @@ import configparser
 import os
 
 
-config_file_name = "config_local.ini"
+config_file_name = "config_pastis.ini"
 override_file_name = "config_local.ini"
 
 
