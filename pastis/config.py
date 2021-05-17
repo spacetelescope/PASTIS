@@ -16,7 +16,6 @@ config_file_name = "config_pastis.ini"
 override_file_name = "config_local.ini"
 
 
-
 def get_config_ini_path():
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file_name)
 
@@ -39,4 +38,3 @@ def load_config_ini():
 
 # Import CONFIG_INI below instead of loading the ini file manually.
 CONFIG_PASTIS = load_config_ini()
-
