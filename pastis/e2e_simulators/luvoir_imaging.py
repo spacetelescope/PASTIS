@@ -1019,8 +1019,9 @@ class LuvoirBVortex(SegmentedTelescope):
     def __init__(self, input_dir, charge):
         self.input_dir = input_dir
         self.set_up_telescope()
-        super().__init__(self.wavelength, self.D_pup, self.primary, self.primary, self.seg_pos,
+        super().__init__(self.wavelength, self.D_pup, self.aperture, self.aperture, self.seg_pos,
                          self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc)
+        # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
         # Propagators
         self.fresnel = hcipy.propagation.FresnelPropagator(self.pupil_grid, self.zDM, num_oversampling=1)
@@ -1033,7 +1034,7 @@ class LuvoirBVortex(SegmentedTelescope):
         # Read all input data files
         datadir = self.input_dir
         aperture_data = fits.getdata(os.path.join(datadir, 'Pupil1.fits'))
-        apod_data = fits.getdata(os.path.join(datadir, 'APOD.fits'))
+        apod_stop_data = fits.getdata(os.path.join(datadir, 'APOD.fits'))
         dm2_stop_data = fits.getdata(os.path.join(datadir, 'DM2stop.fits'))
         lyot_stop_data = fits.getdata(os.path.join(datadir, 'LS.fits'))
         dm1_data = fits.getdata(os.path.join(datadir, 'surfDM1.fits'))
@@ -1046,13 +1047,14 @@ class LuvoirBVortex(SegmentedTelescope):
         self.rad_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'imlamD')
         self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'wavelength')
 
-        nPup_arrays = apod_data.shape[0]
+        nPup_arrays = apod_stop_data.shape[0]
         nPup_dms = dm1_data.shape[0]
-        self.zDM = (self.D_pup / 2) ** 2 / (self.wavelength * 549.1429)
+        nPup_dm_stop = dm2_stop_data.shape[0]
+        self.zDM = (self.D_pup / 2) ** 2 / (self.wavelength * 549.1429)    # last number is Fresnel number for 10% bandpass
 
         # Pad arrays to correct sizes
-        apod_data_pad = np.pad(apod_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
-        DM2Stop_data_pad = np.pad(dm2_stop_data, int((nPup_dms - nPup_arrays - 10) / 2), mode='constant')
+        apod_stop_data_pad = np.pad(apod_stop_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
+        DM2Stop_data_pad = np.pad(dm2_stop_data, int((nPup_dms - nPup_dm_stop) / 2), mode='constant')
         lyot_stop_data_pad = np.pad(lyot_stop_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
         aperture_data_pad = np.pad(aperture_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
 
@@ -1063,11 +1065,11 @@ class LuvoirBVortex(SegmentedTelescope):
                                                 reference_wavelength=self.wavelength)
 
         # Create all optical components on DM pupil grids
-        self.aperture = hcipy.Field(np.reshape(apod_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.apod_stop = hcipy.Field(np.reshape(apod_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM2_circle = hcipy.Field(np.reshape(DM2Stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.lyot_mask = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.lyot_stop = hcipy.Apodizer(self.lyot_mask)
-        self.primary = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.aperture = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM1 = hcipy.Field(np.reshape(dm1_data, nPup_dms ** 2), pupil_grid_dms)
         self.DM2 = hcipy.Field(np.reshape(dm2_data, nPup_dms ** 2), pupil_grid_dms)
 
@@ -1093,11 +1095,11 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # All E-field propagations
-        wf = hcipy.Wavefront(wf_active_pupil.electric_field * self.primary * np.exp(4*1j*np.pi/self.wavelength * self.DM1), self.wavelength)
+        wf = hcipy.Wavefront(wf_active_pupil.electric_field * self.aperture * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
         wf2 = self.fresnel(wf)
         wf3 = hcipy.Wavefront(wf2.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
         wf4 = self.fresnel_back(wf3)
-        wf5 = hcipy.Wavefront(wf4.electric_field * self.aperture, self.wavelength)
+        wf5 = hcipy.Wavefront(wf4.electric_field * self.apod_stop, self.wavelength)
 
         wf_before_lyot = self.coro(wf5)
         wf_lyot = self.lyot_stop(wf_before_lyot)
