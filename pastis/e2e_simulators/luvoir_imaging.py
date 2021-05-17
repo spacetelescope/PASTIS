@@ -1095,18 +1095,18 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # All E-field propagations
-        wf = hcipy.Wavefront(wf_active_pupil.electric_field * self.aperture * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
-        wf2 = self.fresnel(wf)
-        wf3 = hcipy.Wavefront(wf2.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
-        wf4 = self.fresnel_back(wf3)
-        wf5 = hcipy.Wavefront(wf4.electric_field * self.apod_stop, self.wavelength)
+        wf_dm1_coro = hcipy.Wavefront(wf_active_pupil.electric_field * self.aperture * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
+        wf_dm2_coro_before = self.fresnel(wf_dm1_coro)
+        wf_dm2_coro_after = hcipy.Wavefront(wf_dm2_coro_before.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
+        wf_back_at_dm1 = self.fresnel_back(wf_dm2_coro_after)
+        wf_apod_stop = hcipy.Wavefront(wf_back_at_dm1.electric_field * self.apod_stop, self.wavelength)
 
-        wf_before_lyot = self.coro(wf5)
+        wf_before_lyot = self.coro(wf_apod_stop)
         wf_lyot = self.lyot_stop(wf_before_lyot)
         wf_lyot.wavelength = self.wavelength
 
         wf_im_coro = self.prop(wf_lyot)
-        wf_im_ref = self.prop(wf4)
+        wf_im_ref = self.prop(wf_back_at_dm1)
 
         # Display intermediate planes
         if display_intermediate:
@@ -1138,8 +1138,8 @@ class LuvoirBVortex(SegmentedTelescope):
             plt.title('High modes mirror phase')
 
             plt.subplot(3, 4, 7)
-            hcipy.imshow_field(wf5.intensity, cmap='inferno')
-            plt.title('wf5')
+            hcipy.imshow_field(wf_apod_stop.intensity, cmap='inferno')
+            plt.title('Pupil stop after coron DMs')
 
             plt.subplot(3, 4, 8)
             hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
@@ -1166,7 +1166,7 @@ class LuvoirBVortex(SegmentedTelescope):
                              'harris_seg_mirror': wf_harris_sm.phase,
                              'ripple_mirror': wf_ripples.phase,
                              'active_pupil': wf_active_pupil.phase,
-                             'apod': wf5.intensity,
+                             'apod': wf_apod_stop.intensity,
                              'before_lyot': wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
                              'after_lyot': wf_lyot.intensity / wf_lyot.intensity.max()}
 
@@ -1184,7 +1184,7 @@ class LuvoirBVortex(SegmentedTelescope):
                              'harris_seg_mirror': wf_harris_sm,
                              'ripple_mirror': wf_ripples,
                              'active_pupil': wf_active_pupil,
-                             'apod': wf5,
+                             'apod': wf_apod_stop,
                              'before_lyot': wf_before_lyot,
                              'after_lyot': wf_lyot}
 
