@@ -19,6 +19,7 @@ import numpy as np
 from PyPDF2 import PdfFileMerger
 
 from pastis.config import CONFIG_PASTIS
+
 log = logging.getLogger()
 
 
