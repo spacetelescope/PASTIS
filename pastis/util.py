@@ -203,7 +203,7 @@ def get_segment_list(instrument):
     :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
-    if instrument not in ['LUVOIR', 'HiCAT', 'JWST']:
+    if instrument not in ['LUVOIR', 'HiCAT', 'JWST' , 'RST']:
         raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))

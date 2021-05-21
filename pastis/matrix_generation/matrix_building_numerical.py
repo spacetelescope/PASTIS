@@ -31,6 +31,10 @@ log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
 matplotlib.rc('pdf', fonttype=42)
 
+def copy(self):
+    """ Make a copy of a wavefront object """
+    from copy import deepcopy
+    return deepcopy(self)
 
 class PastisMatrix(ABC):
     instrument = None
@@ -178,7 +182,7 @@ class PastisMatrixIntensities(PastisMatrix):
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
     """
     Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
+    :param instrument: string, 'LUVOIR', 'HiCAT', 'RST' or 'JWST'
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
@@ -206,6 +210,9 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = luvoir
         dh_mask = luvoir.dh_mask.shaped
 
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {contrast_floor}')
+
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
         hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
@@ -228,6 +235,9 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
+
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {contrast_floor}')
 
     if instrument == 'JWST':
 
@@ -253,9 +263,32 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Return the coronagraphic simulator (a tuple in the JWST case!)
         coro_simulator = jwst_sim
 
-    # Calculate coronagraph floor in dark hole
-    contrast_floor = util.dh_mean(coro_psf, dh_mask)
-    log.info(f'contrast floor: {contrast_floor}')
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {contrast_floor}')
+
+    if instrument == 'RST':
+
+        # Instantiate CGI object
+        webbpsf.setup_logging()
+        rst_cgi = set_up_cgi()
+
+        # Calculate direct reference images for contrast normalization
+        rst_direct = rst_cgi.raw_contrast()
+        direct = rst_direct[0].calc_psf(nlambda=1)
+        direct_psf = direct[0].data
+        norm = direct_psf.max()
+
+        # Calculate unaberrated coronagraph image for contrast floor
+        rst_cgi[0].image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask') #A vvoir
+        coro_image = rst_cgi[0].calc_psf(nlambda=1)
+        coro_psf = coro_image[0].data / norm
+
+        dh_mask = rst_cgi.working_area()
+
+        # Return the coronagraphic simulator (a tuple in the RST case!)
+        coro_simulator = rst_cgi
+        contrast_floor = rst_cgi.contrast()
+
 
     if save_coro_floor:
         # Save contrast floor to text file
@@ -330,7 +363,6 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     return contrast, segment_pair
 
-
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
@@ -383,7 +415,6 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
     return float(contrast), segment_pair
 
-
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
@@ -433,6 +464,59 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
+
+def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
+    """
+    Function to calculate RST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_multiprocess().
+    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+    :param wfe_aber: calibration aberration per segment in m
+    :param resDir: str, directory for matrix calculations
+    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param actuator_pair:
+    :return: contrast as float, and segment pair as tuple
+    """
+
+    actuator_pair_x = actuator_pair % nbactuator
+    actuator_pair_y = (actuator_pair-actuator_pair_x)/nbactuator
+
+    # Set up RST simulator in coronagraphic state
+    rst_instrument, rst_ote = webbpsf_imaging.set_up_nircam()
+    rst_instrument.image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask')
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    log.info(f'PAIR: {actuator_pair[0]}-{actuator[1]}')
+
+
+
+    # Put aberration on correct segments. If i=j, apply only once!
+    rst_ote.zero()
+    rst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='m')
+    if actuator_pair[0] != actuator_pair[1]:
+        rst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='m')
+
+    log.info('Calculating coro image...')
+    image = rst_instrument.calc_psf(nlambda=1)
+    psf = image[0].data / norm
+
+    # Save PSF image to disk
+    if savepsfs:
+        filename_psf = f'psf_piston_Noll1_segs_{actuator_pair[0]}-{actuator_pair[1]}'
+        hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+
+    # Plot segmented mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_piston_Noll1_segs_{actuator_pair[0]}-{segment_pair[1]}'
+        plt.clf()
+        plt.figure(figsize=(8, 8))
+        ax2 = plt.subplot(111)
+        rst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+
+    contrast = util.dh_mean(psf, dh_mask)
+
+    return contrast, actuator_pair
 
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
@@ -636,6 +720,9 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
     if instrument == 'JWST':
         calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+
+    if instrument == 'RST':
+        calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
