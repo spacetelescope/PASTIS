@@ -270,7 +270,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Instantiate CGI object
         webbpsf.setup_logging()
-        rst_cgi = set_up_cgi()
+        rst_cgi = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
         rst_direct = rst_cgi.raw_contrast()

@@ -175,10 +175,10 @@ def set_up_cgi():
     :return: Tuple of NIRCam instance, and its OTE
     """
 
-    cgi = roman.CGI()
+    cgi = roman.CGI(mode=)
     cgi.include_si_wfe = False
-    cgi.filter = CONFIG_PASTIS.get('JWST', 'filter_name')
-    cgi.pupil_mask = CONFIG_PASTIS.get('JWST', 'pupil_plane_stop')
+    cgi.filter = CONFIG_PASTIS.get('RST', 'filter_name')
+    cgi.pupil_mask = CONFIG_PASTIS.get('RST', 'pupil_plane_stop')
 
     cgi, ote = webbpsf.enable_adjustable_ote(cgi)
     ote.zero(zero_original=True)    # https://github.com/spacetelescope/webbpsf/blob/96537c459996f682ac6e9af808809ca13fb85e87/webbpsf/opds.py#L1125
