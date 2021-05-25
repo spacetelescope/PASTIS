@@ -7,7 +7,6 @@ import glob
 import progressbar
 import re
 import time
-import math as math
 from astropy.io import fits
 import hcipy
 import matplotlib
