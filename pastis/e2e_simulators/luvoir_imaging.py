@@ -416,7 +416,7 @@ class SegmentedTelescope:
         n_fourier : int
             Maximum number for cycles per aperture, use an odd number (!)
         """
-        fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)
+        fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)   # TODO: should it be diameter=self.diam instead?
         fourier_basis = hcipy.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
         self.ripple_mirror = hcipy.optics.DeformableMirror(fourier_basis)
 
