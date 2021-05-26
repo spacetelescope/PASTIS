@@ -15,7 +15,6 @@ import functools
 import shutil
 import logging
 import matplotlib
-from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
