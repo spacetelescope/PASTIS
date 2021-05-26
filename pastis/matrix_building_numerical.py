@@ -8,6 +8,7 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
  HiCAT
  """
 
+from abc import ABC, abstractmethod
 import os
 import time
 import functools
@@ -534,7 +535,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     return overall_dir
 
 
-class PastisMatrix:
+class PastisMatrix(ABC):
     def __init__(self, instrument, design=None, initial_path=''):
 
         # General telescope parameters
@@ -577,9 +578,9 @@ class PastisMatrix:
         #  Copy configfile to resulting matrix directory
         util.copy_config(self.resDir)
 
+    @abstractmethod
     def calc(self):
         """ This is the main method that should be called to calculate a PASTIS matrix. """
-        raise NotImplementedError("Main class 'PastisMatrix' does not implement this method.")
 
 
 class PastisMatrixIntensities(PastisMatrix):
@@ -666,14 +667,14 @@ class PastisMatrixIntensities(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
+    @abstractmethod
     def setup_one_pair_function(self):
-        """ This needs to create an attribute that is the partial function that can calculate the contrast from one
-        aberrated segment pair. This needs to create self.calculate_matrix_pair."""
-        raise NotImplementedError("The class 'PastisMatrixIntensities' itself does not implement this method.")
+        """This needs to create an attribute that is the partial function that can calculate the contrast from one
+        aberrated segment/actuator pair. This needs to create self.calculate_matrix_pair."""
 
+    @abstractmethod
     def calculate_ref_image(self):
         """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
-        raise NotImplementedError("The class 'PastisMatrixIntensities' itself does not implement this method.")
 
 
 """ WIP
