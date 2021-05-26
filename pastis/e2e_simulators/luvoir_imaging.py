@@ -122,7 +122,8 @@ class LuvoirBVortex(SegmentedTelescope):
         self.input_dir = input_dir
         self.set_up_telescope()
         super().__init__(self.wavelength, self.D_pup, self.aperture, self.indexed_aperture, self.seg_pos,
-                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=True)
+                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=False)
+        # TODO: center seg is False on purpose, because of the awkward segment numbering we currently have for LUVOIR-B
         # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
         # Propagators
