@@ -1,5 +1,5 @@
 """
-Launcher script to start a full LUVOIR run: combinations of matrix generation, hockey stick curve and PASTIS analysis,
+Launcher script to start a full LUVOIR-A run: combinations of matrix generation, hockey stick curve and PASTIS analysis,
 freely choosable between the small, medium and large coronagraph designs.
 """
 import os
@@ -13,8 +13,10 @@ import pastis.util as util
 
 if __name__ == '__main__':
 
+    APLC_DESIGN = 'small'
+
     # First generate a couple of matrices
-    run_matrix = MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix = MatrixIntensityLuvoirA(design=APLC_DESIGN, initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     # Then generate all hockey  stick curves
     result_dir_small = os.path.join(dir_run, 'results')
     matrix_dir_small = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='LUVOIR', apodizer_choice='small', matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=3)
+    hockeystick_curve(instrument='LUVOIR', apodizer_choice=APLC_DESIGN, matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=3)
 
     # Finally run full analysis on all three cases
-    run_full_pastis_analysis(instrument='LUVOIR', design='small', run_choice=dir_run)
+    run_full_pastis_analysis(instrument='LUVOIR', design=APLC_DESIGN, run_choice=dir_run)
