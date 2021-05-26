@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pandas as pd
 from scipy.interpolate import griddata
-from scipy.ndimage import label
 from astropy.io import fits
 import hcipy
 
