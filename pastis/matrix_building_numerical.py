@@ -717,34 +717,12 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
                                                        self.resDir, self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
-        # Instantiate LuvoirAPLC class
-        sampling = CONFIG_PASTIS.getfloat(self.instrument, 'sampling')
-        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-        if self.design is None:
-            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
-        luvoir = LuvoirAPLC(optics_input, self.design, sampling)
-
-        # Calculate reference images for contrast normalization and coronagraph floor
-        unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=None)
-        self.norm = np.max(direct)
-        direct_psf = direct.shaped
-        coro_psf = unaberrated_coro_psf.shaped / self.norm
-
-        # Return the coronagraphic simulator and DH mask
-        self.coro_simulator = luvoir
-        dh_mask = luvoir.dh_mask.shaped
-
-        # Calculate coronagraph floor in dark hole
-        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {self.contrast_floor}')
-
-        if save_psfs:
-            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
-
-        if save_coro_floor:
-            # Save contrast floor to text file
-            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
-                file.write(f'Coronagraph floor: {self.contrast_floor}')
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
+                                                                                                               self.design,
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
 
 
 class MatrixIntensityHicat(PastisMatrixIntensities):
@@ -761,39 +739,11 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
-        # Set up HiCAT simulator in correct state
-        hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
-
-        # Calculate direct reference images for contrast normalization
-        hicat_sim.include_fpm = False
-        direct = hicat_sim.calc_psf()
-        direct_psf = direct[0].data
-        self.norm = direct_psf.max()
-
-        # Calculate unaberrated coronagraph image for contrast floor
-        hicat_sim.include_fpm = True
-        coro_image = hicat_sim.calc_psf()
-        coro_psf = coro_image[0].data / self.norm
-
-        iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
-        owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
-        sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
-        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
-
-        # Return the coronagraphic simulator
-        self.coro_simulator = hicat_sim
-
-        # Calculate coronagraph floor in dark hole
-        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {self.contrast_floor}')
-
-        if save_psfs:
-            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
-
-        if save_coro_floor:
-            # Save contrast floor to text file
-            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
-                file.write(f'Coronagraph floor: {self.contrast_floor}')
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
 
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
@@ -807,39 +757,11 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
-        # Instantiate NIRCAM object
-        jwst_sim = webbpsf_imaging.set_up_nircam()  # this returns a tuple of two: jwst_sim[0] is the nircam object, jwst_sim[1] its ote
-
-        # Calculate direct reference images for contrast normalization
-        jwst_sim[0].image_mask = None
-        direct = jwst_sim[0].calc_psf(nlambda=1)
-        direct_psf = direct[0].data
-        self.norm = direct_psf.max()
-
-        # Calculate unaberrated coronagraph image for contrast floor
-        jwst_sim[0].image_mask = CONFIG_PASTIS.get('JWST', 'focal_plane_mask')
-        coro_image = jwst_sim[0].calc_psf(nlambda=1)
-        coro_psf = coro_image[0].data / self.norm
-
-        iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
-        owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
-        sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
-        dh_mask = util.create_dark_hole(coro_psf, iwa, owa, sampling).astype('bool')
-
-        # Return the coronagraphic simulator (a tuple in the JWST case!)
-        self.coro_simulator = jwst_sim
-
-        # Calculate coronagraph floor in dark hole
-        self.contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {self.contrast_floor}')
-
-        if save_psfs:
-            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
-
-        if save_coro_floor:
-            # Save contrast floor to text file
-            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
-                file.write(f'Coronagraph floor: {self.contrast_floor}')
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
 
 
 if __name__ == '__main__':
