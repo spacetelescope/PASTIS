@@ -156,7 +156,7 @@ class SegmentedTelescope:
         if not isinstance(self.sm, SegmentedMirror):
             raise TypeError("This function is only for usage with a segmented mirror of type "
                             "'pastis.e2e_simulators.indexed_segmented_mirror.SegmentedMirror'. You are currently "
-                            "using a multi-mode Zernike mirror.")
+                            "using a multi-mode Zernike mirror. Please use `set_sm_segment()` instead.")
         self.sm.set_segment(segid, piston, tip, tilt)
 
     def _create_evaluated_segment_grid(self):
