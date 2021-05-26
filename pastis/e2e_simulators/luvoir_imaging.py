@@ -148,7 +148,7 @@ class LuvoirBVortex(SegmentedTelescope):
         self.D_pup = CONFIG_PASTIS.getfloat('LUVOIR-B', 'D_pup')
         self.samp_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
         self.rad_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'imlamD')
-        self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'wavelength')
+        self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'lambda')
 
         nPup_arrays = apod_stop_data.shape[0]
         nPup_dms = dm1_data.shape[0]
