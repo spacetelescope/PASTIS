@@ -950,19 +950,7 @@ class LuvoirA_APLC(SegmentedAPLC):
         aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_path))
         aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
 
-        # Load segment positions from fits header
-        hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
-        nseg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
-        poslist = []
-        for i in range(nseg):
-            segname = 'SEG' + str(i + 1)
-            xin = hdr[segname + '_X']
-            yin = hdr[segname + '_Y']
-            poslist.append((xin, yin))
-        poslist = np.transpose(np.array(poslist))
-        seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(poslist))
-        seg_pos = seg_pos.scaled(diameter)
-
+        seg_pos = load_segment_centers(input_dir, aper_ind_path, CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures'), diameter)
         seg_diameter_circumscribed = 2 / np.sqrt(3) * 1.2225    # m
 
         # Create a focal plane mask
@@ -1019,7 +1007,7 @@ class LuvoirBVortex(SegmentedTelescope):
     def __init__(self, input_dir, charge):
         self.input_dir = input_dir
         self.set_up_telescope()
-        super().__init__(self.wavelength, self.D_pup, self.aperture, self.aperture, self.seg_pos,
+        super().__init__(self.wavelength, self.D_pup, self.aperture, self.indexed_aperture, self.seg_pos,
                          self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=True)
         # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
@@ -1034,6 +1022,7 @@ class LuvoirBVortex(SegmentedTelescope):
         # Read all input data files
         datadir = self.input_dir
         aperture_data = fits.getdata(os.path.join(datadir, 'Pupil1.fits'))
+        indexed_aperture_data = fits.getdata(os.path.join(datadir, 'aperture_LUVOIR-B_indexed.fits'))
         apod_stop_data = fits.getdata(os.path.join(datadir, 'APOD.fits'))
         dm2_stop_data = fits.getdata(os.path.join(datadir, 'DM2stop.fits'))
         lyot_stop_data = fits.getdata(os.path.join(datadir, 'LS.fits'))
@@ -1057,6 +1046,7 @@ class LuvoirBVortex(SegmentedTelescope):
         DM2Stop_data_pad = np.pad(dm2_stop_data, int((nPup_dms - nPup_dm_stop) / 2), mode='constant')
         lyot_stop_data_pad = np.pad(lyot_stop_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
         aperture_data_pad = np.pad(aperture_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
+        indexed_aperture_data_pad = np.pad(indexed_aperture_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
 
         # Create pupil grids and focal grid
         pupil_grid_arrays = hcipy.make_pupil_grid(nPup * (nPup_arrays / nPup), self.D_pup * (nPup_arrays / nPup))
@@ -1070,20 +1060,13 @@ class LuvoirBVortex(SegmentedTelescope):
         self.lyot_mask = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.lyot_stop = hcipy.Apodizer(self.lyot_mask)
         self.aperture = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.indexed_aperture = hcipy.Field(np.reshape(indexed_aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM1 = hcipy.Field(np.reshape(dm1_data, nPup_dms ** 2), pupil_grid_dms)
         self.DM2 = hcipy.Field(np.reshape(dm2_data, nPup_dms ** 2), pupil_grid_dms)
 
-        # Extract the segment positions from primary mirror
-        segments, num_segments = label(aperture_data > 0.154)  # Fudged number based on what "looks right"
-        centroids = []
-        for i in range(num_segments):
-            seg = (segments == (i + 1)).ravel()
-            c_x = np.sum(seg * pupil_grid_arrays.x) / np.sum(seg)
-            c_y = np.sum(seg * pupil_grid_arrays.y) / np.sum(seg)
-            centroids.append(np.array([c_x, c_y]))
+        self.seg_pos = load_segment_centers(datadir, 'aperture_LUVOIR-B_indexed.fits',
+                                            CONFIG_PASTIS.getint('LUVOIR-B', 'nb_subapertures'), self.D_pup)
         self.segment_circum_diameter = self.D_pup * (nPup_arrays / 962) / 8 * 1.024  # Fudged number based on what "looks right"
-        seg_pos_pre = np.transpose(np.array(centroids))
-        self.seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(seg_pos_pre))
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
 
@@ -1197,3 +1180,26 @@ class LuvoirBVortex(SegmentedTelescope):
             return wf_im_coro.intensity, wf_im_ref.intensity
 
         return wf_im_coro.intensity
+
+
+def load_segment_centers(input_dir, aper_ind_path, nseg, diameter):
+    """ Load segment positions from fits header
+
+    :param input_dir: string, absolute path to input directory
+    :param aper_ind_path: string, relative path and filename of indexed aperture file
+    :param nseg: int, total number of segments in the pupil
+    :param diameter: float, pupil diameter
+    :return: hcipy.CartesianGrid of segment centers
+    """
+    hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
+    poslist = []
+    for i in range(nseg):
+        segname = 'SEG' + str(i + 1)
+        xin = hdr[segname + '_X']
+        yin = hdr[segname + '_Y']
+        poslist.append((xin, yin))
+    poslist = np.transpose(np.array(poslist))
+    seg_pos = hcipy.CartesianGrid(hcipy.UnstructuredCoords(poslist))
+    seg_pos = seg_pos.scaled(diameter)
+
+    return seg_pos
