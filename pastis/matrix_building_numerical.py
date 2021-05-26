@@ -535,19 +535,20 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 class PastisMatrix(ABC):
-    def __init__(self, instrument, design=None, initial_path=''):
+    instrument = None
+
+    def __init__(self, design=None, initial_path=''):
 
         # General telescope parameters
-        self.instrument = instrument
         self.design = design
-        self.nb_seg = CONFIG_PASTIS.getint(instrument, 'nb_subapertures')
-        self.seglist = util.get_segment_list(instrument)
-        self.wvln = CONFIG_PASTIS.getfloat(instrument, 'lambda') * 1e-9  # m
-        self.wfe_aber = CONFIG_PASTIS.getfloat(instrument, 'calibration_aberration') * 1e-9  # m
+        self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        self.seglist = util.get_segment_list(self.instrument)
+        self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
+        self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
 
         # Create directory names
-        tel_suffix = f'{instrument.lower()}'
-        if instrument == 'LUVOIR':
+        tel_suffix = f'{self.instrument.lower()}'
+        if self.instrument == 'LUVOIR':
             if design is None:
                 design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
             tel_suffix += f'-{design}'
@@ -570,11 +571,11 @@ class PastisMatrix(ABC):
         log.info(f'Number of segments: {self.nb_seg}')
         log.info(f'Segment list: {self.seglist}')
         log.info(f'wfe_aber: {self.wfe_aber} m')
-        log.info(f'Total number of segment pairs in {instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
+        log.info(f'Total number of actuator pairs in {self.instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
         log.info(
-            f'Non-repeating pairs in {instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
+            f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
 
-        #  Copy configfile to resulting matrix directory
+        # Copy configfile to resulting matrix directory
         util.copy_config(self.resDir)
 
     @abstractmethod
@@ -587,7 +588,7 @@ class PastisMatrixIntensities(PastisMatrix):
 
     def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
 
-        super().__init__(instrument=self.instrument, design=design, initial_path=initial_path)
+        super().__init__(design=design, initial_path=initial_path)
 
         self.savepsfs = savepsfs
         self.saveopds = saveopds
