@@ -10,7 +10,7 @@ import logging
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
-import pastis.image_pastis as impastis
+import pastis.analytical_pastis.image_pastis as impastis
 
 log = logging.getLogger()
 
