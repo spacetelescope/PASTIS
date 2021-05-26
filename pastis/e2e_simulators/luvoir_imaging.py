@@ -1066,7 +1066,8 @@ class LuvoirBVortex(SegmentedTelescope):
 
         self.seg_pos = load_segment_centers(datadir, 'aperture_LUVOIR-B_indexed.fits',
                                             CONFIG_PASTIS.getint('LUVOIR-B', 'nb_subapertures'), self.D_pup)
-        self.segment_circum_diameter = self.D_pup * (nPup_arrays / 962) / 8 * 1.024  # Fudged number based on what "looks right"
+        # Calculate segment circumscribed diameter from flat-to-flat distance, and scale from 8m to pupil size used here
+        self.segment_circum_diameter = 2 / np.sqrt(3) * 0.955 * (self.D_pup/8)   # m
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
 
