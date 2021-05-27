@@ -92,7 +92,7 @@ class SegmentedTelescope:
     wf_aper : hcipy.Wavefront
         E-field on the segmented primary
     norm_phot : float
-        Method that performs self.prop, but normalized ot one photon in the pupil.
+        Method that performs slef.prop, but normalized ot one photon in the pupil.
     """
     def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD):
 
