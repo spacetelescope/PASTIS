@@ -23,7 +23,7 @@ import hcipy
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.luvoir_imaging import LuvoirBVortex
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
 
@@ -45,13 +45,13 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
 
-    if instrument == 'LUVOIR':
+    if instrument == 'LUVOIR-B':
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
-        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-        if design is None:
-            design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
-        luvoir = LuvoirAPLC(optics_input, design, sampling)
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR-B', 'optics_path_in_repo'))
+        #if design is None:
+        #    design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+        luvoir = LuvoirBVortex(optics_input, charge=6)
 
         # Calculate reference images for contrast normalization and coronagraph floor
         unaberrated_coro_psf, direct = luvoir.calc_psf(ref=True, display_intermediate=False, return_intermediate=None)
@@ -204,9 +204,9 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
     """
 
     # Instantiate LUVOIR object
-    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-    luv = LuvoirAPLC(optics_input, design, sampling)
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR-B', 'optics_path_in_repo'))
+    luv = LuvoirBVortex(optics_input, charge=6)
 
     log.info(f'PAIR: {segment_pair[0]+1}-{segment_pair[1]+1}')
 
@@ -718,6 +718,25 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
+                                                                                                               self.design,
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
+
+
+class MatrixIntensityLuvoirB(PastisMatrixIntensities):
+    instrument = 'LUVOIR-B'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
+                                                       self.resDir, self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR-B',
                                                                                                                self.design,
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,

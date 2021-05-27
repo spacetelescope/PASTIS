@@ -175,7 +175,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
             log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}")
 
             # Chose correct contrast propagation function for chose instrument
-            if instrument == 'LUVOIR':
+            if instrument == 'LUVOIR-B':
                 c_e2e, c_matrix = consim.contrast_luvoir_num(contrast_floor, norm, apodizer_choice, matrix_dir=matrixdir, rms=rms)
             if instrument == 'HiCAT':
                 c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)

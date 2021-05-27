@@ -486,7 +486,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     if fname_suffix != '':
         fname += f'_{fname_suffix}'
 
-    if instrument == 'LUVOIR':
+    if instrument == 'LUVOIR-B':
         sim_instance.flatten()
         wf_constraints = pastis.util.apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers

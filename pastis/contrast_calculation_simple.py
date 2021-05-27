@@ -19,7 +19,7 @@ from matplotlib.colors import LogNorm
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.luvoir_imaging import LuvoirBVortex
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.analytical_pastis.image_pastis as impastis
 import pastis.util as util
@@ -267,8 +267,8 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     start_time = time.time()
 
     # Parameters
-    nb_seg = CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures')
-    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    nb_seg = CONFIG_PASTIS.getint('LUVOIR-B', 'nb_subapertures')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
 
     # Import numerical PASTIS matrix
     filename = 'pastis_matrix'
@@ -281,10 +281,10 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     # Coronagraph parameters
     # The LUVOIR STDT delivery in May 2018 included three different apodizers
     # we can work with, so I will implement an easy way of making a choice between them.
-    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR-B', 'optics_path_in_repo'))
 
     # Instantiate LUVOIR telescope with APLC
-    luvoir = LuvoirAPLC(optics_input, design, sampling)
+    luvoir = LuvoirBVortex(optics_input, charge=6)
 
     log.info('Calculating E2E contrast...')
     # Put aberrations on segmented mirror

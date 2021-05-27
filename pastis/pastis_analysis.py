@@ -16,7 +16,7 @@ import hcipy
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.luvoir_imaging import LuvoirBVortex
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import pastis.plotting as ppl
@@ -99,7 +99,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     all_modes_focal_plane = []
     for i, thismode in enumerate(seglist):
 
-        if instrument == 'LUVOIR':
+        if instrument == 'LUVOIR-B':
             log.info(f'Working on mode {thismode}/{nseg}.')
             wf_sm, wf_detector = util.apply_mode_to_luvoir(pmodes[:, i], sim_instance)
             psf_detector = wf_detector.intensity.shaped
@@ -152,6 +152,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     for i, thismode in enumerate(seglist):
         if instrument == 'LUVOIR':
             plt.subplot(12, 10, i + 1)
+        if instrument == 'LUVOIR-B':
+            plt.subplot(8, 7, i + 1)
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
@@ -184,6 +186,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
     for i, thismode in enumerate(seglist):
         if instrument == 'LUVOIR':
             plt.subplot(12, 10, i + 1)
+        if instrument == 'LUVOIR-B':
+            plt.subplot(8, 7, i + 1)
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
@@ -263,7 +267,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
         opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
-        if instrument == 'LUVOIR':
+        if instrument == 'LUVOIR-B':
             sim_instance.flatten()
             for seg, val in enumerate(opd):
                 sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
@@ -349,7 +353,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     random_weights = segments_random_state.normal(0, mus) * u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if instrument == 'LUVOIR-B':
         sim_instance.flatten()
         for seg in range(mus.shape[0]):
             sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
@@ -398,7 +402,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     opd *= u.nm
 
     # Apply random aberration to E2E simulator
-    if instrument == "LUVOIR":
+    if instrument == 'LUVOIR-B':
         sim_instance.flatten()
         for seg, aber in enumerate(opd):
             sim_instance.set_segment(seg + 1, aber.to(u.m).value / 2, 0, 0)
@@ -472,14 +476,14 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Set up simulator, calculate reference PSF and dark hole mask
     # TODO: replace this section with calculate_unaberrated_contrast_and_normalization(). This will require to save out
     # reference and unaberrated coronagraphic PSF already in matrix generation.
-    if instrument == "LUVOIR":
+    if instrument == 'LUVOIR-B':
         if design is None:
             design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
             log.info(f'Coronagraph design: {design}')
 
-        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-        luvoir = LuvoirAPLC(optics_input, design, sampling)
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR-B', 'optics_path_in_repo'))
+        luvoir = LuvoirBVortex(optics_input, charge=6)
 
         # Generate reference PSF and unaberrated coronagraphic image
         luvoir.flatten()
@@ -630,7 +634,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         # Apply mu map directly and run through E2E simulator
         mus *= u.nm
 
-        if instrument == 'LUVOIR':
+        if instrument == 'LUVOIR-B':
             sim_instance.flatten()
             for seg, mu in enumerate(mus):
                 sim_instance.set_segment(seg + 1, mu.to(u.m).value / 2, 0, 0)
