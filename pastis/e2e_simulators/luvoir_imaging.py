@@ -132,6 +132,13 @@ class LuvoirBVortex(SegmentedTelescope):
         self.charge = charge
         self.coro = hcipy.VortexCoronagraph(self.pupil_grid, charge, scaling_factor=4)
 
+        # Set up DH mask
+        iwa = 4
+        owa = 10
+        dh_outer = hcipy.circular_aperture(2 * owa * self.lam_over_d)(self.focal_grid)
+        dh_inner = hcipy.circular_aperture(2 * iwa * self.lam_over_d)(self.focal_grid)
+        self.dh_mask = (dh_outer - dh_inner).astype('bool')
+
     def set_up_telescope(self):
 
         # Read all input data files
