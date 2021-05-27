@@ -32,6 +32,24 @@ blue_orange_divergent = LinearSegmentedColormap.from_list("custom_blue_orange", 
 norm_center_zero = matplotlib.colors.TwoSlopeNorm(vcenter=0)
 
 
+def plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath):
+    # Save direct PSF, unaberrated coro PSF and DH masked coro PSF as PDF
+    plt.figure(figsize=(18, 6))
+    plt.subplot(1, 3, 1)
+    plt.title("Direct PSF")
+    plt.imshow(direct_psf, norm=LogNorm())
+    plt.colorbar()
+    plt.subplot(1, 3, 2)
+    plt.title("Unaberrated coro PSF")
+    plt.imshow(coro_psf, norm=LogNorm())
+    plt.colorbar()
+    plt.subplot(1, 3, 3)
+    plt.title("Dark hole coro PSF")
+    plt.imshow(np.ma.masked_where(~dh_mask, coro_psf), norm=LogNorm())
+    plt.colorbar()
+    plt.savefig(os.path.join(outpath, 'unaberrated_dh.pdf'))
+
+
 def plot_pastis_matrix(pastis_matrix, wvln=None, out_dir='', fname_suffix='', save=False):
     """
     Plot a PASTIS matrix.

@@ -8,13 +8,13 @@ This module contains functions that construct the matrix M for PASTIS *NUMERICAL
  HiCAT
  """
 
+from abc import ABC, abstractmethod
 import os
 import time
 import functools
 import shutil
 import logging
 import matplotlib
-from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import multiprocessing
 import numpy as np
@@ -39,7 +39,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
                    to use - 'small', 'medium' or 'large'
     :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
-    :param save: bool, if True, will save direct and coro PSF images to disk, default False
+    :param save_coro_floor: bool, if True, will save coro floor value to txt file, default False
+    :param save_psfs: bool, if True, will save direct and coro PSF images to disk, default False
     :param outpath: string, where to save outputs to if save=True
     :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
@@ -119,22 +120,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
             file.write(f'Coronagraph floor: {contrast_floor}')
 
     if save_psfs:
-
-        # Save direct PSF, unaberrated coro PSF and DH masked coro PSF as PDF
-        plt.figure(figsize=(18, 6))
-        plt.subplot(1, 3, 1)
-        plt.title("Direct PSF")
-        plt.imshow(direct_psf, norm=LogNorm())
-        plt.colorbar()
-        plt.subplot(1, 3, 2)
-        plt.title("Unaberrated coro PSF")
-        plt.imshow(coro_psf, norm=LogNorm())
-        plt.colorbar()
-        plt.subplot(1, 3, 3)
-        plt.title("Dark hole coro PSF")
-        plt.imshow(np.ma.masked_where(~dh_mask, coro_psf), norm=LogNorm())
-        plt.colorbar()
-        plt.savefig(os.path.join(outpath, 'unaberrated_dh.pdf'))
+        ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
 
     if return_coro_simulator:
         return contrast_floor, norm, coro_simulator
@@ -144,7 +130,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_multiprocess().
+    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -204,7 +190,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for num_matrix_multiprocess().
+    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: float, calibration aberration per segment in m
@@ -257,7 +243,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate HiCAT mean contrast of one aberrated segment pair; for num_matrix_multiprocess().
+    Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -416,6 +402,8 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     """
     Generate a numerical/semi-analytical PASTIS matrix.
 
+    -- DEPRECATED !! -- This function is deprecated, use the class PastisMatrixIntensities instead.
+
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
     :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
@@ -546,7 +534,237 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     return overall_dir
 
 
+class PastisMatrix(ABC):
+    instrument = None
+
+    def __init__(self, design=None, initial_path=''):
+
+        # General telescope parameters
+        self.design = design
+        self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        self.seglist = util.get_segment_list(self.instrument)
+        self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
+        self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
+
+        # Create directory names
+        tel_suffix = f'{self.instrument.lower()}'
+        if self.instrument == 'LUVOIR':
+            if design is None:
+                design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
+            tel_suffix += f'-{design}'
+        self.overall_dir = util.create_data_path(initial_path, telescope=tel_suffix)
+        os.makedirs(self.overall_dir, exist_ok=True)
+        self.resDir = os.path.join(self.overall_dir, 'matrix_numerical')
+
+        # Create necessary directories if they don't exist yet
+        os.makedirs(self.resDir, exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'OTE_images'), exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
+
+        # Set up logger
+        util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
+        log.info(f'Building numerical matrix for {tel_suffix}\n')
+
+        # Record some of the defined parameters
+        log.info(f'Instrument: {tel_suffix}')
+        log.info(f'Wavelength: {self.wvln} m')
+        log.info(f'Number of segments: {self.nb_seg}')
+        log.info(f'Segment list: {self.seglist}')
+        log.info(f'wfe_aber: {self.wfe_aber} m')
+        log.info(f'Total number of actuator pairs in {self.instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
+        log.info(
+            f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
+
+        # Copy configfile to resulting matrix directory
+        util.copy_config(self.resDir)
+
+    @abstractmethod
+    def calc(self):
+        """ This is the main method that should be called to calculate a PASTIS matrix. """
+
+
+class PastisMatrixIntensities(PastisMatrix):
+    instrument = None
+
+    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+
+        super().__init__(design=design, initial_path=initial_path)
+
+        self.savepsfs = savepsfs
+        self.saveopds = saveopds
+        self.calculate_matrix_pair = None
+
+    def calc(self):
+        start_time = time.time()
+
+        # Calculate coronagraph floor, and normalization factor from direct image
+        self.calculate_ref_image()
+        self.setup_one_pair_function()
+        self.calculate_contrast_matrix()
+        self.calculate_pastis_from_contrast_matrix()
+
+        end_time = time.time()
+        log.info(
+            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+        log.info(f'Data saved to {self.resDir}')
+
+    def calculate_contrast_matrix(self):
+
+        # Figure out how many processes is optimal and create a Pool.
+        # Assume we're the only one on the machine so we can hog all the resources.
+        # We expect numpy to use multithreaded math via the Intel MKL library, so
+        # we check how many threads MKL will use, and create enough processes so
+        # as to use 100% of the CPU cores.
+        # You might think we should divide number of cores by 2 to get physical cores
+        # to account for hyperthreading, however empirical testing on telserv3 shows that
+        # it is slightly more performant on telserv3 to use all logical cores
+        num_cpu = multiprocessing.cpu_count()
+        # try:
+        #     import mkl
+        #     num_core_per_process = mkl.get_max_threads()
+        # except ImportError:
+        #     # typically this is 4, so use that as default
+        #     log.info("Couldn't import MKL; guessing default value of 4 cores per process")
+        #     num_core_per_process = 4
+
+        num_core_per_process = 1  # NOTE: this was changed by Scott Will in HiCAT and makes more sense, somehow
+        num_processes = int(num_cpu // num_core_per_process)
+        log.info(
+            f"Multiprocess PASTIS matrix for {self.instrument} will use {num_processes} processes (with {num_core_per_process} threads per process)")
+
+        # Iterate over all segment pairs via a multiprocess pool
+        mypool = multiprocessing.Pool(num_processes)
+        t_start = time.time()
+        results = mypool.map(self.calculate_matrix_pair,
+                             util.segment_pairs_non_repeating(self.nb_seg))  # this util function returns a generator
+        t_stop = time.time()
+
+        log.info(f"Multiprocess calculation complete in {t_stop - t_start}sec = {(t_stop - t_start) / 60}min")
+
+        # Unscramble results
+        # results is a list of tuples that contain the return from the partial function, in this case: result[i] = (c, (seg1, seg2))
+        self.contrast_matrix = np.zeros([self.nb_seg, self.nb_seg])  # Generate empty matrix
+        for i in range(len(results)):
+            # Fill according entry in the contrast matrix
+            self.contrast_matrix[results[i][1][0], results[i][1][1]] = results[i][0]
+        mypool.close()
+
+        # Save all contrasts to disk, WITHOUT subtraction of coronagraph floor
+        hcipy.write_fits(self.contrast_matrix, os.path.join(self.resDir, 'contrast_matrix.fits'))
+        plt.figure(figsize=(10, 10))
+        plt.imshow(self.contrast_matrix)
+        plt.colorbar()
+        plt.savefig(os.path.join(self.resDir, 'contrast_matrix.pdf'))
+
+    def calculate_pastis_from_contrast_matrix(self):
+
+        # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
+        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
+
+        # Save matrix to file
+        filename_matrix = f'pastis_matrix'
+        hcipy.write_fits(self.matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
+        ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
+        log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
+
+    @abstractmethod
+    def calculate_ref_image(self):
+        """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
+
+    @abstractmethod
+    def setup_one_pair_function(self):
+        """This needs to create an attribute that is the partial function that can calculate the contrast from one
+        aberrated segment/actuator pair. This needs to create self.calculate_matrix_pair."""
+
+
+""" WIP
+class PastisMatrixEfield(PastisMatrix):
+
+    def __init__(self, instrument, design=None, initial_path=''):
+        super().__init__(instrument=instrument, design=design, initial_path=initial_path)
+
+    def calculate_ref_fields(self):
+        pass
+
+    def calculate_single_mode_fields(self):
+        pass
+
+    def calculate_pastis_matrix_from_efields(self):
+        self.matrix_pastis = None
+
+    def calc(self):
+        start_time = time.time()
+
+        self.calculate_ref_fields()
+        self.calculate_single_mode_fields()
+        self.calculate_pastis_matrix_from_efields()
+
+        end_time = time.time()
+        log.info(
+            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+        log.info(f'Data saved to {self.resDir}')
+"""
+
+
+class MatrixIntensityLuvoirA(PastisMatrixIntensities):
+    instrument = 'LUVOIR'
+
+    def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
+                                                       self.resDir, self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
+                                                                                                               self.design,
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
+
+
+class MatrixIntensityHicat(PastisMatrixIntensities):
+    instrument = 'HiCAT'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        # Copy used BostonDM maps to matrix folder
+        shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
+                        os.path.join(self.resDir, 'hicat_boston_dm_commands'))
+        self.calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                       self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
+
+
+class MatrixIntensityJWST(PastisMatrixIntensities):
+    instrument = 'JWST'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                       self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
+
+
 if __name__ == '__main__':
 
-        #num_matrix_multiprocess(instrument='LUVOIR', design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-        num_matrix_multiprocess(instrument='HiCAT', initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+        MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        #MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()

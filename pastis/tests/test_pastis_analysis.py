@@ -83,7 +83,7 @@ def test_analytical_mean_and_variance():
 
     # Perform basis transformation to PASTIS mode basis covariance matrix
     Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-    # Construct PASTIS matric in mode space, D
+    # Construct PASTIS matrix in mode space, D
     D_matrix = np.diag(svals)
 
     # Calculate contrast mean and variance in both bases

@@ -93,8 +93,9 @@ def test_luvoir_matrix_regression():
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_path = matrix_calc.num_matrix_multiprocess(instrument='LUVOIR', design='small', savepsfs=False, saveopds=False)
-    new_matrix = fits.getdata(os.path.join(new_matrix_path, 'matrix_numerical', 'pastis_matrix.fits'))
+    new_matrix_calc = matrix_calc.MatrixIntensityLuvoirA(design='small', savepsfs=False, saveopds=False)
+    new_matrix_calc.calc()
+    new_matrix = new_matrix_calc.matrix_pastis
 
     # Check that the calculated PASTIS matrix is symmetric
     assert (new_matrix == new_matrix.T).all(), 'Calculated LUVOIR small PASTIS matrix is not symmetric'
