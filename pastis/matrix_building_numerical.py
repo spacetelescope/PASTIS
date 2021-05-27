@@ -668,13 +668,13 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
     @abstractmethod
+    def calculate_ref_image(self):
+        """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
+
+    @abstractmethod
     def setup_one_pair_function(self):
         """This needs to create an attribute that is the partial function that can calculate the contrast from one
         aberrated segment/actuator pair. This needs to create self.calculate_matrix_pair."""
-
-    @abstractmethod
-    def calculate_ref_image(self):
-        """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
 
 
 """ WIP
