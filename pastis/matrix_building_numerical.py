@@ -677,33 +677,64 @@ class PastisMatrixIntensities(PastisMatrix):
         aberrated segment/actuator pair. This needs to create self.calculate_matrix_pair."""
 
 
-""" WIP
-class PastisMatrixEfield(PastisMatrix):
+class PastisMatrixEfields(PastisMatrix):
+    instrument = None
 
-    def __init__(self, instrument, design=None, initial_path=''):
-        super().__init__(instrument=instrument, design=design, initial_path=initial_path)
-
-    def calculate_ref_fields(self):
-        pass
-
-    def calculate_single_mode_fields(self):
-        pass
-
-    def calculate_pastis_matrix_from_efields(self):
-        self.matrix_pastis = None
+    def __init__(self, design=None, initial_path=''):
+        super().__init__(design=design, initial_path=initial_path)
+        self.calculate_one_mode = None
+        self.efields_per_mode = np.zeros([self.nb_seg])
 
     def calc(self):
         start_time = time.time()
 
-        self.calculate_ref_fields()
-        self.calculate_single_mode_fields()
+        self.calculate_ref_efield()
+        self.setup_single_mode_function()
+        self.calculate_efields()
         self.calculate_pastis_matrix_from_efields()
 
         end_time = time.time()
         log.info(
-            f'Runtime for PastisMatrixIntensities().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+            f'Runtime for PastisMatrixEfields().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
         log.info(f'Data saved to {self.resDir}')
-"""
+
+    def calculate_efields(self):
+        for i in range(self.nb_seg):
+            self.efields_per_mode[i] = self.calculate_one_mode(i)
+
+        # Save E-fields to file?
+
+    def calculate_pastis_matrix_from_efields(self):
+        self.matrix_pastis = None
+
+        # Save matrix to file
+        filename_matrix = f'pastis_matrix'
+        hcipy.write_fits(self.matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
+        ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
+        log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
+
+    @abstractmethod
+    def calculate_ref_efield(self):
+        pass
+
+    @abstractmethod
+    def setup_single_mode_function(self):
+        pass
+
+
+class MatrixEfieldLuvoirA(PastisMatrixEfields):
+    instrument = 'LUVOIR'
+
+    def __init__(self, design='small', initial_path=''):
+        super().__init__(design=design)
+
+        # Create simulator instance and save as attribute
+
+    def calculate_ref_efield(self):
+        pass
+
+    def setup_single_mode_function(self):
+        pass
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
