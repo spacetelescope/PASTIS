@@ -481,7 +481,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     actuator_pair_y = (actuator_pair-actuator_pair_x)/nbactuator
 
     # Set up RST simulator in coronagraphic state
-    rst_instrument, rst_ote = webbpsf_imaging.set_up_nircam()
+    rst_instrument, rst_ote = webbpsf_imaging.set_up_cgi()
     rst_instrument.image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask')
 
     # Put aberration on correct segments. If i=j, apply only once!
@@ -820,6 +820,24 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
                                                                                                                outpath=self.overall_dir)
+
+
+class MatrixIntensityRST(PastisMatrixIntensities):
+    instrument = 'RST'
+
+    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+
+    def setup_one_pair_function(self):
+        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+                                                       self.savepsfs, self.saveopds)
+
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
+                                                                                                               return_coro_simulator=True,
+                                                                                                               save_coro_floor=save_coro_floor,
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=outpath)
 
 
 if __name__ == '__main__':
