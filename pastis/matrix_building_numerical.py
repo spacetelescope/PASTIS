@@ -830,13 +830,13 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
         self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
                                                        self.resDir, self.savepsfs, self.saveopds)
 
-    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+    def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
                                                                                                                self.design,
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
-                                                                                                               outpath=outpath)
+                                                                                                               outpath=self.overall_dir)
 
 
 class MatrixIntensityHicat(PastisMatrixIntensities):
@@ -852,12 +852,12 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
         self.calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
-    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+    def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
-                                                                                                               outpath=outpath)
+                                                                                                               outpath=self.overall_dir)
 
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
@@ -870,12 +870,12 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
         self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
-    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+    def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
-                                                                                                               outpath=outpath)
+                                                                                                               outpath=self.overall_dir)
 
 
 if __name__ == '__main__':
