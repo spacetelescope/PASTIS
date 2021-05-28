@@ -178,8 +178,10 @@ def set_up_cgi():
     webbpsf.setup_logging()
         #START = False
 
-    mode = CONFIG_PASTIS.get('RST', 'mode')
-    cgi = webbpsf.roman.CGI(mode)
+    mode_in = CONFIG_PASTIS.get('RST', 'mode')
+    nbactuator_in = np.sqrt(int(CONFIG_PASTIS.get('RST', 'nb_subapertures')))
+
+    cgi = webbpsf.roman.CGI(mode=mode_in, nbactuator=int(nbactuator_in))
 
     cgi.include_si_wfe = False
     cgi.apodizer = CONFIG_PASTIS.get('RST', 'apodizer')
