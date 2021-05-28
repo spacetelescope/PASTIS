@@ -682,3 +682,5 @@ def continous_dm_coo(nbactuator, segment):
     actuator_pair_x = segment % nbactuator
     actuator_pair_y = (segment-actuator_pair_x)/nbactuator
 
+    return actuator_pair_x, actuator_pair_y
+

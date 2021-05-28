@@ -269,7 +269,6 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     if instrument == 'RST':
 
         # Instantiate CGI object
-        webbpsf.setup_logging()
         rst_cgi = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
@@ -482,18 +481,20 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     rst_instrument.image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask')
 
     # Put aberration on correct segments. If i=j, apply only once!
-    log.info(f'PAIR: {actuator_pair[0]}-{actuator[1]}')
+    log.info(f'PAIR: {actuator_pair[0]}-{actuator_pair[1]}')
 
-
+    # Transform segment to coordonates
+    actu_i_x , actu_i_y = util.continous_dm_coo(2304, actuator_pair[0])
+    actu_j_x , actu_j_y = util.continous_dm_coo(2304, actuator_pair[1])
 
     # Put aberration on correct segments. If i=j, apply only once!
     rst_ote.zero()
-    rst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='m')
+    rst_ote.dm1.set_actuator(actu_i_x, actu_i_y, wfe_aber)
     if actuator_pair[0] != actuator_pair[1]:
-        rst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='m')
+        rst_ote.dm1.set_actuator(actu_j_x, actu_j_y, wfe_aber)
 
     log.info('Calculating coro image...')
-    image = rst_instrument.calc_psf(nlambda=1)
+    image = rst_instrument.calc_psf(nlambda=1, fov_arcsec=1.6)
     psf = image[0].data / norm
 
     # Save PSF image to disk
@@ -503,7 +504,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
-        opd_name = f'opd_piston_Noll1_segs_{actuator_pair[0]}-{segment_pair[1]}'
+        opd_name = f'opd_piston_Noll1_segs_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
         plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(111)
@@ -511,7 +512,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
 
-    contrast = util.dh_mean(psf, dh_mask)
+    contrast = rst_ote.raw_contrast()
 
     return contrast, actuator_pair
 

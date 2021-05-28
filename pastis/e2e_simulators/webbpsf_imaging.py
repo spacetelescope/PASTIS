@@ -33,7 +33,7 @@ WVLN = CONFIG_PASTIS.getfloat('JWST', 'lambda') * u.nm
 IM_SIZE_PUPIL = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
 FLAT_DIAM = CONFIG_PASTIS.getfloat('JWST', 'flat_diameter') * u.m
 IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
-
+#START = True
 
 def get_jwst_coords(outDir):
 
@@ -174,6 +174,10 @@ def set_up_cgi():
     the OTE.
     :return: Tuple of NIRCam instance, and its OTE
     """
+    #if (START == True):
+    webbpsf.setup_logging()
+        #START = False
+
     mode = CONFIG_PASTIS.get('RST', 'mode')
     cgi = webbpsf.roman.CGI(mode)
     cgi.include_si_wfe = False
