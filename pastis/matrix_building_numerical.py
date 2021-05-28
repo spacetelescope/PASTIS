@@ -640,7 +640,6 @@ class PastisMatrixIntensities(PastisMatrix):
     instrument = None
 
     def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
-
         super().__init__(design=design, initial_path=initial_path)
 
         self.savepsfs = savepsfs
