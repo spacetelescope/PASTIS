@@ -190,6 +190,8 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, mode_no):
 
+    log.info(f'MODE NUMBER: {mode_no}')
+
     # Apply calibration aberration to used mode
     all_modes = np.zeros(number_all_modes)
     all_modes[mode_no] = wfe_aber / 2
@@ -734,7 +736,7 @@ class PastisMatrixEfields(PastisMatrix):
 
         self.save_efields = saveefields
         self.calculate_one_mode = None
-        self.efields_per_mode = np.zeros([self.nb_seg])
+        self.efields_per_mode = []
 
     def calc(self):
         start_time = time.time()
@@ -752,7 +754,8 @@ class PastisMatrixEfields(PastisMatrix):
 
     def calculate_efields(self):
         for i in range(self.number_all_modes):
-            self.efields_per_mode[i] = self.calculate_one_mode(i)
+            self.efields_per_mode.append(self.calculate_one_mode(i))
+        self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_pastis_matrix_from_efields(self):
         self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
@@ -785,7 +788,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
 
     def calculate_ref_efield(self):
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
-        sampling = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'sampling'))
+        sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
         self.luvoir = LuvoirA_APLC(optics_input, self.design, sampling)
         self.dh_mask = self.luvoir.dh_mask
 
@@ -798,8 +801,10 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         self.efield_ref = unaberrated_ref_efield.electric_field
 
     def setup_deformable_mirror(self):
+        log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
         self.luvoir.create_segmented_mirror(self.max_local_zernike)
         self.number_all_modes = self.luvoir.sm.num_actuators
+        log.info(f'Number of total modes: {self.number_all_modes}')
 
     def setup_single_mode_function(self):
         self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
