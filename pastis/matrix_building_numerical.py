@@ -805,7 +805,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         _unaberrated_coro_psf, direct = self.luvoir.calc_psf(ref=True)
         self.norm = np.max(direct)
 
-        # Calculate reference E-field in focal plane, with all DMs flat
+        # Calculate reference E-field in focal plane, without any aberrations applied
         unaberrated_ref_efield, _inter = self.luvoir.calc_psf(return_intermediate='efield')
         self.efield_ref = unaberrated_ref_efield.electric_field
 
