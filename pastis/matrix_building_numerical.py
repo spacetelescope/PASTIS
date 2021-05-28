@@ -203,7 +203,7 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
         hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
-        fname_imag = f'efield_real_mode{mode_no}'
+        fname_imag = f'efield_imag_mode{mode_no}'
         hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
 
     if saveopds:
