@@ -188,7 +188,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     return contrast, segment_pair
 
 
-def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, mode_no):
+def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
 
     log.info(f'MODE NUMBER: {mode_no}')
 
@@ -198,13 +198,19 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
     luvoir_sim.sm.actuators = all_modes
 
     # Calculate coronagraphic E-field
-    efield_focal_plane, _inter = luvoir_sim.calc_psf(return_intermediate='efield')
+    efield_focal_plane, inter = luvoir_sim.calc_psf(return_intermediate='efield')
 
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, fname_real + '.fits'))
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
         fname_imag = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, fname_imag + '.fits'))
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+
+    if saveopds:
+        opd_name = f'opd_mode_{mode_no}'
+        plt.clf()
+        hcipy.imshow_field(inter['seg_mirror'].phase, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane
 
@@ -610,7 +616,6 @@ class PastisMatrix(ABC):
         # Create necessary directories if they don't exist yet
         os.makedirs(self.resDir, exist_ok=True)
         os.makedirs(os.path.join(self.resDir, 'OTE_images'), exist_ok=True)
-        os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
 
         # Set up logger
         util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
@@ -622,9 +627,6 @@ class PastisMatrix(ABC):
         log.info(f'Number of segments: {self.nb_seg}')
         log.info(f'Segment list: {self.seglist}')
         log.info(f'wfe_aber: {self.wfe_aber} m')
-        log.info(f'Total number of actuator pairs in {self.instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
-        log.info(
-            f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
 
         # Copy configfile to resulting matrix directory
         util.copy_config(self.resDir)
@@ -644,6 +646,11 @@ class PastisMatrixIntensities(PastisMatrix):
         self.savepsfs = savepsfs
         self.saveopds = saveopds
         self.calculate_matrix_pair = None
+
+        os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
+        log.info(f'Total number of actuator pairs in {self.instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
+        log.info(
+            f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
 
     def calc(self):
         start_time = time.time()
@@ -731,12 +738,15 @@ class PastisMatrixIntensities(PastisMatrix):
 class PastisMatrixEfields(PastisMatrix):
     instrument = None
 
-    def __init__(self, design=None, initial_path='', saveefields=True):
+    def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
         super().__init__(design=design, initial_path=initial_path)
 
         self.save_efields = saveefields
+        self.saveopds = saveopds
         self.calculate_one_mode = None
         self.efields_per_mode = []
+
+        os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
 
     def calc(self):
         start_time = time.time()
@@ -782,8 +792,8 @@ class PastisMatrixEfields(PastisMatrix):
 class MatrixEfieldLuvoirA(PastisMatrixEfields):
     instrument = 'LUVOIR'
 
-    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True):
-        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields)
+    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
+        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.max_local_zernike = max_local_zernike
 
     def calculate_ref_efield(self):
@@ -804,11 +814,11 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
         self.luvoir.create_segmented_mirror(self.max_local_zernike)
         self.number_all_modes = self.luvoir.sm.num_actuators
-        log.info(f'Number of total modes: {self.number_all_modes}')
+        log.info(f'Total number of modes: {self.number_all_modes}')
 
     def setup_single_mode_function(self):
         self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
-                                                    self.luvoir, self.resDir, self.save_efields)
+                                                    self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
