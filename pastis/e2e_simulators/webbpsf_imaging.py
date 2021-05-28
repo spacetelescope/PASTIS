@@ -180,14 +180,22 @@ def set_up_cgi():
 
     mode = CONFIG_PASTIS.get('RST', 'mode')
     cgi = webbpsf.roman.CGI(mode)
+
     cgi.include_si_wfe = False
+    cgi.apodizer = CONFIG_PASTIS.get('RST', 'apodizer')
+    cgi.fpm = CONFIG_PASTIS.get('RST', 'fpm')
+    cgi.lyotstop = CONFIG_PASTIS.get('RST', 'lyotstop')
+
+    cgi.camera = CONFIG_PASTIS.get('RST', 'camera')
     cgi.filter = CONFIG_PASTIS.get('RST', 'filter_name')
-    cgi.pupil_mask = CONFIG_PASTIS.get('RST', 'pupil_plane_stop')
 
-    cgi, ote = webbpsf.enable_adjustable_ote(cgi)
-    ote.zero(zero_original=True)    # https://github.com/spacetelescope/webbpsf/blob/96537c459996f682ac6e9af808809ca13fb85e87/webbpsf/opds.py#L1125
+    #cgi, ote = webbpsf.enable_adjustable_ote(cgi)
+    #cgi.calc_psf(nlambda=1, fov_arcsec=1.6)
+    #ote.zero(zero_original=True)    # https://github.com/spacetelescope/webbpsf/blob/96537c459996f682ac6e9af808809ca13fb85e87/webbpsf/opds.py#L1125
 
-    return cgi, ote
+    #return cgi, ote
+    return cgi
+
 
 def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PSF", **kwargs):
     """
