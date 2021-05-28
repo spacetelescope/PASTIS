@@ -23,7 +23,7 @@ import hcipy
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC, LuvoirA_APLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
 
@@ -188,6 +188,25 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     return contrast, segment_pair
 
 
+def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, mode_no):
+
+    # Apply calibration aberration to used mode
+    all_modes = np.zeros(number_all_modes)
+    all_modes[mode_no] = wfe_aber / 2
+    luvoir_sim.sm.actuators = all_modes
+
+    # Calculate coronagraphic E-field
+    efield_focal_plane, _inter = luvoir_sim.calc_psf(return_intermediate='efield')
+
+    if saveefields:
+        fname_real = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, fname_real + '.fits'))
+        fname_imag = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, fname_imag + '.fits'))
+
+    return efield_focal_plane
+
+
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
@@ -332,6 +351,36 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
     matrix_pastis = util.symmetrize(matrix_pastis_half)
 
     return matrix_pastis
+
+
+def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
+
+    # Calculate the semi-analytical PASTIS matrix from the individual E-fields
+    matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(electric_fields, efield_ref, direct_norm, dh_mask)
+
+    # Symmetrize the half-PASTIS matrix
+    log.info('Symmetrizing PASTIS matrix')
+    matrix_pastis = util.symmetrize(matrix_pastis_half)
+
+    # Normalize PASTIS matrix by input aberration
+    matrix_pastis /= np.square(wfe_aber * 1e9)
+
+    return matrix_pastis
+
+
+def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm, dh_mask):
+
+    # Create empty matrix
+    nb_modes = efields.shape[0]
+    matrix_pastis_half = np.zeros([nb_modes, nb_modes])
+
+    for pair in util.segment_pairs_non_repeating(nb_modes):
+        intensity_im = np.real((efields[pair[0]].electric_field - efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
+        contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
+        matrix_pastis_half[pair[0], pair[1]] = contrast
+        log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
+
+    return matrix_pastis_half
 
 
 def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_floor):
@@ -680,8 +729,10 @@ class PastisMatrixIntensities(PastisMatrix):
 class PastisMatrixEfields(PastisMatrix):
     instrument = None
 
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, design=None, initial_path='', saveefields=True):
         super().__init__(design=design, initial_path=initial_path)
+
+        self.save_efields = saveefields
         self.calculate_one_mode = None
         self.efields_per_mode = np.zeros([self.nb_seg])
 
@@ -689,6 +740,7 @@ class PastisMatrixEfields(PastisMatrix):
         start_time = time.time()
 
         self.calculate_ref_efield()
+        self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
         self.calculate_pastis_matrix_from_efields()
@@ -699,13 +751,11 @@ class PastisMatrixEfields(PastisMatrix):
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_efields(self):
-        for i in range(self.nb_seg):
+        for i in range(self.number_all_modes):
             self.efields_per_mode[i] = self.calculate_one_mode(i)
 
-        # Save E-fields to file?
-
     def calculate_pastis_matrix_from_efields(self):
-        self.matrix_pastis = None
+        self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -718,6 +768,10 @@ class PastisMatrixEfields(PastisMatrix):
         pass
 
     @abstractmethod
+    def setup_deformable_mirror(self):
+        pass
+
+    @abstractmethod
     def setup_single_mode_function(self):
         pass
 
@@ -725,16 +779,31 @@ class PastisMatrixEfields(PastisMatrix):
 class MatrixEfieldLuvoirA(PastisMatrixEfields):
     instrument = 'LUVOIR'
 
-    def __init__(self, design='small', initial_path=''):
-        super().__init__(design=design)
-
-        # Create simulator instance and save as attribute
+    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True):
+        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields)
+        self.max_local_zernike = max_local_zernike
 
     def calculate_ref_efield(self):
-        pass
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        sampling = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'sampling'))
+        self.luvoir = LuvoirA_APLC(optics_input, self.design, sampling)
+        self.dh_mask = self.luvoir.dh_mask
+
+        # Calculate contrast normalization factor from direct PSF (intensity)
+        _unaberrated_coro_psf, direct = self.luvoir.calc_psf(ref=True)
+        self.norm = np.max(direct)
+
+        # Calculate reference E-field in focal plane, with all DMs flat
+        unaberrated_ref_efield, _inter = self.luvoir.calc_psf(return_intermediate='efield')
+        self.efield_ref = unaberrated_ref_efield.electric_field
+
+    def setup_deformable_mirror(self):
+        self.luvoir.create_segmented_mirror(self.max_local_zernike)
+        self.number_all_modes = self.luvoir.sm.num_actuators
 
     def setup_single_mode_function(self):
-        pass
+        self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
+                                                    self.luvoir, self.resDir, self.save_efields)
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
