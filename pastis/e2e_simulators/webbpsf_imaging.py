@@ -174,8 +174,8 @@ def set_up_cgi():
     the OTE.
     :return: Tuple of NIRCam instance, and its OTE
     """
-
-    cgi = roman.CGI(mode)
+    mode = CONFIG_PASTIS.get('RST', 'mode')
+    cgi = webbpsf.roman.CGI(mode)
     cgi.include_si_wfe = False
     cgi.filter = CONFIG_PASTIS.get('RST', 'filter_name')
     cgi.pupil_mask = CONFIG_PASTIS.get('RST', 'pupil_plane_stop')

@@ -676,3 +676,9 @@ def find_repo_location(package='pastis'):
     :param package: string, name of package within the repository whose path we are looking for
     """
     return os.path.abspath(os.path.join(find_package_location(package), os.pardir))
+
+
+def continous_dm_coo(nbactuator, segment):
+    actuator_pair_x = segment % nbactuator
+    actuator_pair_y = (segment-actuator_pair_x)/nbactuator
+

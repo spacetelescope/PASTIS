@@ -280,7 +280,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Calculate unaberrated coronagraph image for contrast floor
         rst_cgi[0].image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask') #A vvoir
-        coro_image = rst_cgi[0].calc_psf(nlambda=1)
+        coro_image = rst_cgi[0].calc_psf(nlambda=1, fov_arcsec=1.6)
         coro_psf = coro_image[0].data / norm
 
         dh_mask = rst_cgi.working_area()
@@ -476,9 +476,6 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     :param actuator_pair:
     :return: contrast as float, and segment pair as tuple
     """
-
-    actuator_pair_x = actuator_pair % nbactuator
-    actuator_pair_y = (actuator_pair-actuator_pair_x)/nbactuator
 
     # Set up RST simulator in coronagraphic state
     rst_instrument, rst_ote = webbpsf_imaging.set_up_cgi()
@@ -829,11 +826,11 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
-        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
+        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,

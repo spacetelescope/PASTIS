@@ -132,6 +132,22 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_ote / jwst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
+        if instrument == 'RST':
+            #TODO Check
+            log.info(f'Working on mode {thismode}/{nseg - 1}.')
+            sim_instance[1].zero()
+            for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
+                seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
+                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
+
+            psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
+            psf_detector = psf_detector_data[0].data
+            all_modes_focal_plane.append(psf_detector)
+
+            phase_ote = inter[1].phase
+            rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)   # /1e9 converts to meters
+            all_modes.append(phase_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
+
     ### Check for results directory structure and create if it doesn't exist
     log.info('Creating data directories')
     subdirs = [os.path.join(datadir, 'results'),
@@ -154,6 +170,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
+            plt.subplot(6, 3, i + 1)
+        if instrument == 'RST':
             plt.subplot(6, 3, i + 1)
         plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
@@ -186,6 +204,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'HiCAT':
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
+            plt.subplot(6, 3, i + 1)
+        if instrument == 'RST':
             plt.subplot(6, 3, i + 1)
         plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
         plt.axis('off')
@@ -284,6 +304,14 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
 
+        if instrument == 'RST':
+            sim_instance[1].zero()
+            for seg, val in enumerate(opd):
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+            psf = im_data[0].data
+
         # Calculate the contrast from that PSF
         contrast = util.dh_mean(psf/norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
@@ -370,6 +398,16 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
+    if instrument == 'RST':
+        nbactuator = CONFIG_PASTIS.get('RST', 'nb_subapertures')
+        sim_instance[1].zero()
+        for seg in range(mus.shape[0]):
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1)
+        psf = im_data[0].data
+
+
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights.value, rand_contrast
@@ -417,6 +455,14 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
+        psf = im_data[0].data
+
+    if instrument == 'RST':
+        sim_instance[1].zero()
+        for seg, aber in enumerate(opd):
+            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+            sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
+        im_data = sim_instance[0].calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
 
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
@@ -530,10 +576,29 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         sim_instance = jwst_sim
 
-    # TODO: this would also be part of the refactor mentioned above
-    # Calculate coronagraph contrast floor
-    coro_floor = util.dh_mean(psf_unaber, dh_mask)
-    log.info(f'Coronagraph floor: {coro_floor}')
+    if instrument == 'RST':
+        rst_sim = webbpsf_imaging.set_up_cgi()  # this returns a tuple of two: cig_sim[0] is the cgi object, cgi_sim[1] its ote
+        sim_instance = rst_sim
+
+        #Intermediate steps but generate with webbpsf
+        # Generate reference PSF and unaberrated coronagraphic image
+        direct = rst_sim.raw_PSF()
+        direct_fit = direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        direct_psf = direct_fit[0].data
+        norm = direct_psf.max()
+
+        coro_image = rst_sim[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+        psf_unaber = coro_image[0].data / norm
+
+        # Create DH mask
+        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+        sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
+        dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
+
+        # Calculate coronagraph contrast floor
+        coro_floor = rst_sim.raw_contrast()
+        log.info(f'Coronagraph floor: {coro_floor}')
 
     # Read the PASTIS matrix
     matrix = fits.getdata(os.path.join(workdir, 'matrix_numerical', 'pastis_matrix.fits'))
@@ -644,6 +709,15 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             psf_pure_mu_map = im_data[0].data
 
         if instrument == 'JWST':
+            sim_instance[1].zero()
+            for seg, mu in enumerate(mus):
+                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
+                sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
+            im_data = sim_instance[0].calc_psf(nlambda=1)
+            psf_pure_mu_map = im_data[0].data
+
+        if instrument == 'RST':
+            #TODO Dont understand what that did
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
