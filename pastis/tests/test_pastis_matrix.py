@@ -3,7 +3,7 @@ from astropy.io import fits
 import astropy.units as u
 import numpy as np
 
-import pastis.matrix_building_numerical as matrix_calc
+import pastis.matrix_generation.matrix_building_numerical as matrix_calc
 from pastis import util
 
 

@@ -3,7 +3,7 @@ from astropy.io import fits
 import astropy.units as u
 import numpy as np
 
-from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
+from pastis.matrix_generation.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 from pastis import pastis_analysis
 from pastis import util
 
