@@ -305,7 +305,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             psf = im_data[0].data
 
         if instrument == 'RST':
-            sim_instance[1].zero()
+            sim_instance.dm1.flatten()
             for seg, val in enumerate(opd):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
                 sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
@@ -400,7 +400,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
 
     if instrument == 'RST':
         nbactuator = CONFIG_PASTIS.get('RST', 'nb_subapertures')
-        sim_instance[1].zero()
+        sim_instance.dm1.flatten()
         for seg in range(mus.shape[0]):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
@@ -458,7 +458,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         psf = im_data[0].data
 
     if instrument == 'RST':
-        sim_instance[1].zero()
+        sim_instance.dm1.flatten()
         for seg, aber in enumerate(opd):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
@@ -587,7 +587,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         direct_psf = direct_fit[0].data
         norm = direct_psf.max()
 
-        coro_image = rst_sim[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+        coro_image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf_unaber = coro_image[0].data / norm
 
         # Create DH mask

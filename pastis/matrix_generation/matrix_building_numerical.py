@@ -484,8 +484,10 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     log.info(f'PAIR: {actuator_pair[0]}-{actuator_pair[1]}')
 
     # Transform segment to coordonates
-    actu_i_x , actu_i_y = util.continous_dm_coo(2304, actuator_pair[0])
-    actu_j_x , actu_j_y = util.continous_dm_coo(2304, actuator_pair[1])
+    nb_actu = rst.nbactuator
+    actu_i_x , actu_i_y = util.continous_dm_coo(nb_actu, actuator_pair[0])
+    actu_j_x , actu_j_y = util.continous_dm_coo(nb_actu, actuator_pair[1])
+
 
     # Put aberration on correct segments. If i=j, apply only once!
     rst_ote.zero()

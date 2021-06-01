@@ -29,4 +29,4 @@ if __name__ == '__main__':
     hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=10, no_realizations=3)
 
     # Finally run the analysis
-    run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-6)
+    run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-7)

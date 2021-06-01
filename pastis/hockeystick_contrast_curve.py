@@ -181,6 +181,8 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
                 c_e2e, c_matrix = consim.contrast_hicat_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
             if instrument == 'JWST':
                 c_e2e, c_matrix = consim.contrast_jwst_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
+            if instrument == 'RST':
+                c_e2e, c_matrix = consim.contrast_rst_num(contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
 
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
