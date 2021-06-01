@@ -421,14 +421,16 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     start_e2e = time.time()
 
     rst_sim = webbpsf_imaging.set_up_cgi()
-    rst_sim.fpm = CONFIG_PASTIS.get('RST', 'focal_plane_mask')
+    rst_sim.fpm = CONFIG_PASTIS.get('RST', 'fpm')
+    nb_actu = rst_cgi.nbactuator
+    actu_x , actu_y = util.continous_dm_coo(nb_actu, actuator_pair[0])
 
     log.info('Calculating E2E contrast...')
     # Put aberration on OTE
     rst_sim.dm1.flatten()
-    for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
-        seg_num = webbpsf_imaging.WSS_SEGS[nseg].split('-')[0]
-        rst_sim.move_seg_local(seg_num, piston=aber[nseg].value, trans_unit='nm') #TODO correct it
+    for nseg in range(nseg):
+        actu_x , actu_y = util.continous_dm_coo(nb_actu, nseg)
+        rst_cgi.dm1.set_actuator(actu_x, actu_y, aber[nseg].value)
 
     # Get the mean contrast
     contrast_rst = rst_sim.raw_contrast()
