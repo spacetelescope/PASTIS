@@ -425,7 +425,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
     log.info('Calculating E2E contrast...')
     # Put aberration on OTE
-    rwst_sim.dm1.flatten()
+    rst_sim.dm1.flatten()
     for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
         seg_num = webbpsf_imaging.WSS_SEGS[nseg].split('-')[0]
         rst_sim.move_seg_local(seg_num, piston=aber[nseg].value, trans_unit='nm') #TODO correct it
