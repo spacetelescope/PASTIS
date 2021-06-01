@@ -393,7 +393,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
 def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     """
-    Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
+    Compute the contrast for a random segmented OTE misalignment on the RST simulator.
 
     :param coro_floor: float, coronagraph contrast floor
     :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
@@ -405,7 +405,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     start_time = time.time()
 
     # Parameters
-    nb_seg = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
+    total_seg = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
     iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
     owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
     sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
@@ -415,22 +415,21 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
 
     # Create random aberration coefficients on segments, scaled to total rms
-    aber = util.create_random_rms_values(nb_seg, rms)
+    aber = util.create_random_rms_values(total_seg, rms)
 
     ### E2E JWST sim
     start_e2e = time.time()
 
     rst_sim = webbpsf_imaging.set_up_cgi()
     rst_sim.fpm = CONFIG_PASTIS.get('RST', 'fpm')
-    nb_actu = rst_cgi.nbactuator
-    actu_x , actu_y = util.continous_dm_coo(nb_actu, actuator_pair[0])
+    nb_actu = rst_sim.nbactuator
 
     log.info('Calculating E2E contrast...')
     # Put aberration on OTE
     rst_sim.dm1.flatten()
-    for nseg in range(nseg):
+    for nseg in range(total_seg):
         actu_x , actu_y = util.continous_dm_coo(nb_actu, nseg)
-        rst_cgi.dm1.set_actuator(actu_x, actu_y, aber[nseg].value)
+        rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value)
 
     # Get the mean contrast
     contrast_rst = rst_sim.raw_contrast()

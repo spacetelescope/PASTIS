@@ -135,12 +135,9 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'RST':
             #TODO Check
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
-            sim_instance[1].zero()
-            for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
-                seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
-                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
+            sim_instance.dm1.flatten()
 
-            psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
+            psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True)
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
 
@@ -458,11 +455,12 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         psf = im_data[0].data
 
     if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
-        for seg, aber in enumerate(opd):
-            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-            sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
-        im_data = sim_instance[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+        for nseg, aber in enumerate(opd):
+            actu_x, actu_y = util.continous_dm_coo(nb_actu, nseg)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, aber.to(u.m).value)
+        im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
 
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
