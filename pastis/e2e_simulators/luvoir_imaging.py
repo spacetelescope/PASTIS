@@ -132,6 +132,13 @@ class LuvoirBVortex(SegmentedTelescope):
         self.charge = charge
         self.coro = hcipy.VortexCoronagraph(self.pupil_grid, charge, scaling_factor=4)
 
+        # Set up DH mask
+        iwa = CONFIG_PASTIS.getfloat('LUVOIR-B', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('LUVOIR-B', 'OWA')
+        dh_outer = hcipy.circular_aperture(2 * owa * self.lam_over_d)(self.focal_grid)
+        dh_inner = hcipy.circular_aperture(2 * iwa * self.lam_over_d)(self.focal_grid)
+        self.dh_mask = (dh_outer - dh_inner).astype('bool')
+
     def set_up_telescope(self):
 
         # Read all input data files
@@ -149,7 +156,7 @@ class LuvoirBVortex(SegmentedTelescope):
         self.D_pup = CONFIG_PASTIS.getfloat('LUVOIR-B', 'D_pup')
         self.samp_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'sampling')
         self.rad_foc = CONFIG_PASTIS.getfloat('LUVOIR-B', 'imlamD')
-        self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'lambda')
+        self.wavelength = CONFIG_PASTIS.getfloat('LUVOIR-B', 'lambda') * 1e-9   # m
 
         nPup_arrays = apod_stop_data.shape[0]
         nPup_dms = dm1_data.shape[0]
