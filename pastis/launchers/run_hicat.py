@@ -5,7 +5,7 @@ import os
 
 from pastis.config import CONFIG_PASTIS
 from pastis.hockeystick_contrast_curve import hockeystick_curve
-from pastis.matrix_building_numerical import MatrixIntensityHicat
+from pastis.matrix_generation.matrix_building_numerical import MatrixIntensityHicat
 from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
 

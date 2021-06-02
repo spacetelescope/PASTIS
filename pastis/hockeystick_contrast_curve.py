@@ -20,7 +20,7 @@ import pandas as pd
 
 from pastis.config import CONFIG_PASTIS
 import pastis.contrast_calculation_simple as consim
-from pastis.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
+from pastis.matrix_generation.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization
 import pastis.plotting as ppl
 
 log = logging.getLogger()
