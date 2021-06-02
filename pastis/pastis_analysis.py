@@ -133,11 +133,10 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             all_modes.append(phase_ote / jwst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
         if instrument == 'RST':
-            #TODO Check
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance.dm1.flatten()
 
-            psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True)
+            psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
 
@@ -302,11 +301,12 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             psf = im_data[0].data
 
         if instrument == 'RST':
+            nb_actu = sim_instance.nbactuator
             sim_instance.dm1.flatten()
             for seg, val in enumerate(opd):
-                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-                sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
-            im_data = sim_instance[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+                actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, val.to(u.m).value)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
             psf = im_data[0].data
 
         # Calculate the contrast from that PSF
@@ -396,12 +396,12 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         psf = im_data[0].data
 
     if instrument == 'RST':
-        nbactuator = CONFIG_PASTIS.get('RST', 'nb_subapertures')
+        nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
         for seg in range(mus.shape[0]):
-            seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
-        im_data = sim_instance[0].calc_psf(nlambda=1)
+            actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, random_weights[seg].to(u.m).value)
+        im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
 
 
@@ -457,8 +457,8 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     if instrument == 'RST':
         nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
-        for nseg, aber in enumerate(opd):
-            actu_x, actu_y = util.continous_dm_coo(nb_actu, nseg)
+        for seg, aber in enumerate(opd):
+            actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
             sim_instance.dm1.set_actuator(actu_x, actu_y, aber.to(u.m).value)
         im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
@@ -715,12 +715,12 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             psf_pure_mu_map = im_data[0].data
 
         if instrument == 'RST':
-            #TODO Dont understand what that did
-            sim_instance[1].zero()
+            nb_actu = sim_instance.nbactuator
+            sim_instance.dm1.flatten()
             for seg, mu in enumerate(mus):
-                seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-                sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
-            im_data = sim_instance[0].calc_psf(nlambda=1)
+                actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, mu/1e9)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
             psf_pure_mu_map = im_data[0].data
 
         contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)

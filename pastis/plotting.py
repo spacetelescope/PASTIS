@@ -21,7 +21,7 @@ from scipy.stats import norm
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
-import pastis.util
+import pastis.util as util
 
 matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left
 cmap_brev = copy.copy(cm.get_cmap('Blues_r'))        # A blue colormap where white is zero, used for mu maps
@@ -488,7 +488,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
     if instrument == 'LUVOIR':
         sim_instance.flatten()
-        wf_constraints = pastis.util.apply_mode_to_luvoir(mus, sim_instance)[0]
+        wf_constraints = util.apply_mode_to_luvoir(mus, sim_instance)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
 
     if instrument == 'HiCAT':
@@ -512,6 +512,19 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
         jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
+
+    if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
+        sim_instance.dm1.flatten()
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
+            actu_x, actu_y = util.continous_dm_coo(nb_actu, segnum)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, mus[segnum])
+
+        psf, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
+        wf_sm = inter[1].phase
+
+        rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / rst_wavenumber) * 1e12  # in picometers
 
     map_small = np.ma.masked_where(map_small == 0, map_small)
 
@@ -541,13 +554,13 @@ def calculate_mode_phases(pastis_modes, design):
     """
     # Create luvoir instance
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     # Calculate phases of all modes
     all_modes = []
     for mode in range(len(pastis_modes)):
-        all_modes.append(pastis.util.apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
+        all_modes.append(util.apply_mode_to_luvoir(pastis_modes[:, mode], luvoir)[0].phase)
 
     return all_modes
 
@@ -601,11 +614,11 @@ def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), 
 
     # Create luvoir instance
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-    optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+    optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     plt.figure(figsize=figsize, constrained_layout=False)
-    one_mode = pastis.util.apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
+    one_mode = util.apply_mode_to_luvoir(pastis_modes[:, mode_nr - 1], luvoir)[0]
     hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
     plt.axis('off')
     plt.annotate(f'{mode_nr}', xy=(-7.1, -6.9), fontweight='roman', fontsize=43)
@@ -730,14 +743,14 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
     if instrument == 'LUVOIR':
         # Instantiate LUVOIR sim object (needed only for DH mask)
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         luvoir = LuvoirAPLC(optics_input, design, sampling)
         dh_mask = luvoir.dh_mask.shaped
         # Load LUVOIR aperture file
         aper_path_in_optics = CONFIG_PASTIS.get('LUVOIR', 'aperture_path_in_optics')
         aperture = fits.getdata(os.path.join(optics_input, aper_path_in_optics))
         # Calculate segment pair tuples
-        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(120))
+        seg_pair_tuples = list(util.segment_pairs_non_repeating(120))
 
         # Define plotting limits
         vmin_psfs = 1e-10
@@ -748,11 +761,11 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
         owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
         sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
-        dh_mask = pastis.util.create_dark_hole(all_psf_images[0], iwa, owa, sampling).astype('bool')
+        dh_mask = util.create_dark_hole(all_psf_images[0], iwa, owa, sampling).astype('bool')
         # Load HiCAT aperture file
         aperture = np.ones_like(all_ote_images[0])    #TODO: load actual HiCAT aperture
         # Calculate segment pair tuples
-        seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(37))
+        seg_pair_tuples = list(util.segment_pairs_non_repeating(37))
 
         # Define plotting limits
         vmin_psfs = 1e-8
@@ -859,7 +872,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
     if instrument == 'LUVOIR':
         # Instantiate LUVOIR sim object
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        optics_input = os.path.join(pastis.util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         luvoir = LuvoirAPLC(optics_input, design, sampling)
 
     seg_weights_all = np.zeros_like(mu_map)
@@ -874,7 +887,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
         partial_mu_map = np.copy(mu_map)
         partial_mu_map[i + 1:] = 0
         luvoir.flatten()
-        wf_constraints = pastis.util.apply_mode_to_luvoir(partial_mu_map, luvoir)[0]
+        wf_constraints = util.apply_mode_to_luvoir(partial_mu_map, luvoir)[0]
         map_small = (wf_constraints.phase / wf_constraints.wavenumber * 1e12).shaped  # in picometers
         map_small = np.ma.masked_where(map_small == 0, map_small)
 
@@ -912,7 +925,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
 
         plt.subplot(1, 3, 3)
         plt.title('$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
-        one_mode = pastis.util.apply_mode_to_luvoir(seg_weights_all, luvoir)[0]
+        one_mode = util.apply_mode_to_luvoir(seg_weights_all, luvoir)[0]
         hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
         plt.axis('off')
         cbar = plt.colorbar(fraction=0.046, pad=0.04)

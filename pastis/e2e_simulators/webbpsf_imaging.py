@@ -33,7 +33,6 @@ WVLN = CONFIG_PASTIS.getfloat('JWST', 'lambda') * u.nm
 IM_SIZE_PUPIL = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
 FLAT_DIAM = CONFIG_PASTIS.getfloat('JWST', 'flat_diameter') * u.m
 IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
-#START = True
 
 def get_jwst_coords(outDir):
 
@@ -84,7 +83,6 @@ def get_jwst_coords(outDir):
 
     return seg_position
 
-
 def nircam_coro(filter, fpm, ppm, Aber_WSS):
     """
     -- Deprecated function still used in analytical PASTIS and some notebooks. --
@@ -118,7 +116,6 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
     return psf_webbpsf
 
-
 def nircam_nocoro(filter, Aber_WSS):
     """
     -- Deprecated function still used in analytical PASTIS and some notebooks. --
@@ -146,7 +143,6 @@ def nircam_nocoro(filter, Aber_WSS):
 
     return psf_webbpsf
 
-
 def set_up_nircam():
     """
     Return a configured instance of the NIRCam simulator on JWST.
@@ -170,13 +166,10 @@ def set_up_cgi():
     """
     Return a configured instance of the CGI simulator on RST.
 
-    Sets up the Lyot stop and filter from the configfile, turns of science instrument (SI) internal WFE and zeros
-    the OTE.
-    :return: Tuple of NIRCam instance, and its OTE
+    Sets up the Lyot stop and filter from the configfile, turns of science instrument (SI) internal WFE
+    :return: Tuple of CGI instance
     """
-    #if (START == True):
-    webbpsf.setup_logging()
-        #START = False
+    webbpsf.setup_logging('ERROR')
 
     mode_in = CONFIG_PASTIS.get('RST', 'mode')
     nbactuator_in = np.sqrt(int(CONFIG_PASTIS.get('RST', 'nb_subapertures')))
