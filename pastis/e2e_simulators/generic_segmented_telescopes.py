@@ -737,11 +737,11 @@ class SegmentedTelescope(Telescope):
 
         seg_x = np.asarray(df.X)
         seg_y = np.asarray(df.Y)
-        harris_seg_diameter = np.max([np.max(seg_x) - np.min(seg_x), np.max(seg_y) - np.min(seg_y)])
+        self.harris_seg_diameter = np.max([np.max(seg_x) - np.min(seg_x), np.max(seg_y) - np.min(seg_y)])
 
         pup_dims = self.pupil_grid.dims
-        x_grid = np.asarray(df.X) * self.segment_circumscribed_diameter / harris_seg_diameter
-        y_grid = np.asarray(df.Y) * self.segment_circumscribed_diameter / harris_seg_diameter
+        x_grid = np.asarray(df.X) * self.segment_circumscribed_diameter / self.harris_seg_diameter
+        y_grid = np.asarray(df.Y) * self.segment_circumscribed_diameter / self.harris_seg_diameter
         points = np.transpose(np.asarray([x_grid, y_grid]))
 
         seg_evaluated = self._create_evaluated_segment_grid()
