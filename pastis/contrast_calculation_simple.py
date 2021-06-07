@@ -218,7 +218,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
     for nseg in range(nb_seg):
-        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)
+        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg]*1e-9, 0, 0)
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
     psf_hicat = psf_hicat[0].data / norm
@@ -406,9 +406,6 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
     # Parameters
     total_seg = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
-    iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
-    owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
 
     # Import numerical PASTIS matrix
     filename = 'pastis_matrix'
@@ -429,7 +426,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     rst_sim.dm1.flatten()
     for nseg in range(total_seg):
         actu_x , actu_y = util.continous_dm_coo(nb_actu, nseg)
-        rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value)
+        rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value*1e-9)
 
     # Get the mean contrast
     contrast_rst = rst_sim.raw_contrast()

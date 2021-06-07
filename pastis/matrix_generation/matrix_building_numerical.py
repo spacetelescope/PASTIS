@@ -821,7 +821,6 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
                                                                                                                save_psfs=save_psfs,
                                                                                                                outpath=self.overall_dir)
 
-
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
 
