@@ -269,24 +269,23 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     if instrument == 'RST':
 
         # Instantiate CGI object
-        rst_cgi = webbpsf_imaging.set_up_cgi()
+        rst_sim = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = rst_cgi.raw_contrast()
-        direct = rst_direct[0].calc_psf(nlambda=1)
+        rst_direct = rst_sim.raw_PSF()
+        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct[0].data
         norm = direct_psf.max()
 
         # Calculate unaberrated coronagraph image for contrast floor
-        rst_cgi[0].image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask') #A vvoir
-        coro_image = rst_cgi[0].calc_psf(nlambda=1, fov_arcsec=1.6)
+        coro_image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
         coro_psf = coro_image[0].data / norm
 
-        dh_mask = rst_cgi.working_area()
+        dh_mask = rst_sim.working_area(im=coro_psf)
 
         # Return the coronagraphic simulator (a tuple in the RST case!)
-        coro_simulator = rst_cgi
-        contrast_floor = rst_cgi.contrast()
+        coro_simulator = rst_sim
+        contrast_floor = rst_sim.raw_contrast()
 
 
     if save_coro_floor:
@@ -477,47 +476,44 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     """
 
     # Set up RST simulator in coronagraphic state
-    rst_instrument, rst_ote = webbpsf_imaging.set_up_cgi()
-    rst_instrument.image_mask = CONFIG_PASTIS.get('RST', 'focal_plane_mask')
+    rst_cgi = webbpsf_imaging.set_up_cgi()
 
     # Put aberration on correct segments. If i=j, apply only once!
     log.info(f'PAIR: {actuator_pair[0]}-{actuator_pair[1]}')
 
-    # Transform segment to coordonates
-    nb_actu = rst.nbactuator
+    # Transform segment to actuators coordonates
+    nb_actu = rst_cgi.nbactuator
     actu_i_x , actu_i_y = util.continous_dm_coo(nb_actu, actuator_pair[0])
     actu_j_x , actu_j_y = util.continous_dm_coo(nb_actu, actuator_pair[1])
 
 
     # Put aberration on correct segments. If i=j, apply only once!
-    rst_ote.zero()
-    rst_ote.dm1.set_actuator(actu_i_x, actu_i_y, wfe_aber)
+    rst_cgi.dm1.flatten()
+    rst_cgi.dm1.set_actuator(actu_i_x, actu_i_y, wfe_aber)
     if actuator_pair[0] != actuator_pair[1]:
-        rst_ote.dm1.set_actuator(actu_j_x, actu_j_y, wfe_aber)
+        rst_cgi.dm1.set_actuator(actu_j_x, actu_j_y, wfe_aber)
 
     log.info('Calculating coro image...')
-    image = rst_instrument.calc_psf(nlambda=1, fov_arcsec=1.6)
+    image = rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6)
     psf = image[0].data / norm
 
     # Save PSF image to disk
     if savepsfs:
-        filename_psf = f'psf_piston_Noll1_segs_{actuator_pair[0]}-{actuator_pair[1]}'
+        filename_psf = f'psf_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
     # Plot segmented mirror WFE and save to disk
     if saveopds:
-        opd_name = f'opd_piston_Noll1_segs_{actuator_pair[0]}-{actuator_pair[1]}'
+        opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
         plt.figure(figsize=(8, 8))
-        ax2 = plt.subplot(111)
-        rst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        rst_cgi.dm1.display( what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
 
-    contrast = rst_ote.raw_contrast()
+    contrast = rst_cgi.raw_contrast()
 
     return contrast, actuator_pair
-
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
     """

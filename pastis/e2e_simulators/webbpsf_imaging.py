@@ -171,9 +171,12 @@ def set_up_cgi():
     """
     webbpsf.setup_logging('ERROR')
 
+    #Set actuators numbesr
     mode_in = CONFIG_PASTIS.get('RST', 'mode')
-    nbactuator_in = np.sqrt(int(CONFIG_PASTIS.get('RST', 'nb_subapertures')))
-
+    nbactuator = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
+    nbactuator_in = int(np.sqrt(nbactuator))
+    if nbactuator_in**2 != nbactuator:
+        log.error('nb_subapertures in config_pastis.ini is not a square!')
     cgi = webbpsf.roman.CGI(mode=mode_in, nbactuator=int(nbactuator_in))
 
     cgi.include_si_wfe = False
