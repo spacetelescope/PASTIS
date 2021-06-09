@@ -1,0 +1,40 @@
+"""
+Launcher script to start a full JWST run: generate matrix and run full PASTIS analysis.
+"""
+import os
+
+from pastis.config import CONFIG_PASTIS
+from pastis.hockeystick_contrast_curve import hockeystick_curve
+from from pastis.matrix_generation.matrix_building_numerical import MatrixIntensityRST
+from pastis.pastis_analysis import run_full_pastis_analysis
+import pastis.util as util
+import logging
+
+log = logging.getLogger()
+mplfm_logger = logging.getLogger('matplotlib.font_manager')
+mplcb_logger = logging.getLogger('matplotlib.colorbar')
+mplt_logger = logging.getLogger('matplotlib.ticker')
+mplbe_logger = logging.getLogger('matplotlib.backends')
+
+mplfm_logger.setLevel(logging.WARNING)
+mplcb_logger.setLevel(logging.WARNING)
+mplt_logger.setLevel(logging.WARNING)
+mplbe_logger.setLevel(logging.WARNING)
+
+if __name__ == '__main__':
+
+    # Generate the matrix
+    run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix.calc()
+    dir_run = run_matrix.overall_dir
+
+    # Alternatively, pick data location to run PASTIS analysis on
+    # dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2020-08-26T00-00-00_jwst')
+
+    # Set up loggers for data analysis
+    util.setup_pastis_logging(dir_run, 'pastis_analysis')
+
+    # Then generate hockey stick curve
+    result_dir = os.path.join(dir_run, 'results')
+    matrix_dir = os.path.join(dir_run, 'matrix_numerical')
+    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=10, no_realizations=3)
