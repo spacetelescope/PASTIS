@@ -425,7 +425,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     # Put aberration on OTE
     rst_sim.dm1.flatten()
     for nseg in range(total_seg):
-        actu_x , actu_y = util.continous_dm_coo(nb_actu, nseg)
+        actu_x , actu_y = util.seg_to_dm_xy(nb_actu, nseg)
         rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value*u.nm)
 
     # Get the mean contrast

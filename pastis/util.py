@@ -203,7 +203,7 @@ def get_segment_list(instrument):
     :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
-    if instrument not in ['LUVOIR', 'HiCAT', 'JWST' , 'RST']:
+    if instrument not in ['LUVOIR', 'HiCAT', 'JWST', 'RST']:
         raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
@@ -678,7 +678,12 @@ def find_repo_location(package='pastis'):
     return os.path.abspath(os.path.join(find_package_location(package), os.pardir))
 
 
-def continous_dm_coo(nbactuator, segment):
+def seg_to_dm_xy(nbactuator, segment):
+    """
+    Change references, segment number to x,y DM coordinate
+    nbactuator : number actuator in each line (both x or y in square one)
+    segment : segment number input
+    """
     actuator_pair_x = segment % nbactuator
     actuator_pair_y = (segment-actuator_pair_x)/nbactuator
 

@@ -285,7 +285,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator (a tuple in the RST case!)
         coro_simulator = rst_sim
-        contrast_floor = rst_sim.raw_contrast()
+        contrast_floor = util.dh_mean(coro_psf, dh_mask)
+        log.info(f'contrast floor: {contrast_floor}')
 
 
     if save_coro_floor:
@@ -465,7 +466,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
-    Function to calculate RST mean contrast of one aberrated segment pair in NIRCam; for num_matrix_multiprocess().
+    Function to calculate RST mean contrast of one aberrated segment pair in CGI.
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -483,8 +484,8 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
 
     # Transform segment to actuators coordonates
     nb_actu = rst_cgi.nbactuator
-    actu_i_x , actu_i_y = util.continous_dm_coo(nb_actu, actuator_pair[0])
-    actu_j_x , actu_j_y = util.continous_dm_coo(nb_actu, actuator_pair[1])
+    actu_i_x , actu_i_y = util.seg_to_dm_xy(nb_actu, actuator_pair[0])
+    actu_j_x , actu_j_y = util.seg_to_dm_xy(nb_actu, actuator_pair[1])
 
 
     # Put aberration on correct segments. If i=j, apply only once!
@@ -507,9 +508,8 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
         plt.figure(figsize=(8, 8))
-        rst_cgi.dm1.display( what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
 
     contrast = rst_cgi.raw_contrast()
 
