@@ -84,7 +84,7 @@ class PastisMatrix(ABC):
 class PastisMatrixIntensities(PastisMatrix):
     instrument = None
 
-    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, design=None, initial_path='', savepsfs=False, saveopds=False):
         super().__init__(design=design, initial_path=initial_path)
 
         self.savepsfs = savepsfs
@@ -820,7 +820,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
 
-    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+    def __int__(self, initial_path='', savepsfs=False, saveopds=False):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
