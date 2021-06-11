@@ -398,7 +398,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     :param coro_floor: float, coronagraph contrast floor
     :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire continuous mirror
     :return: 2x float, E2E and matrix contrast
     """
     # Keep track of time

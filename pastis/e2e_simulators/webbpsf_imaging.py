@@ -34,6 +34,7 @@ IM_SIZE_PUPIL = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
 FLAT_DIAM = CONFIG_PASTIS.getfloat('JWST', 'flat_diameter') * u.m
 IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
 
+
 def get_jwst_coords(outDir):
 
     #-# Generate the pupil with segments and spiders
@@ -176,7 +177,9 @@ def set_up_cgi():
     nbactuator = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
     nbactuator_in = int(np.sqrt(nbactuator))
     if nbactuator_in**2 != nbactuator:
-        log.error('nb_subapertures in config_pastis.ini is not a square!')
+        error_msg = f"The number of subapertures from config_pastis.ini is {nbactuator}, which is not the square of the actuators per row (={nbactuator_in})!"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     cgi = webbpsf.roman.CGI(mode=mode_in, nbactuator=int(nbactuator_in))
 
     cgi.include_si_wfe = False

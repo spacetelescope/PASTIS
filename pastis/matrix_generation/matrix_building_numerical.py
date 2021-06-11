@@ -31,10 +31,6 @@ log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
 matplotlib.rc('pdf', fonttype=42)
 
-def copy(self):
-    """ Make a copy of a wavefront object """
-    from copy import deepcopy
-    return deepcopy(self)
 
 class PastisMatrix(ABC):
     instrument = None
@@ -363,6 +359,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     return contrast, segment_pair
 
+
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
@@ -415,6 +412,7 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
     return float(contrast), segment_pair
 
+
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
@@ -464,6 +462,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
+
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
