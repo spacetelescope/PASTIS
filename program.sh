@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -J full_DM         # run's name
-#SBATCH -N 4                   # request 1 node 
-#SBATCH -c 1                   # request 1 cpu per task
-#SBATCH --mem=16GB             # request 10GB
-#SBATCH -t 6:00:00            # request 12 hours walltime
+#SBATCH -N 1                   # request 1 node 
+#SBATCH -c 1 8                 # request 8 cpu per task
+#SBATCH --mem=16GB             # request 16GB
+#SBATCH -t 6:00:00            # request 6 hours walltime
 #SBATCH -o Out.txt             # output file name
 #SBATCH -e Err.txt             # error file name
 #SBATCH --mail-type=BEGIN,END  # send me a mail at beginning and end of the job
