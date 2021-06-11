@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -J full_DM_1n       # run's name
 #SBATCH -N 1                   # request 1 node 
-#SBATCH -c 32                 # request 8 cpu per task
-#SBATCH --mem=32GB             # request 16GB
+#SBATCH -c 16                 # request 8 cpu per task
+#SBATCH --mem=16GB             # request 16GB
 #SBATCH -t 1:00:00            # request 6 hours walltime
 #SBATCH -o Out.txt             # output file name
 #SBATCH -e Err.txt             # error file name
