@@ -9,4 +9,4 @@
 #SBATCH --mail-type=BEGIN,END  # send me a mail at beginning and end of the job
 #SBATCH --mail-user=david.bourgeois@lam.fr
 
-python /home/dbourgeois/GitHub/PASTIS-RST/pastis/launchers/run_partial_rst.py
+python /home/dbourgeois/GitHub/PASTIS/pastis/launchers/run_partial_rst.py
