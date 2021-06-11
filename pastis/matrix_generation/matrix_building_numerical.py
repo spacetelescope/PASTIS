@@ -281,7 +281,8 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
         coro_psf = coro_image[0].data / norm
 
-        dh_mask = rst_sim.working_area(im=coro_psf)
+        rst_sim.working_area(im=coro_psf)
+        dh_mask = rst_sim.WA
 
         # Return the coronagraphic simulator (a tuple in the RST case!)
         coro_simulator = rst_sim
