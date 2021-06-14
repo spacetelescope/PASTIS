@@ -206,9 +206,6 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = luvoir
         dh_mask = luvoir.dh_mask.shaped
 
-        contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {contrast_floor}')
-
     if instrument == 'HiCAT':
         # Set up HiCAT simulator in correct state
         hicat_sim = set_up_hicat(apply_continuous_dm_maps=True)
@@ -231,9 +228,6 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator
         coro_simulator = hicat_sim
-
-        contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {contrast_floor}')
 
     if instrument == 'JWST':
 
@@ -259,9 +253,6 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         # Return the coronagraphic simulator (a tuple in the JWST case!)
         coro_simulator = jwst_sim
 
-        contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {contrast_floor}')
-
     if instrument == 'RST':
 
         # Instantiate CGI object
@@ -282,9 +273,10 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
         # Return the coronagraphic simulator (a tuple in the RST case!)
         coro_simulator = rst_sim
-        contrast_floor = util.dh_mean(coro_psf, dh_mask)
-        log.info(f'contrast floor: {contrast_floor}')
 
+    # Calculate coronagraph floor in dark hole
+    contrast_floor = util.dh_mean(coro_psf, dh_mask)
+    log.info(f'contrast floor: {contrast_floor}')
 
     if save_coro_floor:
         # Save contrast floor to text file
@@ -466,7 +458,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
-    Function to calculate RST mean contrast of one aberrated segment pair in CGI.
+    Function to calculate RST mean contrast of one DM actuator pair in CGI.
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
     :param resDir: str, directory for matrix calculations
@@ -487,7 +479,6 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     actu_i_x, actu_i_y = util.seg_to_dm_xy(nb_actu, actuator_pair[0])
     actu_j_x, actu_j_y = util.seg_to_dm_xy(nb_actu, actuator_pair[1])
 
-
     # Put aberration on correct segments. If i=j, apply only once!
     rst_cgi.dm1.flatten()
     rst_cgi.dm1.set_actuator(actu_i_x, actu_i_y, wfe_aber)
@@ -495,7 +486,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         rst_cgi.dm1.set_actuator(actu_j_x, actu_j_y, wfe_aber)
 
     log.info('Calculating coro image...')
-    image = rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6)
+    image = rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6)   # fov number taken from: https://github.com/spacetelescope/webbpsf/blob/5cdd41ef9643e1ef42ea6232890ce740515fb896/notebooks/roman_cgi_demo.ipynb#L289
     psf = image[0].data / norm
 
     # Save PSF image to disk
@@ -503,7 +494,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         filename_psf = f'psf_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
-    # Plot segmented mirror WFE and save to disk
+    # Plot deformable mirror WFE and save to disk
     if saveopds:
         opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
@@ -519,6 +510,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
+
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
     """
@@ -833,11 +825,12 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
-    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False, outpath=''):
+    def calculate_ref_image(self, save_coro_floor=False, save_psfs=False):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
-                                                                                                               save_psfs=save_psfs)
+                                                                                                               save_psfs=save_psfs,
+                                                                                                               outpath=self.overall_dir)
 
 
 if __name__ == '__main__':

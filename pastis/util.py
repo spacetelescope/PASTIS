@@ -680,8 +680,8 @@ def find_repo_location(package='pastis'):
 
 def seg_to_dm_xy(actuator_total, segment):
     """
-    Convert single index of DM actuator to x|y Dm coordinates. This assumes the actuators to be arranged on a square grid
-    actuator_total: number actuator in each line inside DM (both x or y in square one)
+    Convert single index of DM actuator to x|y DM coordinates. This assumes the actuators to be arranged on a square grid
+    actuator_total: int, total number of actuators in each line of the (square) DM
     segment: int, single-index actuator number on the DM, to be converted to x|y coordinate
     """
     actuator_pair_x = segment % actuator_total

@@ -218,7 +218,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
     for nseg in range(nb_seg):
-        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg]*u.nm, 0, 0) # TODO Test the *u.m correction
+        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg], 0, 0)  # TODO: Test adding *u.nm in "aber[nseg]*u.nm"
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
     psf_hicat = psf_hicat[0].data / norm
@@ -460,8 +460,8 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
     return contrast_rst, contrast_matrix
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
 
     # Test JWST
     # WORKDIRECTORY = "active"    # you can chose here what data directory to work in

@@ -84,6 +84,7 @@ def get_jwst_coords(outDir):
 
     return seg_position
 
+
 def nircam_coro(filter, fpm, ppm, Aber_WSS):
     """
     -- Deprecated function still used in analytical PASTIS and some notebooks. --
@@ -117,6 +118,7 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
     return psf_webbpsf
 
+
 def nircam_nocoro(filter, Aber_WSS):
     """
     -- Deprecated function still used in analytical PASTIS and some notebooks. --
@@ -144,6 +146,7 @@ def nircam_nocoro(filter, Aber_WSS):
 
     return psf_webbpsf
 
+
 def set_up_nircam():
     """
     Return a configured instance of the NIRCam simulator on JWST.
@@ -168,8 +171,9 @@ def set_up_cgi():
     """
     Return a configured instance of the CGI simulator on RST.
 
-    Sets up the Lyot stop and filter from the configfile, turns off science instrument (SI) internal WFE
-    :return: Tuple of CGI instance
+    Sets up the Lyot stop and filter from the configfile, turns off science instrument (SI) internal WFE, and reads
+    the FPM setting from the configfile.
+    :return: CGI instrument instance
     """
     webbpsf.setup_logging('ERROR')
 

@@ -7,4 +7,3 @@ config_local.ini
 pastis.egg-info
 build/
 dist/
-UNKNOWN.egg-info/
