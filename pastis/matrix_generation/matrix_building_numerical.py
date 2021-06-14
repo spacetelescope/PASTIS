@@ -482,10 +482,10 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     # Put aberration on correct segments. If i=j, apply only once!
     log.info(f'PAIR: {actuator_pair[0]}-{actuator_pair[1]}')
 
-    # Transform segment to actuators coordonates
+    # Transform single-actuator index to x|y coordinate on DM
     nb_actu = rst_cgi.nbactuator
-    actu_i_x , actu_i_y = util.seg_to_dm_xy(nb_actu, actuator_pair[0])
-    actu_j_x , actu_j_y = util.seg_to_dm_xy(nb_actu, actuator_pair[1])
+    actu_i_x, actu_i_y = util.seg_to_dm_xy(nb_actu, actuator_pair[0])
+    actu_j_x, actu_j_y = util.seg_to_dm_xy(nb_actu, actuator_pair[1])
 
 
     # Put aberration on correct segments. If i=j, apply only once!
@@ -508,7 +508,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
         plt.figure(figsize=(8, 8))
-        rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated segment pair')
+        rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
@@ -822,6 +822,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
                                                                                                                save_psfs=save_psfs,
                                                                                                                outpath=self.overall_dir)
 
+
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
 
@@ -836,8 +837,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
-                                                                                                               save_psfs=save_psfs,
-                                                                                                               outpath=outpath)
+                                                                                                               save_psfs=save_psfs)
 
 
 if __name__ == '__main__':

@@ -163,11 +163,12 @@ def set_up_nircam():
 
     return nircam, ote
 
+
 def set_up_cgi():
     """
     Return a configured instance of the CGI simulator on RST.
 
-    Sets up the Lyot stop and filter from the configfile, turns of science instrument (SI) internal WFE
+    Sets up the Lyot stop and filter from the configfile, turns off science instrument (SI) internal WFE
     :return: Tuple of CGI instance
     """
     webbpsf.setup_logging('ERROR')

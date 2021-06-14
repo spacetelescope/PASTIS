@@ -218,7 +218,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     log.info('Calculating E2E contrast...')
     # Put aberration on Iris AO
     for nseg in range(nb_seg):
-        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg]*u.nm, 0, 0)
+        hicat_sim.iris_dm.set_actuator(nseg, aber[nseg]*u.nm, 0, 0) # TODO Test the *u.m correction
 
     psf_hicat = hicat_sim.calc_psf(display=False, return_intermediates=False)
     psf_hicat = psf_hicat[0].data / norm
@@ -393,7 +393,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
 
 def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     """
-    Compute the contrast for a random segmented OTE misalignment on the RST simulator.
+    Compute the contrast for a random aberration over all DM actuators in the RST simulator.
 
     :param coro_floor: float, coronagraph contrast floor
     :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
@@ -427,7 +427,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     # Put aberration on OTE
     rst_sim.dm1.flatten()
     for nseg in range(total_seg):
-        actu_x , actu_y = util.seg_to_dm_xy(nb_actu, nseg)
+        actu_x, actu_y = util.seg_to_dm_xy(nb_actu, nseg)
         rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value*u.nm)
 
     image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
@@ -461,6 +461,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     return contrast_rst, contrast_matrix
 
 if __name__ == '__main__':
+
 
     # Test JWST
     # WORKDIRECTORY = "active"    # you can chose here what data directory to work in

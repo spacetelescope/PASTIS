@@ -204,7 +204,7 @@ def get_segment_list(instrument):
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
     if instrument not in ['LUVOIR', 'HiCAT', 'JWST', 'RST']:
-        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT" or "JWST" instead.')
+        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT", "JWST"  or "RST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
 
@@ -678,13 +678,13 @@ def find_repo_location(package='pastis'):
     return os.path.abspath(os.path.join(find_package_location(package), os.pardir))
 
 
-def seg_to_dm_xy(nbactuator, segment):
+def seg_to_dm_xy(actuator_total, segment):
     """
-    Change references, segment number to x,y DM coordinate
-    nbactuator : number actuator in each line (both x or y in square one)
-    segment : segment number input
+    Convert single index of DM actuator to x|y Dm coordinates. This assumes the actuators to be arranged on a square grid
+    actuator_total: number actuator in each line inside DM (both x or y in square one)
+    segment: int, single-index actuator number on the DM, to be converted to x|y coordinate
     """
-    actuator_pair_x = segment % nbactuator
-    actuator_pair_y = (segment-actuator_pair_x)/nbactuator
+    actuator_pair_x = segment % actuator_total
+    actuator_pair_y = (segment-actuator_pair_x)/actuator_total
 
     return actuator_pair_x, int(actuator_pair_y)

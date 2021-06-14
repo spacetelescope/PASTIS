@@ -41,7 +41,7 @@ if __name__ == '__main__':
     outer_wa = CONFIG_PASTIS.getint(telescope, 'OWA')
     sampling = CONFIG_PASTIS.getfloat(telescope, 'sampling')
 
-    if telescope == 'JWST' or 'RST':
+    if telescope == 'JWST':
         # Setting to ensure that PyCharm finds the webbpsf-data folder. If you don't know where it is, find it with:
         # webbpsf.utils.get_webbpsf_data_path()
         # --> e.g.: >>source activate astroconda   >>ipython   >>import webbpsf   >>webbpsf.utils.get_webbpsf_data_path()
