@@ -420,6 +420,9 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     rst_sim = webbpsf_imaging.set_up_cgi()
     rst_sim.fpm = CONFIG_PASTIS.get('RST', 'fpm')
     nb_actu = rst_sim.nbactuator
+    iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
 
     log.info('Calculating E2E contrast...')
     # Put aberration on OTE
@@ -429,7 +432,8 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
         rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value*u.nm)
 
     # Get the mean contrast
-    contrast_rst = rst_sim.raw_contrast()
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast_rst = util.dh_mean(psf, dh_mask)
     end_e2e = time.time()
 
     ## MATRIX PASTIS

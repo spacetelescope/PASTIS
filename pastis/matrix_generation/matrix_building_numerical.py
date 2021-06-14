@@ -511,7 +511,12 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    contrast = rst_cgi.raw_contrast()
+    log.info('Calculating mean contrast in dark hole')
+    iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+    owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
+    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
 
