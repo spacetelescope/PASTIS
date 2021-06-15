@@ -10,6 +10,7 @@ import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirA_APLC
+import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_generation.matrix_building_numerical import PastisMatrix
 import pastis.plotting as ppl
 import pastis.util as util
@@ -134,6 +135,44 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
                                                     self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
+class MatrixEfieldRST(PastisMatrixEfields):
+    '''
+    A cool docstring
+    '''
+    instrument = 'RST'
+
+    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
+        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        self.max_local_zernike = max_local_zernike
+
+    def calculate_ref_efield(self):
+        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+        self.rst_cgi = webbpsf_imaging.set_up_cgi()
+
+        # Calculate direct reference images for contrast normalization
+        rst_direct = self.raw_PSF()
+        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        direct_psf = direct[0].data
+        self.norm = direct_psf.max()
+
+        # Calculate dark hole mask
+        self.rst_cgi.working_area(im=direct_psf, inner_rad=iwa, outer_rad=owa)
+        self.dh_mask = self.rst_cgi.WA
+
+        # Calculate reference E-field in focal plane, without any aberrations applied
+        unaberrated_ref_efield, _inter = self.rst_cgi.calc_psf(return_intermediate='efield')
+        self.efield_ref = unaberrated_ref_efield.electric_field
+
+    def setup_deformable_mirror(self): #TODO
+        log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
+        self.number_all_modes = self.luvoir.sm.num_actuators
+        log.info(f'Total number of modes: {self.number_all_modes}')
+
+    def setup_single_mode_function(self): #TODO
+        self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.number_all_modes, self.wfe_aber,
+                                                    self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
+
 
 def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
 
@@ -157,6 +196,32 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
         opd_name = f'opd_mode_{mode_no}'
         plt.clf()
         hcipy.imshow_field(inter['seg_mirror'].phase, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    return efield_focal_plane
+
+def _rst_matrix_single_mode(number_all_modes, wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
+    # TODO
+    log.info(f'MODE NUMBER: {mode_no}')
+
+    # Apply calibration aberration to used mode
+    all_modes = np.zeros(number_all_modes)
+    all_modes[mode_no] = wfe_aber / 2
+    rst_sim.sm.actuators = all_modes
+
+    # Calculate coronagraphic E-field
+    efield_focal_plane, inter = rst_sim.calc_psf(return_intermediate='efield')
+
+    if saveefields:
+        fname_real = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
+        fname_imag = f'efield_imag_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+
+    if saveopds:
+        opd_name = f'opd_mode_{mode_no}'
+        plt.clf()
+        hcipy.imshow_field(inter['seg_mirror'].phase, grid=rst_sim.aperture.grid, mask=rst_sim.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane
