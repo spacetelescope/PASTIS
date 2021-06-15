@@ -1,8 +1,8 @@
 from pastis.config import CONFIG_PASTIS
 
 
-STANDARD_SECTIONS = ['local', 'telescope', 'numerical', 'zernikes', 'calibration']
-OBSERVATORY_SECTIONS = ['JWST', 'HiCAT', 'LUVOIR']
+STANDARD_SECTIONS = ['local', 'telescope', 'numerical', 'zernikes', 'calibration', 'dm_objects']
+OBSERVATORY_SECTIONS = ['JWST', 'RST', 'HiCAT', 'LUVOIR', 'LUVOIR-B']
 
 
 def test_main_sections():

@@ -167,6 +167,36 @@ def set_up_nircam():
     return nircam, ote
 
 
+def set_up_cgi():
+    """
+    Return a configured instance of the CGI simulator on RST.
+
+    Sets up the Lyot stop and filter from the configfile, turns off science instrument (SI) internal WFE, and reads
+    the FPM setting from the configfile.
+    :return: CGI instrument instance
+    """
+    webbpsf.setup_logging('ERROR')
+
+    #Set actuators numbesr
+    mode_in = CONFIG_PASTIS.get('RST', 'mode')
+    nbactuator = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
+    nbactuator_in = int(np.sqrt(nbactuator))
+    if nbactuator_in**2 != nbactuator:
+        error_msg = f"The number of subapertures from config_pastis.ini is {nbactuator}, which is not the square of the actuators per row (={nbactuator_in})!"
+        log.error(error_msg)
+        raise ValueError(error_msg)
+    cgi = webbpsf.roman.CGI(mode=mode_in, nbactuator=int(nbactuator_in))
+
+    cgi.include_si_wfe = False
+    cgi.apodizer = CONFIG_PASTIS.get('RST', 'apodizer')
+    cgi.fpm = CONFIG_PASTIS.get('RST', 'fpm')
+    cgi.lyotstop = CONFIG_PASTIS.get('RST', 'lyotstop')
+    cgi.camera = CONFIG_PASTIS.get('RST', 'camera')
+    cgi.filter = CONFIG_PASTIS.get('RST', 'filter_name')
+
+    return cgi
+
+
 def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PSF", **kwargs):
     """
     Display OTE and PSF of a JWST instrument next to each other.
