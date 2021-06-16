@@ -434,7 +434,8 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     psf = image[0].data / norm
 
     # Get the mean contrast
-    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    rst_sim.working_area(im=psf, inner_rad=iwa, outer_rad=owa)
+    dh_mask = rst_sim.WA
     contrast_rst = util.dh_mean(psf, dh_mask)
     end_e2e = time.time()
 

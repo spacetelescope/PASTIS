@@ -268,7 +268,9 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
         coro_psf = coro_image[0].data / norm
 
-        rst_sim.working_area(im=coro_psf)
+        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+        rst_sim.working_area(im=coro_psf, inner_rad=iwa, outer_rad=owa)
         dh_mask = rst_sim.WA
 
         # Return the coronagraphic simulator (a tuple in the RST case!)
@@ -505,8 +507,8 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     log.info('Calculating mean contrast in dark hole')
     iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
     owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
-    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
+    rst_cgi.working_area(im=psf, inner_rad=iwa, outer_rad=owa)
+    dh_mask = rst_cgi.WA
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
