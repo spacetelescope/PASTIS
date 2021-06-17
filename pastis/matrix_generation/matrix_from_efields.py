@@ -257,8 +257,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
 def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
     """
     Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
-    :param number_all_modes: int, total number of all modes
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    :param number_all_modes: int, total number of all modes
     :param wfe_aber: float, calibration aberration in meters
     :param luvoir_sim: instance of LUVOIR simulator
     :param resDir: str, directory for matrix calculation results
