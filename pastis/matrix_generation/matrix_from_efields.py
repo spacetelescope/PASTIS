@@ -96,7 +96,7 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        intensity_im = np.real((efields[pair[0]].electric_field - efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
+        intensity_im = np.real((efields[pair[0]].wavefront - efield_ref) * np.conj(efields[pair[1]].wavefront - efield_ref)) #TODO put another funtction for luvoir .electric_field
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -141,8 +141,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
     '''
     instrument = 'RST'
 
-    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
-        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+    def __init__(self, max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
+        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.max_local_zernike = max_local_zernike
 
     def calculate_ref_efield(self):
@@ -151,7 +151,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.rst_cgi = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = self.raw_PSF()
+        rst_direct = self.rst_cgi.raw_PSF()
         direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct[0].data
         self.norm = direct_psf.max()
@@ -161,15 +161,17 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.dh_mask = self.rst_cgi.WA
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        unaberrated_ref_efield, _inter = self.rst_cgi.calc_psf(return_intermediate='efield')
-        self.efield_ref = unaberrated_ref_efield.electric_field
+        trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+        self.efield_ref = inter[6].wavefront
+        # [6] is the last optic = detector
 
-    def setup_deformable_mirror(self): #TODO
+    def setup_deformable_mirror(self):
         log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
-        self.number_all_modes = self.luvoir.sm.num_actuators
+        self.number_all_modes = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
+        print(self.number_all_modes)
         log.info(f'Total number of modes: {self.number_all_modes}')
 
-    def setup_single_mode_function(self): #TODO
+    def setup_single_mode_function(self):
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.number_all_modes, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
@@ -201,27 +203,44 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
     return efield_focal_plane
 
 def _rst_matrix_single_mode(number_all_modes, wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
-    # TODO
+    '''
+
+    :param number_all_modes :
+    :param wfe_aber :
+    :param rst_sim :
+    :param resDir :
+    :param saveefields :
+    :param savepods :
+    :param mode_no :
+
+    '''
+
     log.info(f'MODE NUMBER: {mode_no}')
 
     # Apply calibration aberration to used mode
-    all_modes = np.zeros(number_all_modes)
-    all_modes[mode_no] = wfe_aber / 2
-    rst_sim.sm.actuators = all_modes
+    rst_sim.dm1.flatten()
+
+    nb_actu = rst_sim.nbactuator
+    actu_x, actu_y = util.seg_to_dm_xy(nb_actu, mode_no)
+    rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber/2)
 
     # Calculate coronagraphic E-field
-    efield_focal_plane, inter = rst_sim.calc_psf(return_intermediate='efield')
+    trash, inter = rst_sim.calc_psf(return_intermediates=True)
+    efield_focal_plane = inter[6]
 
+    # Save E field image to disk
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
+        hcipy.write_fits(efield_focal_plane.wavefront.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
         fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+        hcipy.write_fits(efield_focal_plane.wavefront.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
 
+    # Plot deformable mirror WFE and save to disk
     if saveopds:
-        opd_name = f'opd_mode_{mode_no}'
+        opd_name = f'opd_actuator_{mode_no}'
         plt.clf()
-        hcipy.imshow_field(inter['seg_mirror'].phase, grid=rst_sim.aperture.grid, mask=rst_sim.aperture, cmap='RdBu')
+        plt.figure(figsize=(8, 8))
+        rst_sim.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal',
+                            title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
     return efield_focal_plane
