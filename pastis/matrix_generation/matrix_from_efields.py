@@ -261,6 +261,7 @@ def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim,
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
     :param number_all_modes: int, total number of all modes
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    :param number_all_modes: int, total number of all modes
     :param wfe_aber: float, calibration aberration in meters
     :param luvoir_sim: instance of LUVOIR simulator
     :param resDir: str, directory for matrix calculation results
