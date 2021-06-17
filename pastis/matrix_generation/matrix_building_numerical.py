@@ -291,7 +291,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     if return_coro_simulator:
         return contrast_floor, norm, dh_mask, coro_simulator
     else:
-        return contrast_floor, norm, dh_mask
+        return contrast_floor, norm
 
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
