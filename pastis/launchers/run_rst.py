@@ -17,6 +17,7 @@ log = logging.getLogger()
 if __name__ == '__main__':
 
     # Generate the matrix
+    """
     generation_mode = CONFIG_PASTIS.get('RST', 'generation_mode')
     if generation_mode == 'intensity':
         run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
@@ -29,7 +30,8 @@ if __name__ == '__main__':
         error_msg = f"generation_mode from config_pastis.ini is {generation_mode}, not a valid name!"
         log.error(error_msg)
         raise ValueError(error_msg)
-
+    """
+    run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
@@ -42,7 +44,7 @@ if __name__ == '__main__':
     # Then generate hockey stick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=10, no_realizations=3)
+    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 """
     In development...
     # Finally run the analysis

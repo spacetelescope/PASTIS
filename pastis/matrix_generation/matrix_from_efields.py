@@ -161,18 +161,16 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.dh_mask = self.rst_cgi.WA
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+        _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         self.efield_ref = inter[6].wavefront
         # [6] is the last optic = detector
 
     def setup_deformable_mirror(self):
-        log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
-        self.number_all_modes = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
-        print(self.number_all_modes)
-        log.info(f'Total number of modes: {self.number_all_modes}')
+        """DM setup not needed for RST, just define number of total mode"""
+        self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
     def setup_single_mode_function(self):
-        self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.number_all_modes, self.wfe_aber,
+        self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 
@@ -202,7 +200,8 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
 
     return efield_focal_plane
 
-def _rst_matrix_single_mode(number_all_modes, wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
+
+def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
     '''
 
     :param number_all_modes :
@@ -222,10 +221,10 @@ def _rst_matrix_single_mode(number_all_modes, wfe_aber, rst_sim, resDir, saveefi
 
     nb_actu = rst_sim.nbactuator
     actu_x, actu_y = util.seg_to_dm_xy(nb_actu, mode_no)
-    rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber/2)
+    rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber)
 
     # Calculate coronagraphic E-field
-    trash, inter = rst_sim.calc_psf(return_intermediates=True)
+    trash, inter = rst_sim.calc_psf(fov_arcsec=1.6, return_intermediates=True)
     efield_focal_plane = inter[6]
 
     # Save E field image to disk
@@ -243,4 +242,5 @@ def _rst_matrix_single_mode(number_all_modes, wfe_aber, rst_sim, resDir, saveefi
         rst_sim.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal',
                             title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
     return efield_focal_plane
