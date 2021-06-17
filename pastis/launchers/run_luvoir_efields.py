@@ -1,3 +1,4 @@
+import numpy as np
 from pastis.config import CONFIG_PASTIS
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldLuvoirA
 
@@ -5,8 +6,13 @@ from pastis.matrix_generation.matrix_from_efields import MatrixEfieldLuvoirA
 if __name__ == '__main__':
 
     APLC_DESIGN = 'small'
-    DM = 'seg_mirror'   # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    DM_SPEC = 3
+    DM = 'harris_seg_mirror'   # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+
+    # Needed for Harris mirror
+    fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
+    pad_orientations = np.pi / 2 * np.ones(120)
+
+    DM_SPEC = (fpath, pad_orientations)
     # DM_SPEC = tuple or int, specification for the used DM -
     #    for seg_mirror: int, number of local Zernike modes on each segment
     #    for harris_seg_mirror: tuple (string, array), absolute path to Harris spreadsheet, pad orientations
