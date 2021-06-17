@@ -289,9 +289,9 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, outpath)
 
     if return_coro_simulator:
-        return contrast_floor, norm, coro_simulator
+        return contrast_floor, norm, dh_mask, coro_simulator
     else:
-        return contrast_floor, norm
+        return contrast_floor, norm, dh_mask
 
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
@@ -458,7 +458,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     return contrast, segment_pair
 
 
-def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
+def _rst_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
     Function to calculate RST mean contrast of one DM actuator pair in CGI.
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -504,11 +504,6 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
         rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    log.info('Calculating mean contrast in dark hole')
-    iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
-    owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-    rst_cgi.working_area(im=psf, inner_rad=iwa, outer_rad=owa)
-    dh_mask = rst_cgi.WA
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
@@ -824,11 +819,11 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.dh_mask, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False):
-        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
+        self.contrast_floor, self.norm, self.dh_mask, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
