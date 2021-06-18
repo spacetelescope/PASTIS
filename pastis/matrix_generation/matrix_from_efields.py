@@ -278,7 +278,7 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
     elif which_dm == 'harris_seg_mirror':
         luvoir_sim.harris_sm.actuators = all_modes
     elif which_dm == 'zernike_mirror':
-        luvoir_sim.harris_sm.actuators = all_modes
+        luvoir_sim.zernike_mirror.actuators = all_modes
     else:
         raise ValueError(f'DM with name "{which_dm}" not recognized.')
 
