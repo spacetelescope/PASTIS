@@ -2,7 +2,6 @@
 Launcher script to start a full RST run: generate matrix and run full PASTIS analysis.
 """
 import os
-import logging
 
 from pastis.config import CONFIG_PASTIS
 from pastis.hockeystick_contrast_curve import hockeystick_curve
@@ -12,14 +11,12 @@ from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
 
 
-log = logging.getLogger()
-
 if __name__ == '__main__':
 
-    #intensity
+    # Generate intensity matrix
     #run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
-    #E_field
+    # Generate E_field matrix
     run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     run_matrix.calc()
