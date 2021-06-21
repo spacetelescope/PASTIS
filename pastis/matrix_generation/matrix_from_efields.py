@@ -136,9 +136,9 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
                                                     self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
 class MatrixEfieldRST(PastisMatrixEfields):
-    '''
-    A cool docstring
-    '''
+    """
+    Class to calculate RST Electrical field of RST CGI.
+    """
     instrument = 'RST'
 
 class MatrixEfieldRST(PastisMatrixEfields):
