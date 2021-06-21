@@ -21,10 +21,11 @@ matplotlib.rc('pdf', fonttype=42)
 
 
 class PastisMatrixEfields(PastisMatrix):
-    instrument = None
 
     def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
         super().__init__(design=design, initial_path=initial_path)
+
+        self.instrument = CONFIG_PASTIS.get('telescope', 'name')
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -53,7 +54,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_pastis_matrix_from_efields(self):
-        self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
+        self.matrix_pastis = pastis_matrix_from_efields(self.instrument, self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -74,10 +75,10 @@ class PastisMatrixEfields(PastisMatrix):
         pass
 
 
-def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
+def pastis_matrix_from_efields(instrument, electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
 
     # Calculate the semi-analytical PASTIS matrix from the individual E-fields
-    matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(electric_fields, efield_ref, direct_norm, dh_mask)
+    matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(instrument, electric_fields, efield_ref, direct_norm, dh_mask)
 
     # Symmetrize the half-PASTIS matrix
     log.info('Symmetrizing PASTIS matrix')
@@ -89,7 +90,7 @@ def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask
     return matrix_pastis
 
 
-def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm, dh_mask):
+def calculate_semi_analytic_pastis_from_efields(instrument, efields, efield_ref, direct_norm, dh_mask):
 
     # Create empty matrix
     nb_modes = efields.shape[0]
