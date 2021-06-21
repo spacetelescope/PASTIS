@@ -136,9 +136,9 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
                                                     self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
 class MatrixEfieldRST(PastisMatrixEfields):
-    '''
-    A cool docstring
-    '''
+    """
+    Class to calculate RST Electrical field of RST CGI.
+    """
     instrument = 'RST'
 
     def __init__(self, max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
@@ -203,14 +203,13 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
     '''
-
-    :param number_all_modes :
-    :param wfe_aber :
-    :param rst_sim :
-    :param resDir :
-    :param saveefields :
-    :param savepods :
-    :param mode_no :
+    Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
+    :param wfe_aber: float, amplitude injected inside the chosen actuator
+    :param rst_sim: full optic CGI instance
+    :param resDir: str, directory for matrix calculations
+    :param saveefields: bool, if True, all E_field will be saved to disk individually, as fits files
+    :param savepods: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    :param mode_no: int, actif actuator where is injected aberration
 
     '''
 

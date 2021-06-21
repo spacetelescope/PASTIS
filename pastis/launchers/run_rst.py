@@ -16,22 +16,12 @@ log = logging.getLogger()
 
 if __name__ == '__main__':
 
-    # Generate the matrix
-    """
-    generation_mode = CONFIG_PASTIS.get('RST', 'generation_mode')
-    if generation_mode == 'intensity':
-        run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-    elif generation_mode == 'E_field':
-        run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-    elif generation_mode == 'both':
-        run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-        run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
-    else:
-        error_msg = f"generation_mode from config_pastis.ini is {generation_mode}, not a valid name!"
-        log.error(error_msg)
-        raise ValueError(error_msg)
-    """
+    #intensity
+    #run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+
+    #E_field
     run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
