@@ -102,7 +102,7 @@ def calculate_semi_analytic_pastis_from_efields(instrument, efields, efield_ref,
                 (efields[pair[0]].wavefront - efield_ref) * np.conj(efields[pair[1]].wavefront - efield_ref))
         elif instrument == 'LUVOIR':
             intensity_im = np.real(
-                (efields[pair[0]].electric_field- efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
+                (efields[pair[0]].electric_field - efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -229,7 +229,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber)
 
     # Calculate coronagraphic E-field
-    trash, inter = rst_sim.calc_psf(fov_arcsec=1.6, return_intermediates=True)
+    trash, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
     efield_focal_plane = inter[6]
 
     # Save E field image to disk
