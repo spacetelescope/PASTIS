@@ -142,6 +142,10 @@ class MatrixEfieldRST(PastisMatrixEfields):
     """
     instrument = 'RST'
 
+    def __init__(self, initial_path='', saveefields=True, saveopds=True):
+        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+
+
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
         owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
