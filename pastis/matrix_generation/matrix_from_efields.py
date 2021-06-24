@@ -141,15 +141,12 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
                                                     self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
+
 class MatrixEfieldRST(PastisMatrixEfields):
     """
     Class to calculate RST Electrical field of RST CGI.
     """
     instrument = 'RST'
-
-    def __init__(self, max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
-        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
-        self.max_local_zernike = max_local_zernike
 
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
@@ -168,11 +165,10 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront
-        # [6] is the last optic = detector
+        self.efield_ref = inter[6].wavefront         # [6] is the last optic = detector
 
     def setup_deformable_mirror(self):
-        """DM setup not needed for RST, just define number of total mode"""
+        """DM setup not needed for RST, just define number of total modes"""
         self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
     def setup_single_mode_function(self):
@@ -208,18 +204,17 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
 
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
-    '''
+    """
     Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
-    :param wfe_aber: float, amplitude injected inside the chosen actuator
-    :param rst_sim: full optic CGI instance
+    :param wfe_aber: float, calibration aberration per actuator in m
+    :param rst_sim: instance of CGI simulator
     :param resDir: str, directory for matrix calculations
     :param saveefields: bool, if True, all E_field will be saved to disk individually, as fits files
-    :param savepods: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param mode_no: int, actif actuator where is injected aberration
+    :param savepods: bool, if True, all pupil surface maps of aberrated actuators pairs will be saved to disk as PDF
+    :param mode_no: int, which aberrated actuator to calculate the E-field for
+    """
 
-    '''
-
-    log.info(f'MODE NUMBER: {mode_no}')
+    log.info(f'ACTUATOR NUMBER: {mode_no}')
 
     # Apply calibration aberration to used mode
     rst_sim.dm1.flatten()
