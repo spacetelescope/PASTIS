@@ -21,11 +21,10 @@ matplotlib.rc('pdf', fonttype=42)
 
 
 class PastisMatrixEfields(PastisMatrix):
+    instrument = None
 
     def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
         super().__init__(design=design, initial_path=initial_path)
-
-        self.instrument = CONFIG_PASTIS.get('telescope', 'name')
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -54,7 +53,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_pastis_matrix_from_efields(self):
-        self.matrix_pastis = pastis_matrix_from_efields(self.instrument, self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
+        self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -75,10 +74,10 @@ class PastisMatrixEfields(PastisMatrix):
         pass
 
 
-def pastis_matrix_from_efields(instrument, electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
+def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
 
     # Calculate the semi-analytical PASTIS matrix from the individual E-fields
-    matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(instrument, electric_fields, efield_ref, direct_norm, dh_mask)
+    matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(electric_fields, efield_ref, direct_norm, dh_mask)
 
     # Symmetrize the half-PASTIS matrix
     log.info('Symmetrizing PASTIS matrix')
@@ -90,19 +89,14 @@ def pastis_matrix_from_efields(instrument, electric_fields, efield_ref, direct_n
     return matrix_pastis
 
 
-def calculate_semi_analytic_pastis_from_efields(instrument, efields, efield_ref, direct_norm, dh_mask):
+def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm, dh_mask):
 
     # Create empty matrix
     nb_modes = efields.shape[0]
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        if instrument == 'RST':
-            intensity_im = np.real(
-                (efields[pair[0]].wavefront - efield_ref) * np.conj(efields[pair[1]].wavefront - efield_ref))
-        elif instrument == 'LUVOIR':
-            intensity_im = np.real(
-                (efields[pair[0]].electric_field - efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
+        intensity_im = np.real((efields[pair[0]] - efield_ref) * np.conj(efields[pair[1]] - efield_ref))
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -200,7 +194,7 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
         hcipy.imshow_field(inter['seg_mirror'].phase, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane
+    return efield_focal_plane.electric_field
 
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
@@ -224,7 +218,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber)
 
     # Calculate coronagraphic E-field
-    trash, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+    _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
     efield_focal_plane = inter[6]
 
     # Save E field image to disk
@@ -243,4 +237,4 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
                             title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane
+    return efield_focal_plane.wavefront
