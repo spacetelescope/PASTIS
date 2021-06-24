@@ -145,7 +145,6 @@ class MatrixEfieldRST(PastisMatrixEfields):
     def __init__(self, initial_path='', saveefields=True, saveopds=True):
         super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
 
-
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
         owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
@@ -163,7 +162,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront         # [6] is the last optic = detector
+        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
@@ -223,7 +222,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
 
     # Calculate coronagraphic E-field
     _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-    efield_focal_plane = inter[6]
+    efield_focal_plane = inter[6]    # [6] is the last optic = detector
 
     # Save E field image to disk
     if saveefields:
