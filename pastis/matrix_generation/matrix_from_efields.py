@@ -136,6 +136,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
                                                     self.luvoir, self.resDir, self.save_efields, self.saveopds)
 
+
 class MatrixEfieldRST(PastisMatrixEfields):
     """
     Class to calculate RST Electrical field of RST CGI.
