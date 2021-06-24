@@ -824,7 +824,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.dh_mask, self.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False):
