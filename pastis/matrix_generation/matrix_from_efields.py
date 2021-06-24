@@ -138,7 +138,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
 
 class MatrixEfieldRST(PastisMatrixEfields):
     """
-    Class to calculate RST Electrical field of RST CGI.
+    Class to calculate the PASTIS matrix from E-fields of RST CGI.
     """
     instrument = 'RST'
 
