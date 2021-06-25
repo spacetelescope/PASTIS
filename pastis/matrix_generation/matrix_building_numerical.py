@@ -329,7 +329,6 @@ def _jwst_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, s
     log.info('Calculating coro image...')
     image = jwst_instrument.calc_psf(nlambda=1)
     psf = image[0].data / norm
-    contrast = psf * dh_mask
 
     # Save PSF image to disk
     if savepsfs:
@@ -344,6 +343,9 @@ def _jwst_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, s
         ax2 = plt.subplot(111)
         jwst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
 
@@ -394,8 +396,8 @@ def _luvoir_matrix_one_pair(design, norm, dh_mask, wfe_aber, resDir, savepsfs, s
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
-    dh_intensity = psf * dh_mask
-    contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
+    dh_intensity = psf * luv.dh_mask
+    contrast = np.mean(dh_intensity[np.where(luv.dh_mask != 0)])
     log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
@@ -429,7 +431,6 @@ def _hicat_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, 
     log.info('Calculating coro image...')
     image, inter = hicat_sim.calc_psf(display=False, return_intermediates=True)
     psf = image[0].data / norm
-    contrast = psf * dh_mask
 
     # Save PSF image to disk
     if savepsfs:
@@ -442,6 +443,9 @@ def _hicat_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, 
         plt.clf()
         plt.imshow(inter[1].phase)
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    log.info('Calculating mean contrast in dark hole')
+    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
 
@@ -492,6 +496,7 @@ def _rst_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, ac
         rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
+    log.info('Calculating mean contrast in dark hole')
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
@@ -661,7 +666,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     util.copy_config(resDir)
 
     # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False,
+    contrast_floor, norm , dh_mask = calculate_unaberrated_contrast_and_normalization(instrument, design, return_coro_simulator=False,
                                                                             save_coro_floor=True, save_psfs=False, outpath=overall_dir)
 
     # Figure out how many processes is optimal and create a Pool.
@@ -749,11 +754,11 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
         super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
+        self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.dh_mask, self.wfe_aber,
                                                        self.resDir, self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
-        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
+        self.contrast_floor, self.norm, self.dh_mask, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
                                                                                                                self.design,
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
@@ -771,11 +776,11 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
         # Copy used BostonDM maps to matrix folder
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
                         os.path.join(self.resDir, 'hicat_boston_dm_commands'))
-        self.calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, self.norm, self.dh_mask, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
-        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
+        self.contrast_floor, self.norm,  self.dh_mask, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
@@ -789,11 +794,11 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.dh_mask, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
-        self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
+        self.contrast_floor, self.norm,  self.dh_mask, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
                                                                                                                save_psfs=save_psfs,
