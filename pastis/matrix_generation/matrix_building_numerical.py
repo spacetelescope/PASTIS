@@ -294,7 +294,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         return contrast_floor, norm
 
 
-def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+def _jwst_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -329,6 +329,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
     log.info('Calculating coro image...')
     image = jwst_instrument.calc_psf(nlambda=1)
     psf = image[0].data / norm
+    contrast = psf * dh_mask
 
     # Save PSF image to disk
     if savepsfs:
@@ -344,17 +345,10 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
         jwst_ote.display_opd(ax=ax2, vmax=500, colorbar_orientation='horizontal', title='Aberrated segment pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    log.info('Calculating mean contrast in dark hole')
-    iwa = CONFIG_PASTIS.getfloat('JWST', 'IWA')
-    owa = CONFIG_PASTIS.getfloat('JWST', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('JWST', 'sampling')
-    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
-    contrast = util.dh_mean(psf, dh_mask)
-
     return contrast, segment_pair
 
 
-def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+def _luvoir_matrix_one_pair(design, norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
@@ -400,14 +394,14 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     log.info('Calculating mean contrast in dark hole')
-    dh_intensity = psf * luv.dh_mask
-    contrast = np.mean(dh_intensity[np.where(luv.dh_mask != 0)])
+    dh_intensity = psf * dh_mask
+    contrast = np.mean(dh_intensity[np.where(dh_mask != 0)])
     log.info(f'contrast: {float(contrast)}')    # contrast is a Field, here casting to normal float
 
     return float(contrast), segment_pair
 
 
-def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+def _hicat_matrix_one_pair(norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
     Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -435,6 +429,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
     log.info('Calculating coro image...')
     image, inter = hicat_sim.calc_psf(display=False, return_intermediates=True)
     psf = image[0].data / norm
+    contrast = psf * dh_mask
 
     # Save PSF image to disk
     if savepsfs:
@@ -447,13 +442,6 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
         plt.clf()
         plt.imshow(inter[1].phase)
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
-    log.info('Calculating mean contrast in dark hole')
-    iwa = CONFIG_PASTIS.getfloat('HiCAT', 'IWA')
-    owa = CONFIG_PASTIS.getfloat('HiCAT', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
-    dh_mask = util.create_dark_hole(psf, iwa, owa, sampling)
-    contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, segment_pair
 
@@ -699,20 +687,20 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
     # Set up a function with all arguments fixed except for the last one, which is the segment pair tuple
     if instrument == 'LUVOIR':
-        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, wfe_aber, resDir,
+        calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, design, norm, dh_mask, wfe_aber, resDir,
                                                   savepsfs, saveopds)
 
     if instrument == 'HiCAT':
         # Copy used BostonDM maps to matrix folder
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'), os.path.join(resDir, 'hicat_boston_dm_commands'))
 
-        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+        calculate_matrix_pair = functools.partial(_hicat_matrix_one_pair, norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds)
 
     if instrument == 'JWST':
-        calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+        calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, norm, dh_mask,wfe_aber, resDir, savepsfs, saveopds)
 
     if instrument == 'RST':
-        calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, norm, wfe_aber, resDir, savepsfs, saveopds)
+        calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, norm, dh_mask, wfe_aber, resDir, savepsfs, saveopds)
 
     # Iterate over all segment pairs via a multiprocess pool
     mypool = multiprocessing.Pool(num_processes)
