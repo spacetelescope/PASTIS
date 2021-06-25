@@ -491,8 +491,10 @@ class SegmentedTelescope:
             zval = zval.ravel() * seg_evaluated[seg_num]
             return zval
 
-        harris_base_thermal = []
+        harris_base = []
         for seg_num in range(0, self.nseg):
+            mode_set_per_segment = []
+
             grid_seg = self.pupil_grid.shifted(-self.seg_pos[seg_num])
             x_line_grid = np.asarray(grid_seg.x)
             y_line_grid = np.asarray(grid_seg.y)
@@ -510,25 +512,28 @@ class SegmentedTelescope:
                 ZI = _transform_harris_mode(valuesI, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZJ = _transform_harris_mode(valuesJ, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZK = _transform_harris_mode(valuesK, x_rotation, y_rotation, points, seg_evaluated, seg_num)
-                harris_base_thermal.append([ZA, ZH, ZI, ZJ, ZK])
+                mode_set_per_segment.extend([ZA, ZH, ZI, ZJ, ZK])
             if mechanical:
                 ZE = _transform_harris_mode(valuesE, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZF = _transform_harris_mode(valuesF, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZG = _transform_harris_mode(valuesG, x_rotation, y_rotation, points, seg_evaluated, seg_num)
-                harris_base_thermal.append([ZE, ZF, ZG])
+                mode_set_per_segment.extend([ZE, ZF, ZG])
             if other:
                 ZB = _transform_harris_mode(valuesB, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZC = _transform_harris_mode(valuesC, x_rotation, y_rotation, points, seg_evaluated, seg_num)
                 ZD = _transform_harris_mode(valuesD, x_rotation, y_rotation, points, seg_evaluated, seg_num)
-                harris_base_thermal.append([ZB, ZC, ZD])
+                mode_set_per_segment.extend([ZB, ZC, ZD])
 
-        # Create full mode basis of all Harris modes on all segments
-        harris_base_thermal = np.asarray(harris_base_thermal)
-        self.n_harris_modes = harris_base_thermal.shape[1]
-        harris_base_thermal = harris_base_thermal.reshape(self.nseg * self.n_harris_modes, pup_dims[0] ** 2)
-        harris_thermal_mode_basis = hcipy.ModeBasis(np.transpose(harris_base_thermal), grid=self.pupil_grid)
+            harris_base.append(mode_set_per_segment)
 
-        self.harris_sm = hcipy.optics.DeformableMirror(harris_thermal_mode_basis)
+        # Create full mode basis of selected Harris modes on all segments
+        harris_base = np.asarray(harris_base)
+        print(harris_base.shape)
+        self.n_harris_modes = harris_base.shape[1]
+        harris_base = harris_base.reshape(self.nseg * self.n_harris_modes, pup_dims[0] ** 2)
+        harris_mode_basis = hcipy.ModeBasis(np.transpose(harris_base), grid=self.pupil_grid)
+
+        self.harris_sm = hcipy.optics.DeformableMirror(harris_mode_basis)
 
     def set_harris_segment(self, segid, mode_number, amplitude, override=False):
         """ Set an individual segment of the Harris segmented mirror to a single Harris mode.
