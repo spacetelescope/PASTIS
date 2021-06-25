@@ -99,8 +99,8 @@ class PastisMatrixEfields(PastisMatrix):
 
 def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
     """ Calculate the semi-analytical PASTIS matrix from the individual E-fields
-    :param electric_fields: list of individually poked mode E-fields
-    :param efield_ref: array, reference E-field of an unaberrated system
+    :param electric_fields: list, items of same type as "efield_ref", individually poked mode E-fields
+    :param efield_ref: same type as items in "electric_fields", reference E-field of an unaberrated system
     :param direct_norm: float, normalization factor - peak pixel of a direct PSF
     :param dh_mask: array, dark hole mask
     :param wfe_aber: float, calibration aberration in meters
@@ -126,8 +126,8 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     This function calculates the elements of the (half !) PASTIS matrix from the E-field responses of the individually
     poked modes, in which the reference E-field has not been subtracted yet. The calculation is only performed on the
     half-PASTIS matrix, so it will need to be symmetrized after this step.
-    :param efields: list of individually poked mode E-fields
-    :param efield_ref: array, reference E-field of an unaberrated system
+    :param efields: list, items of same type as "efield_ref", individually poked mode E-fields
+    :param efield_ref: same type as items in "efields", reference E-field of an unaberrated system
     :param direct_norm: float, normalization factor - peak pixel of a direct PSF
     :param dh_mask: array, dark hole mask
     :return: half-PASTIS matrix, where one of its matrix triangles will be all zeros
