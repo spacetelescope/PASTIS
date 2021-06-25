@@ -97,7 +97,12 @@ def calculate_semi_analytic_pastis_from_efields(instrument, efields, efield_ref,
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        intensity_im = np.real((efields[pair[0]] - efield_ref) * np.conj(efields[pair[1]] - efield_ref))
+        if instrument == 'RST':
+            intensity_im = np.real(
+                (efields[pair[0]].wavefront - efield_ref) * np.conj(efields[pair[1]].wavefront - efield_ref))
+        elif instrument == 'LUVOIR':
+            intensity_im = np.real(
+                (efields[pair[0]].electric_field - efield_ref) * np.conj(efields[pair[1]].electric_field - efield_ref))
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -143,15 +148,6 @@ class MatrixEfieldRST(PastisMatrixEfields):
     """
     instrument = 'RST'
 
-class MatrixEfieldRST(PastisMatrixEfields):
-    """
-    Class to calculate the PASTIS matrix from E-fields of RST CGI.
-    """
-    instrument = 'RST'
-
-    def __init__(self, initial_path='', saveefields=True, saveopds=True):
-        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
-
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
         owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
@@ -169,7 +165,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
+        self.efield_ref = inter[6].wavefront         # [6] is the last optic = detector
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
@@ -228,8 +224,8 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     rst_sim.dm1.set_actuator(actu_x, actu_y, wfe_aber)
 
     # Calculate coronagraphic E-field
-    _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-    efield_focal_plane = inter[6]    # [6] is the last optic = detector
+    trash, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+    efield_focal_plane = inter[6]
 
     # Save E field image to disk
     if saveefields:
@@ -247,4 +243,4 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
                             title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane.wavefront
+    return efield_focal_plane
