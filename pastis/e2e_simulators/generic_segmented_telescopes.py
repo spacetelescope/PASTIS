@@ -529,7 +529,6 @@ class SegmentedTelescope:
 
         # Create full mode basis of selected Harris modes on all segments
         harris_base = np.asarray(harris_base)
-        print(harris_base.shape)
         self.n_harris_modes = harris_base.shape[1]
         harris_base = harris_base.reshape(self.nseg * self.n_harris_modes, pup_dims[0] ** 2)
         harris_mode_basis = hcipy.ModeBasis(np.transpose(harris_base), grid=self.pupil_grid)
