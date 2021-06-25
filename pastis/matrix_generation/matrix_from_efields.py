@@ -155,7 +155,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
                         for seg_mirror: int, number of local Zernike modes on each segment
-                        for harris_seg_mirror: tuple (string, array), absolute path to Harris spreadsheet, pad orientations
+                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
                         for zernike_mirror: int, number of global Zernikes
         :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
         :param initial_path: string, path to top-level directory where result folder should be saved to.
@@ -185,6 +185,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
 
+        log.info('Setting up deformable mirror...')
         if self.which_dm == 'seg_mirror':
             n_modes_segs = self.dm_spec
             log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
@@ -192,10 +193,10 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
             self.number_all_modes = self.luvoir.sm.num_actuators
 
         elif self.which_dm == 'harris_seg_mirror':
-            fpath, pad_orientations = self.dm_spec
+            fpath, pad_orientations, therm, mech, other = self.dm_spec
             log.info(f'Reading Harris spreadsheet from {fpath}')
             log.info(f'Using pad orientations: {pad_orientations}')
-            self.luvoir.create_segmented_harris_mirror(fpath, pad_orientations)
+            self.luvoir.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
             self.number_all_modes = self.luvoir.harris_sm.num_actuators
 
         elif self.which_dm == 'zernike_mirror':

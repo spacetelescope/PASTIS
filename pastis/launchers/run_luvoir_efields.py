@@ -12,10 +12,10 @@ if __name__ == '__main__':
     fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
     pad_orientations = np.pi / 2 * np.ones(120)
 
-    DM_SPEC = (fpath, pad_orientations)
+    DM_SPEC = (fpath, pad_orientations, False, True, False)
     # DM_SPEC = tuple or int, specification for the used DM -
     #    for seg_mirror: int, number of local Zernike modes on each segment
-    #    for harris_seg_mirror: tuple (string, array), absolute path to Harris spreadsheet, pad orientations
+    #    for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets (thermal, mechanical, other)
     #    for zernike_mirror: int, number of global Zernikes
 
     # First generate a couple of matrices
