@@ -192,6 +192,26 @@ class LuvoirBVortex(SegmentedTelescope):
         self.segment_circum_diameter = 2 / np.sqrt(3) * 0.955 * (self.D_pup/8)   # m
 
     def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+        """ Calculate the PSF of LUVOIR B, and return optionally all E-fields.
+
+        Parameters:
+        ----------
+        ref : bool
+            Whether or not to return the reference (direct) PSF
+        display_intermediate : bool
+            Whether or not to display images of all planes.
+        return_intermediate : string
+            default None; if "efield", will also return E-fields of each plane and DM
+
+        Returns:
+        --------
+        wf_im_coro.intensity : Field
+            returned if return_intermediate=None (default)
+        wf_im_coro : hcipy.Wavefront
+            returned if return_intermediate='efield'
+        intermediates : dict
+            Dictionary containing the Wavefronts of all the planes, returned if return_intermediate='efield'
+        """
 
         if isinstance(return_intermediate, bool):
             raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "

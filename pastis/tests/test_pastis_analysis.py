@@ -8,12 +8,12 @@ from pastis import pastis_analysis
 from pastis import util
 
 
-# Read the LUVOIR-A small APLC PASTIS matrix
+# Read the LUVOIR-A small APLC PASTIS matrix generated from intensities
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
 
-LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
-NSEG = LUVOIR_MATRIX_SMALL.shape[0]
+LUVOIR_INTENSITY_MATRIX_SMALL = fits.getdata(matrix_path)
+NSEG = LUVOIR_INTENSITY_MATRIX_SMALL.shape[0]
 
 CORO_FLOOR, NORM, LUVOIR_SIM = calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
 
@@ -24,7 +24,7 @@ def test_modes_from_matrix():
     """ Test correctness of eigenmodes and eigenvectors (here from full SVD). """
 
     # Calculate modes and eigenvalues from matrix
-    pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
+    pmodes, svals, vh = np.linalg.svd(LUVOIR_INTENSITY_MATRIX_SMALL, full_matrices=True)
 
     # Check that all eigenvalues are positive
     assert (svals > 0).all(), 'SVD yields negative eigenvalues'
@@ -32,8 +32,8 @@ def test_modes_from_matrix():
     # Test eigenvalue problem for a selection of modes, M u = lam u
     test_modes = [3, 45, 98]
     for mode_nb in test_modes:
-        left = np.dot(LUVOIR_MATRIX_SMALL, svals[mode_nb])
-        right = np.dot(LUVOIR_MATRIX_SMALL, pmodes[:, mode_nb])
+        left = np.dot(LUVOIR_INTENSITY_MATRIX_SMALL, svals[mode_nb])
+        right = np.dot(LUVOIR_INTENSITY_MATRIX_SMALL, pmodes[:, mode_nb])
         assert np.allclose(left, right)
 
 
@@ -41,13 +41,13 @@ def test_uniform_mode_weights():
     """Test calculated uniform cumulative contrast."""
 
     # Calculate modes and eigenvalues from matrix
-    pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
+    pmodes, svals, vh = np.linalg.svd(LUVOIR_INTENSITY_MATRIX_SMALL, full_matrices=True)
 
     # Calculate the mode weights for uniform contrast allocation
     sigmas = pastis_analysis.calculate_sigma(C_TARGET, NSEG, svals, CORO_FLOOR)
 
     # Calculate cumulative contrast from the sigmas, with PASTIS propagation
-    cumulative_pastis = pastis_analysis.cumulative_contrast_matrix(pmodes, sigmas, LUVOIR_MATRIX_SMALL, CORO_FLOOR)
+    cumulative_pastis = pastis_analysis.cumulative_contrast_matrix(pmodes, sigmas, LUVOIR_INTENSITY_MATRIX_SMALL, CORO_FLOOR)
 
     # Calculate cumulative contrast from the sigmas, with E2E simulator
     cumulative_e2e = pastis_analysis.cumulative_contrast_e2e('LUVOIR', pmodes, sigmas, LUVOIR_SIM, LUVOIR_SIM.dh_mask.shaped, NORM)
@@ -73,10 +73,10 @@ def test_analytical_mean_and_variance():
     """Test analytically calculated contrast mean and variance in two different bases."""
 
     # Calculate modes and eigenvalues from matrix
-    pmodes, svals, vh = np.linalg.svd(LUVOIR_MATRIX_SMALL, full_matrices=True)
+    pmodes, svals, vh = np.linalg.svd(LUVOIR_INTENSITY_MATRIX_SMALL, full_matrices=True)
 
     # Calculate independent segment weights
-    mus = pastis_analysis.calculate_segment_constraints(LUVOIR_MATRIX_SMALL, C_TARGET, CORO_FLOOR) * u.nm
+    mus = pastis_analysis.calculate_segment_constraints(LUVOIR_INTENSITY_MATRIX_SMALL, C_TARGET, CORO_FLOOR) * u.nm
 
     # Calculate independent segment based covariance matrix
     Ca = np.diag(np.square(mus.value))
@@ -87,8 +87,8 @@ def test_analytical_mean_and_variance():
     D_matrix = np.diag(svals)
 
     # Calculate contrast mean and variance in both bases
-    segs_mean_stat_c = util.calc_statistical_mean_contrast(LUVOIR_MATRIX_SMALL, Ca, CORO_FLOOR)
-    segs_var_c = util.calc_variance_of_mean_contrast(LUVOIR_MATRIX_SMALL, Ca)
+    segs_mean_stat_c = util.calc_statistical_mean_contrast(LUVOIR_INTENSITY_MATRIX_SMALL, Ca, CORO_FLOOR)
+    segs_var_c = util.calc_variance_of_mean_contrast(LUVOIR_INTENSITY_MATRIX_SMALL, Ca)
     modes_mean_stat_c = util.calc_statistical_mean_contrast(D_matrix, Cb, CORO_FLOOR)
     modes_var_c = util.calc_variance_of_mean_contrast(D_matrix, Cb)
 

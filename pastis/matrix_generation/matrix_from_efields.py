@@ -22,8 +22,21 @@ matplotlib.rc('pdf', fonttype=42)
 
 class PastisMatrixEfields(PastisMatrix):
     instrument = None
+    """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
     def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
+        """
+        Parameters:
+        ----------
+        design: string
+            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
+        initial_path: string
+            Path to top-level directory where result folder should be saved to.
+        saveefields: bool
+            Whether to save E-fields as fits file to disk or not
+        saveopds: bool
+            Whether to save images of pair-wise aberrated pupils to disk or not
+        """
         super().__init__(design=design, initial_path=initial_path)
 
         self.save_efields = saveefields
@@ -34,6 +47,8 @@ class PastisMatrixEfields(PastisMatrix):
         os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
 
     def calc(self):
+        """ Main method that calculates the PASTIS matrix """
+
         start_time = time.time()
 
         self.calculate_ref_efield()
@@ -48,11 +63,15 @@ class PastisMatrixEfields(PastisMatrix):
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_efields(self):
+        """ Poke each mode individually and calculate the resulting focal plane E-field. """
+
         for i in range(self.number_all_modes):
             self.efields_per_mode.append(self.calculate_one_mode(i))
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_pastis_matrix_from_efields(self):
+        """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
+
         self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
 
         # Save matrix to file
@@ -63,20 +82,31 @@ class PastisMatrixEfields(PastisMatrix):
 
     @abstractmethod
     def calculate_ref_efield(self):
+        """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         pass
 
     @abstractmethod
     def setup_deformable_mirror(self):
+        """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
         pass
 
     @abstractmethod
     def setup_single_mode_function(self):
+        """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
+        aberrated mode. This needs to create self.calculate_one_mode. """
         pass
 
 
 def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
+    """ Calculate the semi-analytical PASTIS matrix from the individual E-fields
+    :param electric_fields: list, items of same type as "efield_ref", individually poked mode E-fields
+    :param efield_ref: same type as items in "electric_fields", reference E-field of an unaberrated system
+    :param direct_norm: float, normalization factor - peak pixel of a direct PSF
+    :param dh_mask: array, dark hole mask
+    :param wfe_aber: float, calibration aberration in meters
+    :return: full, normalized PASTIS matrix
+    """
 
-    # Calculate the semi-analytical PASTIS matrix from the individual E-fields
     matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(electric_fields, efield_ref, direct_norm, dh_mask)
 
     # Symmetrize the half-PASTIS matrix
@@ -90,6 +120,18 @@ def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask
 
 
 def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm, dh_mask):
+    """
+    Perform the semi-analytical calculation to go from list of E-fields to PASTIS matrix.
+
+    This function calculates the elements of the (half !) PASTIS matrix from the E-field responses of the individually
+    poked modes, in which the reference E-field has not been subtracted yet. The calculation is only performed on the
+    half-PASTIS matrix, so it will need to be symmetrized after this step.
+    :param efields: list, items of same type as "efield_ref", individually poked mode E-fields
+    :param efield_ref: same type as items in "efields", reference E-field of an unaberrated system
+    :param direct_norm: float, normalization factor - peak pixel of a direct PSF
+    :param dh_mask: array, dark hole mask
+    :return: half-PASTIS matrix, where one of its matrix triangles will be all zeros
+    """
 
     # Create empty matrix
     nb_modes = efields.shape[0]
@@ -106,12 +148,27 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 class MatrixEfieldLuvoirA(PastisMatrixEfields):
     instrument = 'LUVOIR'
+    """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
 
-    def __init__(self, design='small', max_local_zernike=3, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True):
+        """
+        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        :param dm_spec: tuple or int, specification for the used DM -
+                        for seg_mirror: int, number of local Zernike modes on each segment
+                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+                        for zernike_mirror: int, number of global Zernikes
+        :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
+        :param initial_path: string, path to top-level directory where result folder should be saved to.
+        :param saveefields: bool, whether to save E-fields as fits file to disk or not
+        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        """
         super().__init__(design=design, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
-        self.max_local_zernike = max_local_zernike
+        self.which_dm = which_dm
+        self.dm_spec = dm_spec
 
     def calculate_ref_efield(self):
+        """Instantiate the simulator object and calculate the reference E-field, DH mask, and direct PSF norm factor."""
+
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
         self.luvoir = LuvoirA_APLC(optics_input, self.design, sampling)
@@ -126,14 +183,39 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         self.efield_ref = unaberrated_ref_efield.electric_field
 
     def setup_deformable_mirror(self):
-        log.info(f'Creating segmented mirror with {self.max_local_zernike} local modes each...')
-        self.luvoir.create_segmented_mirror(self.max_local_zernike)
-        self.number_all_modes = self.luvoir.sm.num_actuators
+        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
+
+        log.info('Setting up deformable mirror...')
+        if self.which_dm == 'seg_mirror':
+            n_modes_segs = self.dm_spec
+            log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
+            self.luvoir.create_segmented_mirror(n_modes_segs)
+            self.number_all_modes = self.luvoir.sm.num_actuators
+
+        elif self.which_dm == 'harris_seg_mirror':
+            fpath, pad_orientations, therm, mech, other = self.dm_spec
+            log.info(f'Reading Harris spreadsheet from {fpath}')
+            log.info(f'Using pad orientations: {pad_orientations}')
+            self.luvoir.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
+            self.number_all_modes = self.luvoir.harris_sm.num_actuators
+
+        elif self.which_dm == 'zernike_mirror':
+            n_modes_zernikes = self.dm_spec
+            log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
+            self.luvoir.create_global_zernike_mirror(n_modes_zernikes)
+            self.number_all_modes = self.luvoir.zernike_mirror.num_actuators
+
+        else:
+            raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
+
         log.info(f'Total number of modes: {self.number_all_modes}')
 
     def setup_single_mode_function(self):
-        self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.number_all_modes, self.wfe_aber,
-                                                    self.luvoir, self.resDir, self.save_efields, self.saveopds)
+        """ Create the partial function that returns the E-field of a single aberrated mode. """
+
+        self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.which_dm, self.number_all_modes,
+                                                    self.wfe_aber, self.luvoir, self.resDir, self.save_efields,
+                                                    self.saveopds)
 
 
 class MatrixEfieldRST(PastisMatrixEfields):
@@ -173,14 +255,33 @@ class MatrixEfieldRST(PastisMatrixEfields):
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 
-def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
+def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
+    """
+    Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
+    :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    :param number_all_modes: int, total number of all modes
+    :param wfe_aber: float, calibration aberration in meters
+    :param luvoir_sim: instance of LUVOIR simulator
+    :param resDir: str, directory for matrix calculation results
+    :param saveefields: bool, Whether to save E-fields as fits file to disk or not
+    :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
+    :param mode_no: int, which mode index to calculate the E-field for
+    :return: complex array, resulting focal plane E-field
+    """
 
     log.info(f'MODE NUMBER: {mode_no}')
 
     # Apply calibration aberration to used mode
     all_modes = np.zeros(number_all_modes)
-    all_modes[mode_no] = wfe_aber / 2
-    luvoir_sim.sm.actuators = all_modes
+    all_modes[mode_no] = wfe_aber / 2    # LUVOIR simulator takes aberrations in surface  #TODO: check that this is true for all the DMs
+    if which_dm == 'seg_mirror':
+        luvoir_sim.sm.actuators = all_modes
+    elif which_dm == 'harris_seg_mirror':
+        luvoir_sim.harris_sm.actuators = all_modes
+    elif which_dm == 'zernike_mirror':
+        luvoir_sim.zernike_mirror.actuators = all_modes
+    else:
+        raise ValueError(f'DM with name "{which_dm}" not recognized.')
 
     # Calculate coronagraphic E-field
     efield_focal_plane, inter = luvoir_sim.calc_psf(return_intermediate='efield')
@@ -192,9 +293,10 @@ def _luvoir_matrix_single_mode(number_all_modes, wfe_aber, luvoir_sim, resDir, s
         hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
 
     if saveopds:
+        opd_map = inter[which_dm].phase
         opd_name = f'opd_mode_{mode_no}'
         plt.clf()
-        hcipy.imshow_field(inter['seg_mirror'].phase, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
+        hcipy.imshow_field(opd_map, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane.electric_field

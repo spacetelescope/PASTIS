@@ -33,9 +33,23 @@ matplotlib.rc('pdf', fonttype=42)
 
 
 class PastisMatrix(ABC):
+    """ Main class for PASTIS matrix generation.
+
+    This is an abstract class that is used for *all* PASTIS matrix calculations, both in intensities and E-fields. It is
+    mostly concerned with setting up the result directories in a uniform way.
+    """
+
     instrument = None
 
     def __init__(self, design=None, initial_path=''):
+        """
+        Parameters:
+        ----------
+        design : string
+            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
+        initial_path : string
+            Path to top-level directory where result folder should be saved to.
+        """
 
         # General telescope parameters
         self.design = design
@@ -78,9 +92,25 @@ class PastisMatrix(ABC):
 
 
 class PastisMatrixIntensities(PastisMatrix):
+    """ Main class for PASTIS matrix calculations from pair-wise intensities.
+
+    Contrast matrix calculation is multiprocessed.
+    """
     instrument = None
 
     def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+        """
+        Parameters:
+        ----------
+        design: string
+            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
+        initial_path: string
+            Path to top-level directory where result folder should be saved to.
+        savepsfs: bool
+            Whether to save pair-wise aberrated PSFs as fits file to disk or not
+        saveopds: bool
+            Whether to save images of pair-wise aberrated pupils to disk or not
+        """
         super().__init__(design=design, initial_path=initial_path)
 
         self.savepsfs = savepsfs
@@ -93,6 +123,7 @@ class PastisMatrixIntensities(PastisMatrix):
             f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
 
     def calc(self):
+        """ Main method that calculates the PASTIS matrix """
         start_time = time.time()
 
         # Calculate coronagraph floor, and normalization factor from direct image
@@ -107,6 +138,12 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_contrast_matrix(self):
+        """ Calculate the contrast matrix.
+
+        Uses the class attribute "self.calculate_matrix_pair", which needs to be a partial function, to calculate the
+        PSFs of all pair-wise aberrated segments in the pupil. This is using multiprocessing. The contrast matrix will
+        be saved to disk as fits file and as a PDF image.
+        """
 
         # Figure out how many processes is optimal and create a Pool.
         # Assume we're the only one on the machine so we can hog all the resources.
@@ -155,6 +192,7 @@ class PastisMatrixIntensities(PastisMatrix):
         plt.savefig(os.path.join(self.resDir, 'contrast_matrix.pdf'))
 
     def calculate_pastis_from_contrast_matrix(self):
+        """ Take the contrast matrix and calculate the PASTIS matrix from it. """
 
         # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
         self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
@@ -167,12 +205,12 @@ class PastisMatrixIntensities(PastisMatrix):
 
     @abstractmethod
     def calculate_ref_image(self):
-        """This method needs to create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
+        """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
 
     @abstractmethod
     def setup_one_pair_function(self):
-        """This needs to create an attribute that is the partial function that can calculate the contrast from one
-        aberrated segment/actuator pair. This needs to create self.calculate_matrix_pair."""
+        """ Create an attribute that is the partial function that can calculate the contrast from one aberrated
+        segment/actuator pair. This needs to create self.calculate_matrix_pair. """
 
 
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
@@ -356,7 +394,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
-    Function to calculate LVUOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
+    Calculate the LUVOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: float, calibration aberration per segment in m
@@ -761,15 +799,20 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     instrument = 'LUVOIR'
+    """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
+        """ Create the partial function that returns the PSF of a single aberrated segment pair. """
+
         self.calculate_matrix_pair = functools.partial(_luvoir_matrix_one_pair, self.design, self.norm, self.wfe_aber,
                                                        self.resDir, self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
+        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('LUVOIR',
                                                                                                                self.design,
                                                                                                                return_coro_simulator=True,
@@ -780,11 +823,14 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
 
 class MatrixIntensityHicat(PastisMatrixIntensities):
     instrument = 'HiCAT'
+    """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
+        """ Create the partial function that returns the PSF of a single aberrated segment pair. """
+
         # Copy used BostonDM maps to matrix folder
         shutil.copytree(CONFIG_PASTIS.get('HiCAT', 'dm_maps_path'),
                         os.path.join(self.resDir, 'hicat_boston_dm_commands'))
@@ -792,6 +838,8 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
+        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('HiCAT',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
@@ -801,15 +849,20 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
     instrument = 'JWST'
+    """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
+        """ Create the partial function that returns the PSF of a single aberrated segment pair. """
+
         self.calculate_matrix_pair = functools.partial(_jwst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=True, save_psfs=True):
+        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('JWST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,
@@ -819,15 +872,20 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
+    """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
+        """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
+
         self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False):
+        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
                                                                                                                save_coro_floor=save_coro_floor,

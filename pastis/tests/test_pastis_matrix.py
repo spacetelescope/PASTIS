@@ -7,13 +7,13 @@ import pastis.matrix_generation.matrix_building_numerical as matrix_calc
 from pastis import util
 
 
-# Read the LUVOIR-A small APLC PASTIS matrix
+# Read the LUVOIR-A small APLC PASTIS matrix created from intensities
 # From data dir: 2021-03-21T19-15-50_luvoir-small
 # Created on commit: 33edfa9265a4a07844927402cbde97761c413fcd
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'LUVOIR_small_matrix_piston-only.fits')
-LUVOIR_MATRIX_SMALL = fits.getdata(matrix_path)
-NSEG = LUVOIR_MATRIX_SMALL.shape[0]
+LUVOIR_INTENSITY_MATRIX_SMALL = fits.getdata(matrix_path)
+NSEG = LUVOIR_INTENSITY_MATRIX_SMALL.shape[0]
 
 # Read the LUVOIR-A small APLC contrast matrix
 # From data dir: 2021-03-21T19-15-50_luvoir-small
@@ -38,7 +38,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
     # Calculate the PASTIS matrix under assumption of a CONSTANT coronagraph floor
     pastis_matrix_constant = matrix_calc.pastis_from_contrast_matrix(CONTRAST_MATRIX, seglist, wfe_aber, coro_floor)
     # Compare to PASTIS matrix in the tests folder
-    assert np.allclose(pastis_matrix_constant, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert np.allclose(pastis_matrix_constant, LUVOIR_INTENSITY_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
     ### Test the case in which the coronagraph floor is drifting across matrix measurements
 
@@ -57,7 +57,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
     # Calculate the PASTIS matrix under assumption of a DRIFTING coronagraph floor
     pastis_matrix_drift = matrix_calc.pastis_from_contrast_matrix(contrast_matrix_random_c0, seglist, wfe_aber, random_coro_floor_matrix)
     # Compare to PASTIS matrix in the tests folder
-    assert np.allclose(pastis_matrix_drift, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert np.allclose(pastis_matrix_drift, LUVOIR_INTENSITY_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
 
 def test_pastis_forward_model():
@@ -77,7 +77,7 @@ def test_pastis_forward_model():
         aber = util.create_random_rms_values(NSEG, rms)
 
         # Contrast from PASTIS propagation
-        contrasts_matrix = (util.pastis_contrast(aber, LUVOIR_MATRIX_SMALL) + contrast_floor)
+        contrasts_matrix = (util.pastis_contrast(aber, LUVOIR_INTENSITY_MATRIX_SMALL) + contrast_floor)
 
         # Contrast from E2E propagator
         for nb_seg in range(NSEG):
@@ -89,7 +89,7 @@ def test_pastis_forward_model():
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
 
 
-def test_luvoir_matrix_regression():
+def test_luvoir_intensity_matrix_regression():
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
@@ -102,4 +102,4 @@ def test_luvoir_matrix_regression():
 
     # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
     # on the order of 1e-23
-    assert np.allclose(new_matrix, LUVOIR_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
+    assert np.allclose(new_matrix, LUVOIR_INTENSITY_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
