@@ -443,6 +443,7 @@ class SegmentedTelescope:
 
         If all modes are created, they will be ordered as:
         a, h, i, j, k, e, f, g, b, c, d
+        If only a subset is created, the ordering will be retained but the non-chosen modes dropped.
 
         Parameters:
         ----------
