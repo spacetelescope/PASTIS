@@ -466,7 +466,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     :param resDir: str, directory for matrix calculations
     :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
     :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param actuator_pair:
+    :param actuator_pair: tuple, pair of actuators to aberrate. If same segment gets passed in both tuple entries, the actuator will be aberrated only once
     :return: contrast as float, and segment pair as tuple
     """
 
