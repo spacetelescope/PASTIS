@@ -1,5 +1,5 @@
 """
-This is a module containing functions and classes for imaging propagation with HCIPy, for now LUVOIR A.
+This is a module containing functions and classes for imaging propagation with LUVOIR.
 """
 import logging
 import os
@@ -181,8 +181,8 @@ class LuvoirBVortex(SegmentedTelescope):
         # Create all optical components on DM pupil grids
         self.apod_stop = hcipy.Field(np.reshape(apod_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM2_circle = hcipy.Field(np.reshape(DM2Stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
-        self.lyot_mask = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
-        self.lyot_stop = hcipy.Apodizer(self.lyot_mask)
+        self.lyotstop = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.lyot_mask = hcipy.Apodizer(self.lyotstop)
         self.aperture = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.indexed_aperture = hcipy.Field(np.reshape(indexed_aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM1 = hcipy.Field(np.reshape(dm1_data, nPup_dms ** 2), pupil_grid_dms)
@@ -230,7 +230,7 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_apod_stop = hcipy.Wavefront(wf_back_at_dm1.electric_field * self.apod_stop, self.wavelength)
 
         wf_before_lyot = self.coro(wf_apod_stop)
-        wf_lyot = self.lyot_stop(wf_before_lyot)
+        wf_lyot = self.lyot_mask(wf_before_lyot)
         wf_lyot.wavelength = self.wavelength
 
         wf_im_coro = self.prop(wf_lyot)
@@ -276,7 +276,7 @@ class LuvoirBVortex(SegmentedTelescope):
 
             plt.subplot(3, 4, 9)
             hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
-                               norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyot_mask)
+                               norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyotstop)
             plt.title('After Lyot stop')
 
             plt.subplot(3, 4, 10)
