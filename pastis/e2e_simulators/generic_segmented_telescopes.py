@@ -186,25 +186,17 @@ def load_segment_centers(input_dir, aper_ind_path, nseg, diameter):
     return seg_pos
 
 
-class SegmentedTelescope:
-    """ A segmented telescope with active components in the pupil plane (DMs).
+class Telescope:
+    """ A simple monolithic telescope with active components in the pupil plane (DMs).
 
-    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
-    Use the deformable mirror methods to create more flexible DMs as class attributes:
-        self.sm
-        self.harris_sm
+    By default instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
         self.zernike_mirror
         self.ripple_mirror
         self.dm
     You can retrieve the number of total modes/influence functions/actuators of each DM by calling its num_actuators attribute, e.g.
-        self.harris_sm.num_actuators
+        self.zernike_mirror.num_actuators
     You can command each DM by passing it an array of length "num_actuators", e.g.
-        self.sm.actuators = dm_command
-
-    The segments are numbered in such a way that the center segment is *always* indexed with 0, no matter if it actually
-    exists or not. This means that e.g. for Luvoir A, the first segment in the innermost ring is still indexed with 1,
-    even if there is no active segment in the center of the pupil. For LUVOIR B or JWST, it is the same: the now present
-    center segment is indexed with 0, and all consecutive segments are indexed with 1, 2, 3, ...
+        self.zernike_mirror.actuators = dm_command
 
     Parameters:
     ----------
@@ -214,13 +206,6 @@ class SegmentedTelescope:
         Telescope diameter in meters
     aper : Field
         Telescope aperture
-    indexed_aper : Field
-        The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
-        segment identification. Segment gaps must be strictly zero.
-    seg_pos : CartesianGrid(UnstructuredCoords)
-        Segment positions of the aperture
-    seg_diameter : float
-        Circumscribed diameter of an individual segment in meters
     focal_grid : hcipy focal grid
         Focal plane grid to put final image on
     sampling : float
@@ -236,18 +221,6 @@ class SegmentedTelescope:
         Telescope diameter in meters
     aperture : hcipy.Field
         Telescope aperture
-    aper_ind : hcipy.Field
-        Indexed telescope aperture
-    seg_pos : CartesianGrid(UnstructuredCoords)
-        Segment positions of the aperture
-    segment_circumscribed_diameter : float
-        Circumscribed diameter of an individual segment in meters
-    nseg : int
-        Number of active segments on telescope primary mirror
-    center_segment : bool
-        Whether or not the center segment is actively controllable (unobscured) or not
-    pupil_grid : hcipy.Grid
-        Grid of pupil plane coordinates that all pupil plane optics get sampled on.
     focal_det : hcipy.Grid
         Grid of focal plane coordinates that the final detector image gets sampled on.
     sampling : float
@@ -256,6 +229,8 @@ class SegmentedTelescope:
         Detector image half-size in lambda/D
     lam_over_d :
         lambda/D of the system in radians
+    pupil_grid : hcipy.Grid
+        Grid of pupil plane coordinates that all pupil plane optics get sampled on.
     prop : hcipy.FraunhoferPropagator
         Propagation method for Fraunhofer propagation between a pupil plane and a focal plane
     wf_aper : hcipy.Wavefront
@@ -263,29 +238,21 @@ class SegmentedTelescope:
     norm_phot : float
         Method that performs slef.prop, but normalized ot one photon in the pupil.
     """
-    def __init__(self, wvln, diameter, aper, indexed_aper, seg_pos, seg_diameter, focal_grid, sampling, imlamD, center_segment=False):
 
+    def __init__(self, wvln, diameter, aper, focal_grid, sampling, imlamD):
         self.wvln = wvln
         self.diam = diameter
         self.aperture = aper
-        self.aper_ind = indexed_aper
-        self.seg_pos = seg_pos
-        self.segment_circumscribed_diameter = seg_diameter
-        self.nseg = seg_pos.size
-        self.center_segment = center_segment
-
-        self.pupil_grid = indexed_aper.grid
         self.focal_det = focal_grid
         self.sampling = sampling
         self.imlamD = imlamD
         self.lam_over_d = wvln / diameter
+        self.pupil_grid = aper.grid
 
-        self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, focal_grid)
-        self.wf_aper = hcipy.Wavefront(aper, wavelength=self.wvln)
+        self.prop = hcipy.FraunhoferPropagator(self.pupil_grid, self.focal_det)
+        self.wf_aper = hcipy.Wavefront(self.aperture, wavelength=self.wvln)
         self.norm_phot = 1 / np.sqrt(np.sum(self.wf_aper.intensity))
 
-        self.sm = SegmentedMirror(indexed_aperture=indexed_aper, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
-        self.harris_sm = None
         self.zernike_mirror = None
         self.ripple_mirror = None
         self.dm = None
@@ -298,11 +265,298 @@ class SegmentedTelescope:
         ----------
         input_efield : hcipy.Wavefront
         """
+
         norm_fac = np.max(self.focal_det.x) * self.pupil_grid.dims[0] / np.max(self.pupil_grid.x) / self.focal_det.dims[0]
         prop_before_norm = self.prop(input_efield)
         normalize = norm_fac * prop_before_norm.electric_field
         normalized_efield = hcipy.Wavefront(normalize, self.wvln)
         return normalized_efield
+
+    def create_global_zernike_mirror(self, n_zernikes):
+        """ Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
+
+        Parameters:
+        ----------
+        n_zernikes : int
+            Number of Zernikes to enable the Zernike mirror for.
+        """
+        global_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
+                                                                   self.diam,
+                                                                   self.pupil_grid,
+                                                                   starting_mode=1)
+        self.zernike_mirror = hcipy.optics.DeformableMirror(global_zernike_basis)
+
+    def create_ripple_mirror(self, n_fourier):
+        """ Create a DM that applies Fourier sine and cosine modes in the entrance pupil plane, up to n_fourier cycles per aperture.
+
+        Parameters:
+        ----------
+        n_fourier : int
+            Maximum number for cycles per aperture, use an odd number (!)
+        """
+        fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)   # TODO: should it be diameter=self.diam instead?
+        fourier_basis = hcipy.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
+        self.ripple_mirror = hcipy.optics.DeformableMirror(fourier_basis)
+
+    def create_continuous_deformable_mirror(self, n_actuators_across):
+        """ Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
+
+        Parameters:
+        ----------
+        n_actuators_across : int
+            number of actuators across the pupil plane
+        """
+        actuator_spacing = self.diam / n_actuators_across
+        influence_functions = hcipy.make_xinetics_influence_functions(self.pupil_grid,
+                                                                      n_actuators_across,
+                                                                      actuator_spacing)
+        self.dm = hcipy.DeformableMirror(influence_functions)
+
+    def remove_global_zernike_mirror(self):
+        """ Remove the global Zernike mirror as class attribute. """
+        self.zernike_mirror = None
+
+    def remove_ripple_mirror(self):
+        """ Remove the high-spatial frequency ripple mirror as class attribute. """
+        self.ripple_mirror = None
+
+    def remove_continuous_deformable_mirror(self):
+        """ Remove the continuous deformable mirror as class attribute. """
+        self.dm = None
+
+    def flatten(self):
+        """ Flatten all deformable mirrors in this simulator instance, if they exist. """
+        if self.zernike_mirror is not None:
+            self.zernike_mirror.flatten()
+        if self.ripple_mirror is not None:
+            self.ripple_mirror.flatten()
+        if self.dm is not None:
+            self.dm.flatten()
+
+    def _create_transparent_plane_and_active_pupil(self, norm_one_photon):
+        """Create empty field and WF on active pupil.
+
+        Create a transparent field object that can be used in propagation planes that are not set up.
+        Also create the WF on the full active pupil, depending on normalization choice.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+        """
+
+        # Create empty field for components that are None
+        values = np.ones_like(self.pupil_grid.x)
+        transparent_field = hcipy.Field(values, self.pupil_grid)
+
+        # Create E-field on primary mirror
+        if norm_one_photon:
+            wf_active_pupil = hcipy.Wavefront(self.norm_phot * self.wf_aper.electric_field, self.wvln)
+        else:
+            wf_active_pupil = self.wf_aper
+
+        return transparent_field, wf_active_pupil
+
+    def _propagate_active_pupils(self, norm_one_photon=False):
+        """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns:
+        --------
+        wf_active_pupil, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
+            E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
+       """
+
+        transparent_field, wf_active_pupil = self._create_transparent_plane_and_active_pupil(norm_one_photon)
+
+        # Calculate wavefront after all active pupil components depending on which of the DMs exist
+        if self.zernike_mirror is not None:
+            wf_active_pupil = self.zernike_mirror(wf_active_pupil)
+            wf_zm = self.zernike_mirror(self.wf_aper)
+        else:
+            wf_zm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.ripple_mirror is not None:
+            wf_active_pupil = self.ripple_mirror(wf_active_pupil)
+            wf_ripples = self.ripple_mirror(self.wf_aper)
+        else:
+            wf_ripples = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+        if self.dm is not None:
+            wf_active_pupil = self.dm(wf_active_pupil)
+            wf_dm = self.dm(self.wf_aper)
+        else:
+            wf_dm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
+
+        return wf_active_pupil, wf_zm, wf_ripples, wf_dm, transparent_field
+
+    def calc_psf(self, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
+        """ Calculate the PSF of this telescope, and return optionally all E-fields.
+
+        Parameters:
+        ----------
+        display_intermediate : bool
+            Whether or not to display images of all planes.
+        return_intermediate : string
+            default None; if "efield", will also return E-fields of each plane and DM
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns:
+        --------
+        wf_image.intensity : Field
+            returned if return_intermediate=None (default)
+        wf_image : hcipy.Wavefront
+            returned if return_intermediate='efield'
+        intermediates : dict
+            Dictionary containing the Wavefronts of all the planes, returned if return_intermediate='efield'
+        """
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_zm, wf_ripples, wf_dm, _tr = self._propagate_active_pupils(norm_one_photon)
+
+        if norm_one_photon:
+            prop_method = self.prop_norm_one_photon
+        else:
+            prop_method = self.prop
+
+        wf_image = prop_method(wf_active_pupil)
+
+        if display_intermediate:
+            plt.figure(figsize=(15, 10))
+
+            plt.subplot(3, 2, 1)
+            hcipy.imshow_field(self.wf_aper.intensity, mask=self.aperture, cmap='Greys_r')
+            plt.title('Primary mirror')
+
+            plt.subplot(3, 2, 2)
+            hcipy.imshow_field(wf_zm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Global Zernike phase')
+
+            plt.subplot(3, 2, 3)
+            hcipy.imshow_field(wf_dm.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Deformable mirror phase')
+
+            plt.subplot(3, 2, 4)
+            hcipy.imshow_field(wf_ripples.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('High modes mirror phase')
+
+            plt.subplot(3, 2, 5)
+            hcipy.imshow_field(wf_active_pupil.phase, mask=self.aperture, cmap='RdBu')
+            plt.title('Total phase in entrance pupil')
+
+            plt.subplot(3, 2, 6)
+            hcipy.imshow_field(wf_image.intensity / wf_image.intensity.max(), norm=LogNorm(), cmap='inferno')
+            plt.title('Focal plane image')
+
+        if return_intermediate == 'efield':
+            # Return the E-fields in all planes; except intensity in focal plane after FPM
+            intermediates = {'zernike_mirror': wf_zm,
+                             'dm': wf_dm,
+                             'ripple_mirror': wf_ripples,
+                             'active_pupil': wf_active_pupil}
+            return wf_image, intermediates
+
+        return wf_image.intensity
+
+    def create_zernike_wfs(self, step=None, spot_diam=None, spot_points=None):
+        """ Create a Zernike wavefront sensor object. """
+        if step is None:
+            step = np.pi / 2    # original value for LUVOIR-A
+        if spot_diam is None:
+            spot_diam = 1.06    # original value for LUVOIR-A
+        if spot_points is None:
+            spot_points = 128    # original value for LUVOIR-A
+
+        self.zwfs = hcipy.wavefront_sensing.ZernikeWavefrontSensorOptics(self.pupil_grid,
+                                                                         phase_step=step,
+                                                                         phase_dot_diameter=spot_diam,
+                                                                         num_pix=spot_points,
+                                                                         pupil_diameter=1/self.diam,
+                                                                         reference_wavelength=1/self.wvln)
+
+    def calc_out_of_band_wfs(self, norm_one_photon=False):
+        """ Propagate pupil through an out-of-band wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns:
+        --------
+        ob_wfs : hcipy.Wavefront
+            E-field on OBWFS detector
+        """
+
+        # If ZWFS hasn't been created yet, do it now
+        if self.zwfs is None:
+            self.create_zernike_wfs()
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_zm, wf_ripples, wf_dm, _tr = self._propagate_active_pupils(norm_one_photon)
+
+        ob_wfs = self.zwfs(wf_active_pupil)
+        return ob_wfs
+
+
+class SegmentedTelescope(Telescope):
+    """ A segmented telescope with active components in the pupil plane (DMs).
+
+    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
+    Use the deformable mirror methods to create more flexible DMs as class attributes, on top of DMs inherited from "Telescope":
+        self.sm
+        self.harris_sm
+    You can retrieve the number of total modes/influence functions/actuators of each DM by calling its num_actuators attribute, e.g.
+        self.harris_sm.num_actuators
+    You can command each DM by passing it an array of length "num_actuators", e.g.
+        self.sm.actuators = dm_command
+
+    The segments are numbered in such a way that the center segment is *always* indexed with 0, no matter if it actually
+    exists or not. This means that e.g. for Luvoir A, the first segment in the innermost ring is still indexed with 1,
+    even if there is no active segment in the center of the pupil. For LUVOIR B or JWST, it is the same: the now present
+    center segment is indexed with 0, and all consecutive segments are indexed with 1, 2, 3, ...
+
+    Parameters:
+    ----------
+    indexed_aper : Field
+        The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
+        segment identification. Segment gaps must be strictly zero.
+    seg_pos : CartesianGrid(UnstructuredCoords)
+        Segment positions of the aperture
+    seg_diameter : float
+        Circumscribed diameter of an individual segment in meters
+    center_segment : Bool
+        ...
+    *kwargs :
+        keyword arguments passed through to "Telescope" parent class, see docs there
+
+    Attributes:
+    ----------
+    aper_ind : hcipy.Field
+        Indexed telescope aperture
+    seg_pos : CartesianGrid(UnstructuredCoords)
+        Segment positions of the aperture
+    segment_circumscribed_diameter : float
+        Circumscribed diameter of an individual segment in meters
+    nseg : int
+        Number of active segments on telescope primary mirror
+    center_segment : bool
+        Whether or not the center segment is actively controllable (unobscured) or not
+    """
+    def __init__(self, indexed_aper, seg_pos, seg_diameter, center_segment=False, **kwargs):
+        super().__init__(**kwargs)
+
+        self.aper_ind = indexed_aper
+        self.seg_pos = seg_pos
+        self.segment_circumscribed_diameter = seg_diameter
+        self.nseg = seg_pos.size
+        self.center_segment = center_segment
+
+        self.sm = SegmentedMirror(indexed_aperture=indexed_aper, seg_pos=seg_pos)    # TODO: replace this with None when fully ready to start using create_segmented_mirror()
+        self.harris_sm = None
 
     def set_segment(self, segid, piston, tip, tilt):
         """ Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
@@ -575,46 +829,6 @@ class SegmentedTelescope:
         new_command[self.n_harris_modes * segid + mode_number] = amplitude
         self.harris_sm.actuators = new_command
 
-    def create_global_zernike_mirror(self, n_zernikes):
-        """ Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
-
-        Parameters:
-        ----------
-        n_zernikes : int
-            Number of Zernikes to enable the Zernike mirror for.
-        """
-        global_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
-                                                                   self.diam,
-                                                                   self.pupil_grid,
-                                                                   starting_mode=1)
-        self.zernike_mirror = hcipy.optics.DeformableMirror(global_zernike_basis)
-
-    def create_ripple_mirror(self, n_fourier):
-        """ Create a DM that applies Fourier sine and cosine modes in the entrance pupil plane, up to n_fourier cycles per aperture.
-
-        Parameters:
-        ----------
-        n_fourier : int
-            Maximum number for cycles per aperture, use an odd number (!)
-        """
-        fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)   # TODO: should it be diameter=self.diam instead?
-        fourier_basis = hcipy.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
-        self.ripple_mirror = hcipy.optics.DeformableMirror(fourier_basis)
-
-    def create_continuous_deformable_mirror(self, n_actuators_across):
-        """ Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
-
-        Parameters:
-        ----------
-        n_actuators_across : int
-            number of actuators across the pupil plane
-        """
-        actuator_spacing = self.diam / n_actuators_across
-        influence_functions = hcipy.make_xinetics_influence_functions(self.pupil_grid,
-                                                                      n_actuators_across,
-                                                                      actuator_spacing)
-        self.dm = hcipy.DeformableMirror(influence_functions)
-
     def remove_segmented_mirror(self):
         """ Remove the segmented mirror with local Zernikes as class attribute, replace with PTT segmented mirror. """
         self.sm = SegmentedMirror(indexed_aperture=self.aper_ind, seg_pos=self.seg_pos)
@@ -623,30 +837,13 @@ class SegmentedTelescope:
         """ Remove the segmented Harris mirror as class attribute. """
         self.harris_sm = None
 
-    def remove_global_zernike_mirror(self):
-        """ Remove the global Zernike mirror as class attribute. """
-        self.zernike_mirror = None
-
-    def remove_ripple_mirror(self):
-        """ Remove the high-spatial frequency ripple mirror as class attribute. """
-        self.ripple_mirror = None
-
-    def remove_continuous_deformable_mirror(self):
-        """ Remove the continuous deformable mirror as class attribute. """
-        self.dm = None
-
     def flatten(self):
         """ Flatten all deformable mirrors in this simulator instance, if they exist. """
         if self.sm is not None:
             self.sm.flatten()
         if self.harris_sm is not None:
             self.harris_sm.flatten()
-        if self.zernike_mirror is not None:
-            self.zernike_mirror.flatten()
-        if self.ripple_mirror is not None:
-            self.ripple_mirror.flatten()
-        if self.dm is not None:
-            self.dm.flatten()
+        super().flatten()
 
     def _propagate_active_pupils(self, norm_one_photon=False):
         """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
@@ -662,15 +859,7 @@ class SegmentedTelescope:
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
        """
 
-        # Create empty field for components that are None
-        values = np.ones_like(self.pupil_grid.x)
-        transparent_field = hcipy.Field(values, self.pupil_grid)
-
-        # Create E-field on primary mirror
-        if norm_one_photon:
-            wf_active_pupil = hcipy.Wavefront(self.norm_phot * self.wf_aper.electric_field, self.wvln)
-        else:
-            wf_active_pupil = self.wf_aper
+        wf_active_pupil, wf_zm, wf_ripples, wf_dm, transparent_field = super()._propagate_active_pupils(norm_one_photon)
 
         # Calculate wavefront after all active pupil components depending on which of the DMs exist
         if self.sm is not None:
@@ -683,21 +872,6 @@ class SegmentedTelescope:
             wf_harris_sm = self.harris_sm(self.wf_aper)
         else:
             wf_harris_sm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
-        if self.zernike_mirror is not None:
-            wf_active_pupil = self.zernike_mirror(wf_active_pupil)
-            wf_zm = self.zernike_mirror(self.wf_aper)
-        else:
-            wf_zm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
-        if self.ripple_mirror is not None:
-            wf_active_pupil = self.ripple_mirror(wf_active_pupil)
-            wf_ripples = self.ripple_mirror(self.wf_aper)
-        else:
-            wf_ripples = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
-        if self.dm is not None:
-            wf_active_pupil = self.dm(wf_active_pupil)
-            wf_dm = self.dm(self.wf_aper)
-        else:
-            wf_dm = hcipy.Wavefront(transparent_field, wavelength=self.wvln)
 
         return wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm
 
@@ -779,22 +953,6 @@ class SegmentedTelescope:
             return wf_image, intermediates
 
         return wf_image.intensity
-
-    def create_zernike_wfs(self, step=None, spot_diam=None, spot_points=None):
-        """ Create a Zernike wavefront sensor object. """
-        if step is None:
-            step = np.pi / 2
-        if spot_diam is None:
-            spot_diam = 1.06
-        if spot_points is None:
-            spot_points = 128
-
-        self.zwfs = hcipy.wavefront_sensing.ZernikeWavefrontSensorOptics(self.pupil_grid,
-                                                                         phase_step=step,
-                                                                         phase_dot_diameter=spot_diam,
-                                                                         num_pix=spot_points,
-                                                                         pupil_diameter=1/self.diam,
-                                                                         reference_wavelength=1/self.wvln)
 
     def calc_out_of_band_wfs(self, norm_one_photon=False):
         """ Propagate pupil through an out-of-band wavefront sensor.

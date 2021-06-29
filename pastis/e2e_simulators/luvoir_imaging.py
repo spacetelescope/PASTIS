@@ -81,7 +81,7 @@ class LuvoirA_APLC(SegmentedAPLC):
                          seg_diameter=seg_diameter_circumscribed, focal_grid=focal_det, sampling=sampling, imlamD=imlamD)
 
 
-class SegmentedTelescopeAPLC(SegmentedAPLC):
+class SegmentedTelescopeAPLC(SegmentedAPLC):   #TODO: remote completely from repo
     """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
     """
@@ -121,8 +121,10 @@ class LuvoirBVortex(SegmentedTelescope):
     def __init__(self, input_dir, charge):
         self.input_dir = input_dir
         self.set_up_telescope()
-        super().__init__(self.wavelength, self.D_pup, self.aperture, self.indexed_aperture, self.seg_pos,
-                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=False)
+        super().__init__(indexed_aper=self.indexed_aperture, seg_pos=self.seg_pos,
+                         seg_diameter=self.segment_circum_diameter, center_segment=False, wvln=self.wavelength,
+                         diameter=self.D_pup, aper=self.aperture, focal_grid=self.focal_grid, sampling=self.samp_foc,
+                         imlamD=self.rad_foc)
         # TODO: center seg is False on purpose, because of the awkward segment numbering we currently have for LUVOIR-B
         # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
