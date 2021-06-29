@@ -187,9 +187,12 @@ def load_segment_centers(input_dir, aper_ind_path, nseg, diameter):
 
 
 class Telescope:
-    """ A simple monolithic telescope with active components in the pupil plane (DMs).
+    """ A simple telescope with active components in the pupil plane (DMs), but without actively controlled segments.
 
-    By default instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
+    This class can take an arbitrary telescope aperture as input and will create a telescope object out of it. This can
+    be monolithinc or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
+    global pupil.
+    By default it instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
         self.zernike_mirror
         self.ripple_mirror
         self.dm
