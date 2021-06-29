@@ -1,5 +1,5 @@
 """
-This is a module containing functions and classes for imaging propagation with HCIPy, for now LUVOIR A.
+This is a module containing functions and classes for imaging propagation with LUVOIR.
 """
 import logging
 import os
@@ -81,7 +81,7 @@ class LuvoirA_APLC(SegmentedAPLC):
                          seg_diameter=seg_diameter_circumscribed, focal_grid=focal_det, sampling=sampling, imlamD=imlamD)
 
 
-class SegmentedTelescopeAPLC(SegmentedAPLC):
+class SegmentedTelescopeAPLC(SegmentedAPLC):   #TODO: remove completely from repo
     """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
     """
@@ -121,8 +121,10 @@ class LuvoirBVortex(SegmentedTelescope):
     def __init__(self, input_dir, charge):
         self.input_dir = input_dir
         self.set_up_telescope()
-        super().__init__(self.wavelength, self.D_pup, self.aperture, self.indexed_aperture, self.seg_pos,
-                         self.segment_circum_diameter, self.focal_grid, self.samp_foc, self.rad_foc, center_segment=False)
+        super().__init__(indexed_aper=self.indexed_aperture, seg_pos=self.seg_pos,
+                         seg_diameter=self.segment_circum_diameter, center_segment=False, wvln=self.wavelength,
+                         diameter=self.D_pup, aper=self.aperture, focal_grid=self.focal_grid, sampling=self.samp_foc,
+                         imlamD=self.rad_foc)
         # TODO: center seg is False on purpose, because of the awkward segment numbering we currently have for LUVOIR-B
         # NOTE: self.pupil_grid is already equal to pupil_grid_dms through self.aper
 
@@ -179,8 +181,8 @@ class LuvoirBVortex(SegmentedTelescope):
         # Create all optical components on DM pupil grids
         self.apod_stop = hcipy.Field(np.reshape(apod_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM2_circle = hcipy.Field(np.reshape(DM2Stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
-        self.lyot_mask = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
-        self.lyot_stop = hcipy.Apodizer(self.lyot_mask)
+        self.lyotstop = hcipy.Field(np.reshape(lyot_stop_data_pad, nPup_dms ** 2), pupil_grid_dms)
+        self.lyot_mask = hcipy.Apodizer(self.lyotstop)
         self.aperture = hcipy.Field(np.reshape(aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.indexed_aperture = hcipy.Field(np.reshape(indexed_aperture_data_pad, nPup_dms ** 2), pupil_grid_dms)
         self.DM1 = hcipy.Field(np.reshape(dm1_data, nPup_dms ** 2), pupil_grid_dms)
@@ -228,7 +230,7 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_apod_stop = hcipy.Wavefront(wf_back_at_dm1.electric_field * self.apod_stop, self.wavelength)
 
         wf_before_lyot = self.coro(wf_apod_stop)
-        wf_lyot = self.lyot_stop(wf_before_lyot)
+        wf_lyot = self.lyot_mask(wf_before_lyot)
         wf_lyot.wavelength = self.wavelength
 
         wf_im_coro = self.prop(wf_lyot)
@@ -274,7 +276,7 @@ class LuvoirBVortex(SegmentedTelescope):
 
             plt.subplot(3, 4, 9)
             hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
-                               norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyot_mask)
+                               norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyotstop)
             plt.title('After Lyot stop')
 
             plt.subplot(3, 4, 10)
