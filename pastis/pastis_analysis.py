@@ -203,7 +203,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
         if instrument == 'RST':
-            plt.subplot(6, 3, i + 1)
+            plt.subplot(nb_actu, nb_actu, i + 1)
         plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
         plt.axis('off')
         plt.title(f'Mode {thismode}')
