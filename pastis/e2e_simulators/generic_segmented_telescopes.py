@@ -414,6 +414,10 @@ class Telescope:
             Dictionary containing the Wavefronts of all the planes, returned if return_intermediate='efield'
         """
 
+        if isinstance(return_intermediate, bool):
+            raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "
+                            f"E-fields returned by 'calc_psf()'.")
+
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
         wf_active_pupil, wf_zm, wf_ripples, wf_dm, _tr = self._propagate_active_pupils(norm_one_photon)
 
