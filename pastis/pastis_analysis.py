@@ -92,6 +92,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
     nseg = pmodes.shape[0]
     seglist = util.get_segment_list(instrument)
+    nb_actu = sim_instance.nbactuator
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
@@ -168,7 +169,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
         if instrument == 'RST':
-            plt.subplot(6, 3, i + 1)
+            plt.subplot(nb_actu, nb_actu, i + 1)
         plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
         plt.title(f'Mode {thismode}')
@@ -304,7 +305,7 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             nb_actu = sim_instance.nbactuator
             sim_instance.dm1.flatten()
             for seg, val in enumerate(opd):
-                actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
                 sim_instance.dm1.set_actuator(actu_x, actu_y, val.to(u.m).value)
             im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
             psf = im_data[0].data
@@ -399,7 +400,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
         for seg in range(mus.shape[0]):
-            actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+            actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
             sim_instance.dm1.set_actuator(actu_x, actu_y, random_weights[seg].to(u.m).value)
         im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
@@ -457,7 +458,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
         for seg, aber in enumerate(opd):
-            actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+            actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
             sim_instance.dm1.set_actuator(actu_x, actu_y, aber.to(u.m).value)
         im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
         psf = im_data[0].data
@@ -718,7 +719,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             nb_actu = sim_instance.nbactuator
             sim_instance.dm1.flatten()
             for seg, mu in enumerate(mus):
-                actu_x, actu_y = util.continous_dm_coo(nb_actu, seg)
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
                 sim_instance.dm1.set_actuator(actu_x, actu_y, mu / 1e9)
             im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
             psf_pure_mu_map = im_data[0].data

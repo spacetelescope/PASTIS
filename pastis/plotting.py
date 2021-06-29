@@ -517,7 +517,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         nb_actu = sim_instance.nbactuator
         sim_instance.dm1.flatten()
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
-            actu_x, actu_y = util.continous_dm_coo(nb_actu, segnum)
+            actu_x, actu_y = pastis.util.seg_to_dm_xy(nb_actu, segnum)
             sim_instance.dm1.set_actuator(actu_x, actu_y, mus[segnum])
 
         psf, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)

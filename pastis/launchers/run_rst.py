@@ -9,7 +9,19 @@ from pastis.matrix_generation.matrix_building_numerical import MatrixIntensityRS
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldRST
 from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
+import logging
 
+
+log = logging.getLogger()
+mplfm_logger = logging.getLogger('matplotlib.font_manager')
+mplcb_logger = logging.getLogger('matplotlib.colorbar')
+mplt_logger = logging.getLogger('matplotlib.ticker')
+mplbe_logger = logging.getLogger('matplotlib.backends')
+
+mplfm_logger.setLevel(logging.WARNING)
+mplcb_logger.setLevel(logging.WARNING)
+mplt_logger.setLevel(logging.WARNING)
+mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
 
@@ -32,8 +44,8 @@ if __name__ == '__main__':
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
     hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
-"""
-    In development...
+
+    #In development...
     # Finally run the analysis
     run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
-"""
+
