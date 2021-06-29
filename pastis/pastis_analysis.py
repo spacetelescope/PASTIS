@@ -575,7 +575,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         sim_instance = jwst_sim
 
     if instrument == 'RST':
-        rst_sim = webbpsf_imaging.set_up_cgi()  # this returns a tuple of two: cig_sim[0] is the cgi object, cgi_sim[1] its ote
+        rst_sim = webbpsf_imaging.set_up_cgi()  # this returns a tuple of two: cig_sim is the cgi object
         sim_instance = rst_sim
 
         #Intermediate steps but generate with webbpsf
@@ -591,8 +591,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         # Create DH mask
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
         owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-        sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
-        dh_mask = util.create_dark_hole(psf_unaber, iwa, owa, sampling).astype('bool')
+        rst_sim.working_area(im=direct_psf, inner_rad=iwa, outer_rad=owa)
+        dh_mask = rst_sim.WA
 
     # TODO: this would also be part of the refactor mentioned above
     # Calculate coronagraph contrast floor
