@@ -88,41 +88,41 @@ class Habex_VVC(Telescope):
         wf_im_ref = self.prop(wf_active_pupil)
 
         if display_intermediate:
-            plt.figure(figsize=(16, 8))
+            plt.figure(figsize=(10, 10))
 
-            plt.subplot(4, 2, 1)
+            plt.subplot(3, 3, 1)
             hcipy.imshow_field(self.wf_aper.intensity, mask=self.aperture, cmap='Greys_r')
             plt.title('Primary mirror')
 
-            plt.subplot(4, 2, 2)
+            plt.subplot(3, 3, 2)
             hcipy.imshow_field(wf_zm.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Global Zernike phase')
 
-            plt.subplot(4, 2, 3)
+            plt.subplot(3, 3, 3)
             hcipy.imshow_field(wf_dm.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Deformable mirror phase')
 
-            plt.subplot(4, 2, 4)
+            plt.subplot(3, 3, 4)
             hcipy.imshow_field(wf_ripples.phase, mask=self.aperture, cmap='RdBu')
             plt.title('High modes mirror phase')
 
-            plt.subplot(4, 2, 5)
+            plt.subplot(3, 3, 5)
             hcipy.imshow_field(wf_active_pupil.phase, mask=self.aperture, cmap='RdBu')
             plt.title('Total phase in entrance pupil')
 
-            plt.subplot(4, 2, 6)
+            plt.subplot(3, 3, 6)
             hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
-                               norm=LogNorm(vmin=1e-3, vmax=1), cmap='inferno')
+                               norm=LogNorm(vmin=1e-8, vmax=1e-1), cmap='inferno')
             plt.title('Before Lyot stop')
             
-            plt.subplot(4, 2, 7)
+            plt.subplot(3, 3, 7)
             hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
                                norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyotstop)
             plt.title('After Lyot stop')
 
-            plt.subplot(4, 2, 8)
+            plt.subplot(3, 3, 8)
             hcipy.imshow_field(wf_im_coro.intensity / wf_im_ref.intensity.max(),
-                               norm=LogNorm(vmin=1e-10, vmax=1e-3), cmap='inferno')
+                               norm=LogNorm(vmin=1e-12, vmax=1e-5), cmap='inferno')
             plt.title('Coro image')
             plt.colorbar()
 

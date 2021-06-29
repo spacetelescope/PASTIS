@@ -429,7 +429,7 @@ class Telescope:
         wf_image = prop_method(wf_active_pupil)
 
         if display_intermediate:
-            plt.figure(figsize=(15, 10))
+            plt.figure(figsize=(10, 15))
 
             plt.subplot(3, 2, 1)
             hcipy.imshow_field(self.wf_aper.intensity, mask=self.aperture, cmap='Greys_r')
