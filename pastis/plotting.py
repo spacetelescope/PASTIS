@@ -513,6 +513,19 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
 
+    if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
+        sim_instance.dm1.flatten()
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
+            actu_x, actu_y = util.continous_dm_coo(nb_actu, segnum)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, mus[segnum])
+
+        psf, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
+        wf_sm = inter[1].phase
+
+        rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / rst_wavenumber) * 1e12  # in picometers
+
     map_small = np.ma.masked_where(map_small == 0, map_small)
 
     plt.figure(figsize=(10, 10))
