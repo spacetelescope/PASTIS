@@ -297,7 +297,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         rst_sim = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = rst_sim.raw_PSF()
+        rst_direct = rst_sim.raw_coronagraph()
         direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct[0].data
         norm = direct_psf.max()

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     dir_run = run_matrix.overall_dir
     '''
     # Alternatively, pick data location to run PASTIS analysis on
-    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '24x24_E_field_nlambda_2021-06-29T15-13-56_rst')
+    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '48x48_2021-06-30T10-47-40_rst_test')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     # Then generate hockey stick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
+    #hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 
     # Finally run the analysis
     run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)

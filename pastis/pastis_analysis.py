@@ -141,7 +141,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
 
-            phase_ote = inter[1].phase
+            phase_ote = inter[4].phase # [4] is the last optic inside pupil
             rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
@@ -494,10 +494,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Which parts are we running?
     calculate_modes = True
     calculate_sigmas = True
-    run_monte_carlo_modes = True
+    run_monte_carlo_modes = False
     calc_cumulative_contrast = True
     calculate_mus = True
-    run_monte_carlo_segments = True
+    run_monte_carlo_segments = False
     calculate_covariance_matrices = True
     analytical_statistics = True
     calculate_segment_based = True
@@ -580,7 +580,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         #Intermediate steps but generate with webbpsf
         # Generate reference PSF and unaberrated coronagraphic image
-        direct = rst_sim.raw_PSF()
+        direct = rst_sim.raw_coronagraph()
         direct_fit = direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct_fit[0].data
         norm = direct_psf.max()
@@ -608,7 +608,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         pmodes, svals = modes_from_matrix(instrument, workdir)
 
         ### Get full 2D modes and save them
-        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
+        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=False)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
@@ -721,7 +721,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             for seg, mu in enumerate(mus):
                 actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
                 sim_instance.dm1.set_actuator(actu_x, actu_y, mu / 1e9)
-            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec = 1.6)
             psf_pure_mu_map = im_data[0].data
 
         contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
