@@ -414,7 +414,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     # Create random aberration coefficients on segments, scaled to total rms
     aber = util.create_random_rms_values(total_seg, rms)
 
-    ### E2E JWST sim
+    ### E2E RST sim
     start_e2e = time.time()
 
     rst_sim = webbpsf_imaging.set_up_cgi()
@@ -422,7 +422,6 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     nb_actu = rst_sim.nbactuator
     iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
     owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
 
     # Put aberration on OTE
     rst_sim.dm1.flatten()
