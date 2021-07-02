@@ -138,8 +138,8 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        E_field_pairing = efields[pair[0]] + efields[pair[1]] - efield_ref
-        intensity_im = np.real((E_field_pairing) * np.conj(E_field_pairing))
+        E_field_pairing = efields[pair[0]] + efields[pair[1]] - 2 * efield_ref
+        intensity_im = np.real(E_field_pairing) * np.conj(E_field_pairing)
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')

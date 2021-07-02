@@ -24,7 +24,7 @@ mplt_logger.setLevel(logging.WARNING)
 mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-
+    '''
     # Generate intensity matrix
     #run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
@@ -33,9 +33,9 @@ if __name__ == '__main__':
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
-
+    '''
     # Alternatively, pick data location to run PASTIS analysis on
-    #dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '24x24_E-field_2021-07-01T17-02-13_rst')
+    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-02T11-01-01_rst')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
