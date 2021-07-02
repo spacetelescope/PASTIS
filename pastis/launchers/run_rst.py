@@ -24,18 +24,18 @@ mplt_logger.setLevel(logging.WARNING)
 mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    '''
+
     # Generate intensity matrix
     #run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     # Generate E_field matrix
-    run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'), saveefields=False, saveopds=False)
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
-    '''
+
     # Alternatively, pick data location to run PASTIS analysis on
-    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '48x48_2021-06-30T10-47-40_rst_test')
+    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '24x24_E-field_2021-07-01T17-02-13_rst')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
@@ -43,8 +43,8 @@ if __name__ == '__main__':
     # Then generate hockey stick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    #hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
+    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 
     # Finally run the analysis
-    run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
+    #run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
 
