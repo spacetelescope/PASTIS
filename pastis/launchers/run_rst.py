@@ -35,7 +35,7 @@ if __name__ == '__main__':
     dir_run = run_matrix.overall_dir
 
     # Alternatively, pick data location to run PASTIS analysis on
-    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '24x24_E-field_2021-07-01T17-02-13_rst')
+    #dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '24x24_E-field_2021-07-01T17-02-13_rst')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
