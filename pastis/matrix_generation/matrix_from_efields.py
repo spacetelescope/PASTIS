@@ -138,8 +138,7 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        E_field_pairing = efields[pair[0]] + efields[pair[1]] - 2 *efield_ref
-        intensity_im = E_field_pairing * np.conj(E_field_pairing)
+        intensity_im = np.real((efields[pair[0]] - efield_ref) * np.conj(efields[pair[1]] - efield_ref)) #TODO investigate about math issue
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -235,7 +234,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
         # Calculate direct reference images for contrast normalization
         rst_direct = self.rst_cgi.raw_coronagraph()
-        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        direct, inter = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         direct_psf = direct[0].data
         self.norm = direct_psf.max()
 
@@ -244,7 +243,6 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.dh_mask = self.rst_cgi.WA
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         self.efield_ref = inter[-1].wavefront    # [-1] is the last optic = detector
 
     def setup_deformable_mirror(self):
