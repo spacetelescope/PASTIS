@@ -137,6 +137,10 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance.dm1.flatten()
 
+            for segnum in range(nseg):
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, segnum)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, pmodes[segnum, i]/ 1e9)
+
             psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
             psf_detector = psf_detector_data[0].data
             all_modes_focal_plane.append(psf_detector)
@@ -494,13 +498,14 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     # Which parts are we running?
     calculate_modes = True
     calculate_sigmas = True
-    run_monte_carlo_modes = False
     calc_cumulative_contrast = True
-    calculate_mus = True
-    run_monte_carlo_segments = False
     calculate_covariance_matrices = True
-    analytical_statistics = True
-    calculate_segment_based = True
+    calculate_mus = False
+    analytical_statistics = False
+    calculate_segment_based = False
+    run_monte_carlo_modes = False
+    run_monte_carlo_segments = False
+
 
     # Data directory
     workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
@@ -721,7 +726,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             for seg, mu in enumerate(mus):
                 actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
                 sim_instance.dm1.set_actuator(actu_x, actu_y, mu / 1e9)
-            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec = 1.6)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
             psf_pure_mu_map = im_data[0].data
 
         contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
