@@ -36,7 +36,7 @@ if __name__ == '__main__':
     '''
 
     # Alternatively, pick data location to run PASTIS analysis on
-    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-08T09-48-48_rst_8x8_intensity')
+    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-08T15-20-33_rst_12x12_intensity')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
@@ -47,5 +47,5 @@ if __name__ == '__main__':
     hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 
     # Finally run the analysis
-    run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=8e-9)
+    run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
 

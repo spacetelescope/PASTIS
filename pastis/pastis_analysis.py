@@ -31,7 +31,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
     this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
     modes and singular values in reverse order compared to an eigendecomposition.
 
-    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: string, "LUVOIR", "HiCAT" "JWST" or "RST"
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param saving: string, whether to save singular values, modes and their plots or not; default=True
     :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
@@ -41,7 +41,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
     matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical', 'pastis_matrix.fits'))
 
     # Get singular modes and values from SVD
-    pmodes, svals, vh = np.linalg.svd(matrix, full_matrices=True)
+    pmodes, svals, _vh = np.linalg.svd(matrix, full_matrices=True)
 
     # Check for results directory and create if it doesn't exits
     if not os.path.isdir(os.path.join(datadir, 'results')):
@@ -142,10 +142,19 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
                 sim_instance.dm1.set_actuator(actu_x, actu_y, pmodes[segnum, i]/ 1e9)
 
             psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
-            psf_detector = psf_detector_data[0].data
+            psf = psf_detector_data[0].data
+
+            iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+            owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+            sim_instance.working_area(im=psf, inner_rad=iwa, outer_rad=owa)
+            dh_mask = sim_instance.WA
+            psf_detector = psf * dh_mask
             all_modes_focal_plane.append(psf_detector)
 
-            phase_ote = inter[4].phase # [4] is the last optic inside pupil
+            #phase_ote = inter[4].phase # [4] is the last optic inside pupil
+            phase = sim_instance.dm1.to_fits(what='phase')
+            phase_ote = phase[0].data.value
+
             rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
@@ -472,7 +481,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -501,10 +510,10 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     calc_cumulative_contrast = True
     calculate_covariance_matrices = True
     calculate_mus = False
-    analytical_statistics = False
     calculate_segment_based = False
     run_monte_carlo_modes = False
     run_monte_carlo_segments = False
+    analytical_statistics = False
 
 
     # Data directory
@@ -636,35 +645,6 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     else:
         log.info(f'Reading sigmas from {workdir}')
         sigmas = np.loadtxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'))
-
-    ### Calculate Monte Carlo simulation for sigmas, with E2E
-    if run_monte_carlo_modes:
-        log.info('\nRunning Monte Carlo simulation for modes')
-        # Keep track of time
-        start_monte_carlo_modes = time.time()
-
-        all_contr_rand_modes = []
-        all_random_weight_sets = []
-        for rep in range(n_repeat):
-            log.info(f'Mode realization {rep + 1}/{n_repeat}')
-            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
-            all_random_weight_sets.append(random_weights)
-            all_contr_rand_modes.append(one_contrast_mode)
-
-        # Empirical mean and standard deviation of the distribution
-        mean_modes = np.mean(all_contr_rand_modes)
-        stddev_modes = np.std(all_contr_rand_modes)
-        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
-        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
-        end_monte_carlo_modes = time.time()
-
-        # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
-        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
-
-        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
-                                        c_target=c_target, segments=False, stddev=stddev_modes,
-                                        save=True)
 
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
@@ -805,6 +785,35 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             file.write(f'Analytical, statistical mean: {mean_stat_c}')
             file.write(f'\nAnalytical variance: {var_c}')
 
+    ### Calculate Monte Carlo simulation for sigmas, with E2E
+    if run_monte_carlo_modes:
+        log.info('\nRunning Monte Carlo simulation for modes')
+        # Keep track of time
+        start_monte_carlo_modes = time.time()
+
+        all_contr_rand_modes = []
+        all_random_weight_sets = []
+        for rep in range(n_repeat):
+            log.info(f'Mode realization {rep + 1}/{n_repeat}')
+            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
+            all_random_weight_sets.append(random_weights)
+            all_contr_rand_modes.append(one_contrast_mode)
+
+        # Empirical mean and standard deviation of the distribution
+        mean_modes = np.mean(all_contr_rand_modes)
+        stddev_modes = np.std(all_contr_rand_modes)
+        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
+        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
+        end_monte_carlo_modes = time.time()
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
+
+        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=False, stddev=stddev_modes,
+                                        save=True)
+
     ### Calculate segment-based error budget
     if calculate_segment_based:
         log.info('Calculating segment-based error budget.')
@@ -852,7 +861,7 @@ if __name__ == '__main__':
 
     instrument = CONFIG_PASTIS.get('telescope', 'name')
     run = CONFIG_PASTIS.get('numerical', 'current_analysis')
-    c_target = 1e-10
+    c_target = 1e-8
     mc_repeat = 100
 
     run_full_pastis_analysis(instrument, run_choice=run, c_target=c_target, n_repeat=mc_repeat)
