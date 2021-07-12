@@ -267,9 +267,14 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes)*svalue))
     return del_sigma
 
-def truncate_modes(pmodes):
-
-    return 40
+def truncate_modes(svals, discriminant=1e-4):
+    '''
+    svals_max = np.max(svals)
+    for i in range(len(svals)):
+        if abs(svals[i])/svals_max < discriminant:
+            break
+    '''
+    return 45
 
 def cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
@@ -632,7 +637,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
         log.info(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
-    modes_max = truncate_modes(pmodes)
+    modes_max = truncate_modes(svals)
 
     ### Calculate mode-based static constraints
     if calculate_sigmas:
