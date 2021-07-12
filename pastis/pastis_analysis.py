@@ -267,13 +267,17 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes)*svalue))
     return del_sigma
 
+def truncate_modes(pmodes):
 
-def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
+    return 40
+
+def cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :paraam modes_max :
     :param sigmas: array, weights per PASTIS mode
     :param sim_instance: class instance of the simulator for "instrument"
     :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
@@ -283,8 +287,8 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     """
 
     cont_cum_e2e = []
-    for maxmode in range(pmodes.shape[0]):
-        log.info(f'Working on mode {maxmode+1}/{pmodes.shape[0]}.')
+    for maxmode in range(modes_max):
+        log.info(f'Working on mode {maxmode+1}/{modes_max}.')
 
         if individual:
             opd = pmodes[:, maxmode] * sigmas[maxmode]
@@ -330,11 +334,12 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     return cont_cum_e2e
 
 
-def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False):
+def cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, c_floor, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using PASTIS propagation.
     :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param mode_max:
     :param sigmas: array, weights per PASTIS mode
     :param matrix: array, PASTIS matrix [nseg, nseg]
     :param c_floor: float, coronagraph contrast floor
@@ -342,7 +347,7 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False
     :return: cont_cum_pastis, list of cumulative or individual contrasts
     """
     cont_cum_pastis = []
-    for maxmode in range(pmodes.shape[0]):
+    for maxmode in range(modes_max):
 
         if individual:
             aber = pmodes[:, maxmode] * sigmas[maxmode]
@@ -509,12 +514,11 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
     calculate_sigmas = True
     calc_cumulative_contrast = True
     calculate_covariance_matrices = True
-    calculate_mus = False
+    calculate_mus = True
+    analytical_statistics = False
     calculate_segment_based = False
     run_monte_carlo_modes = False
     run_monte_carlo_segments = False
-    analytical_statistics = False
-
 
     # Data directory
     workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
@@ -628,10 +632,12 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
         log.info(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
+    modes_max = truncate_modes(pmodes)
+
     ### Calculate mode-based static constraints
     if calculate_sigmas:
         log.info('Calculating static sigmas')
-        sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
+        sigmas = calculate_sigma(c_target, modes_max, svals, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
@@ -649,8 +655,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
-        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm)
-        cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
+        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm)
+        cumulative_pastis = cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'), cumulative_e2e)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_pastis_{c_target}.txt'), cumulative_pastis)
@@ -717,6 +723,99 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
         mus *= u.nm
 
+    ### Calculate covariance matrices
+    if calculate_covariance_matrices:
+        log.info('Calculating covariance matrices')
+        Ca = np.diag(np.square(mus.value))
+        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+
+        Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
+        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+
+        ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
+                                   fname_suffix='segment-based', save=True)
+        ppl.plot_covariance_matrix(Cb, os.path.join(workdir, 'results'), c_target, segment_space=False,
+                                   fname_suffix='segment-based', save=True)
+
+    else:
+        log.info('Loading covariance matrices from disk.')
+        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
+        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
+
+    ### Analytically calculate statistical mean contrast and its variance
+    if analytical_statistics:
+        log.info('Calculating analytical statistics.')
+        mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
+        var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
+        log.info(f'Analytical statistical mean: {mean_stat_c}')
+        log.info(f'Analytical standard deviation: {np.sqrt(var_c)}')
+
+        with open(os.path.join(workdir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'w') as file:
+            file.write(f'Analytical, statistical mean: {mean_stat_c}')
+            file.write(f'\nAnalytical variance: {var_c}')
+
+    ### Calculate segment-based error budget
+    if calculate_segment_based:
+        log.info('Calculating segment-based error budget.')
+
+        # Extract segment-based mode weights
+        log.info('Calculate segment-based mode weights')
+        sigmas_opt = np.sqrt(np.diag(Cb))
+        np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
+        ppl.plot_mode_weights_simple(sigmas_opt, c_target=c_target, wvln=wvln, out_dir=os.path.join(workdir, 'results'),
+                                     fname_suffix='segment-based', save=True)
+        ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
+                                          fname_suffix='segment-based-vs-uniform',
+                                          labels=('Uniform error budget', 'Segment-based error budget'),
+                                          alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
+
+        # Calculate contrast per mode
+        log.info('Calculating contrast per mode')
+        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
+        np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
+                   per_mode_opt_e2e)
+        ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
+                                   os.path.join(workdir, 'results'), save=True)
+
+        # Calculate segment-based cumulative contrast
+        log.info('Calculating segment-based cumulative contrast')
+        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
+        np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
+                   cumulative_opt_e2e)
+
+        # Plot cumulative contrast from E2E simulator, segment-based vs. uniform error budget
+        ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
+                                                        c_target, fname_suffix='segment-based-vs-uniform', save=True)
+
+    ### Calculate Monte Carlo simulation for sigmas, with E2E
+    if run_monte_carlo_modes:
+        log.info('\nRunning Monte Carlo simulation for modes')
+        # Keep track of time
+        start_monte_carlo_modes = time.time()
+
+        all_contr_rand_modes = []
+        all_random_weight_sets = []
+        for rep in range(n_repeat):
+            log.info(f'Mode realization {rep + 1}/{n_repeat}')
+            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
+            all_random_weight_sets.append(random_weights)
+            all_contr_rand_modes.append(one_contrast_mode)
+
+        # Empirical mean and standard deviation of the distribution
+        mean_modes = np.mean(all_contr_rand_modes)
+        stddev_modes = np.std(all_contr_rand_modes)
+        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
+        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
+        end_monte_carlo_modes = time.time()
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
+
+        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=False, stddev=stddev_modes,
+                                        save=True)
+
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
         log.info('\nRunning Monte Carlo simulation for segments')
@@ -753,99 +852,6 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
         ppl.plot_monte_carlo_simulation(all_contr_rand_seg, out_dir=os.path.join(workdir, 'results'),
                                         c_target=c_target, segments=True, stddev=stddev_segments,
                                         save=True)
-
-    ### Calculate covariance matrices
-    if calculate_covariance_matrices:
-        log.info('Calculating covariance matrices')
-        Ca = np.diag(np.square(mus.value))
-        hcipy.write_fits(Ca, os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
-
-        Cb = np.dot(np.transpose(pmodes), np.dot(Ca, pmodes))
-        hcipy.write_fits(Cb, os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
-
-        ppl.plot_covariance_matrix(Ca, os.path.join(workdir, 'results'), c_target, segment_space=True,
-                                   fname_suffix='segment-based', save=True)
-        ppl.plot_covariance_matrix(Cb, os.path.join(workdir, 'results'), c_target, segment_space=False,
-                                   fname_suffix='segment-based', save=True)
-
-    else:
-        log.info('Loading covariance matrices from disk.')
-        Ca = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_segments_Ca_{c_target}_segment-based.fits'))
-        Cb = fits.getdata(os.path.join(workdir, 'results', f'cov_matrix_modes_Cb_{c_target}_segment-based.fits'))
-
-    ### Analytically calculate statistical mean contrast and its variance
-    if analytical_statistics:
-        log.info('Calculating analytical statistics.')
-        mean_stat_c = util.calc_statistical_mean_contrast(matrix, Ca, coro_floor)
-        var_c = util.calc_variance_of_mean_contrast(matrix, Ca)
-        log.info(f'Analytical statistical mean: {mean_stat_c}')
-        log.info(f'Analytical standard deviation: {np.sqrt(var_c)}')
-
-        with open(os.path.join(workdir, 'results', f'statistical_contrast_analytical_{c_target}.txt'), 'w') as file:
-            file.write(f'Analytical, statistical mean: {mean_stat_c}')
-            file.write(f'\nAnalytical variance: {var_c}')
-
-    ### Calculate Monte Carlo simulation for sigmas, with E2E
-    if run_monte_carlo_modes:
-        log.info('\nRunning Monte Carlo simulation for modes')
-        # Keep track of time
-        start_monte_carlo_modes = time.time()
-
-        all_contr_rand_modes = []
-        all_random_weight_sets = []
-        for rep in range(n_repeat):
-            log.info(f'Mode realization {rep + 1}/{n_repeat}')
-            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
-            all_random_weight_sets.append(random_weights)
-            all_contr_rand_modes.append(one_contrast_mode)
-
-        # Empirical mean and standard deviation of the distribution
-        mean_modes = np.mean(all_contr_rand_modes)
-        stddev_modes = np.std(all_contr_rand_modes)
-        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
-        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
-        end_monte_carlo_modes = time.time()
-
-        # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
-        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
-
-        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
-                                        c_target=c_target, segments=False, stddev=stddev_modes,
-                                        save=True)
-
-    ### Calculate segment-based error budget
-    if calculate_segment_based:
-        log.info('Calculating segment-based error budget.')
-
-        # Extract segment-based mode weights
-        log.info('Calculate segment-based mode weights')
-        sigmas_opt = np.sqrt(np.diag(Cb))
-        np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_segment-based.txt'), sigmas_opt)
-        ppl.plot_mode_weights_simple(sigmas_opt, c_target=c_target, wvln=wvln, out_dir=os.path.join(workdir, 'results'),
-                                     fname_suffix='segment-based', save=True)
-        ppl.plot_mode_weights_double_axis((sigmas, sigmas_opt), wvln, os.path.join(workdir, 'results'), c_target,
-                                          fname_suffix='segment-based-vs-uniform',
-                                          labels=('Uniform error budget', 'Segment-based error budget'),
-                                          alphas=(0.5, 1.), linestyles=('--', '-'), colors=('k', 'r'), save=True)
-
-        # Calculate contrast per mode
-        log.info('Calculating contrast per mode')
-        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
-        np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
-                   per_mode_opt_e2e)
-        ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
-                                   os.path.join(workdir, 'results'), save=True)
-
-        # Calculate segment-based cumulative contrast
-        log.info('Calculating segment-based cumulative contrast')
-        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
-        np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
-                   cumulative_opt_e2e)
-
-        # Plot cumulative contrast from E2E simulator, segment-based vs. uniform error budget
-        ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
-                                                        c_target, fname_suffix='segment-based-vs-uniform', save=True)
 
     ### Write full PDF report
     title_page_list = util.collect_title_page(workdir, c_target)
