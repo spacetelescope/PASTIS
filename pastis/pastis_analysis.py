@@ -92,7 +92,6 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
     nseg = pmodes.shape[0]
     seglist = util.get_segment_list(instrument)
-    nb_actu = sim_instance.nbactuator
 
     ### Put all modes sequentially on the segmented mirror and get them as a phase map, then convert to WFE map
     all_modes = []
@@ -134,6 +133,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             all_modes.append(phase_ote / jwst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
         if instrument == 'RST':
+            nb_actu = sim_instance.nbactuator
             log.info(f'Working on mode {thismode}/{nseg - 1}.')
             sim_instance.dm1.flatten()
 
@@ -252,7 +252,7 @@ def calculate_sigma(cstat, nmodes, svalues, c_floor):
     :param c_floor: float, coronagraph floor (baseline contrast without aberrations)
     :return: sigma: float or array, maximum mode contribution sigma for each mode
     """
-    sigma = np.sqrt((cstat - c_floor) / (nmodes * svalues))
+    sigma = (cstat - c_floor) / (nmodes * svalues)
     return sigma
 
 
@@ -267,14 +267,15 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes)*svalue))
     return del_sigma
 
-def truncate_modes(svals, discriminant=1e-4):
-    '''
-    svals_max = np.max(svals)
-    for i in range(len(svals)):
-        if abs(svals[i])/svals_max < discriminant:
-            break
-    '''
-    return 45
+
+def truncate_modes(instrument, svals):
+    if instrument == 'RST':
+        modes_max = 100 #45
+    else:
+        modes_max = len(svals)
+
+    return modes_max
+
 
 def cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
@@ -637,7 +638,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
         log.info(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
-    modes_max = truncate_modes(svals)
+    modes_max = truncate_modes(instrument, svals)
 
     ### Calculate mode-based static constraints
     if calculate_sigmas:
@@ -665,6 +666,9 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
 
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'), cumulative_e2e)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_pastis_{c_target}.txt'), cumulative_pastis)
+
+        cumulative_diff = np.array(cumulative_e2e) - np.array(cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_dif_{c_target}.txt'), cumulative_diff)
 
         # Plot the cumulative contrast from E2E simulator and matrix
         ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,

@@ -356,6 +356,25 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
+    fname2 = f'cumulative_contrast_accuracy_dif_{c_target}'
+    if fname_suffix != '':
+        fname2 += f'_{fname_suffix}'
+
+    plt.figure(figsize=(12, 8))
+    ax = plt.gca()
+    plt.plot(np.array(cumulative_c_e2e) - np.array(cumulative_c_pastis), label='difference', linewidth=4)
+    plt.title('Cumulative contrast difference', size=25)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    plt.xlabel('Mode index', size=30)
+    plt.ylabel('Cumulative contrast', size=30)
+    plt.legend(prop={'size': 30}, loc=(0.02, 0.52))
+    ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
+    ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
+    plt.tight_layout()
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join([fname2, 'pdf'])))
+
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
     """
