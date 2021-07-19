@@ -152,11 +152,11 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             all_modes_focal_plane.append(psf_detector)
 
             #phase_ote = inter[4].phase # [4] is the last optic inside pupil
-            phase = sim_instance.dm1.to_fits(what='phase')
-            phase_ote = phase[0].data.value
+            dm_opd = sim_instance.dm1.to_fits(what='opd')
+            dm_ote = dm_opd[0].data
 
             rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)   # /1e9 converts to meters
-            all_modes.append(phase_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
+            all_modes.append(dm_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
     ### Check for results directory structure and create if it doesn't exist
     log.info('Creating data directories')
@@ -252,7 +252,7 @@ def calculate_sigma(cstat, nmodes, svalues, c_floor):
     :param c_floor: float, coronagraph floor (baseline contrast without aberrations)
     :return: sigma: float or array, maximum mode contribution sigma for each mode
     """
-    sigma = (cstat - c_floor) / (nmodes * svalues)
+    sigma = np.sqrt((cstat - c_floor) / (nmodes * svalues))
     return sigma
 
 
@@ -270,7 +270,7 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
 
 def truncate_modes(instrument, svals):
     if instrument == 'RST':
-        modes_max = 100 #45
+        modes_max = len(svals) #45
     else:
         modes_max = len(svals)
 
@@ -521,8 +521,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
     calc_cumulative_contrast = True
     calculate_covariance_matrices = True
     calculate_mus = True
-    analytical_statistics = False
-    calculate_segment_based = False
+    analytical_statistics = True
+    calculate_segment_based = True
     run_monte_carlo_modes = False
     run_monte_carlo_segments = False
 

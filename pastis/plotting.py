@@ -375,6 +375,13 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname2, 'pdf'])))
 
+    plt.figure(figsize=(12, 8))
+    corection = np.array(cumulative_c_pastis) / np.array(cumulative_c_e2e)
+    plt.plot(corection)
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join(['corection', 'pdf'])))
+
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
     """

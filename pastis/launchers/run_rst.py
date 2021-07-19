@@ -36,7 +36,7 @@ if __name__ == '__main__':
     '''
 
     # Alternatively, pick data location to run PASTIS analysis on
-    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-08T15-20-33_rst_12x12_intensity')
+    dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-15T13-46-49_rst')
 
     # Set up loggers for data analysis
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
