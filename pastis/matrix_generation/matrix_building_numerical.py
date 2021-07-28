@@ -26,6 +26,7 @@ from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
+import pastis.telescopes
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -40,7 +41,6 @@ class PastisMatrix(ABC):
     """
 
     instrument = None
-
     def __init__(self, design=None, initial_path=''):
         """
         Parameters:
@@ -96,9 +96,12 @@ class PastisMatrixIntensities(PastisMatrix):
 
     Contrast matrix calculation is multiprocessed.
     """
-    instrument = None
 
-    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+    if instrument == 'RST':
+        telescope = pastis.telescopes.RST()
+
+    def __init__(self, design=None, initial_path=''):
         """
         Parameters:
         ----------
@@ -113,8 +116,8 @@ class PastisMatrixIntensities(PastisMatrix):
         """
         super().__init__(design=design, initial_path=initial_path)
 
-        self.savepsfs = savepsfs
-        self.saveopds = saveopds
+        self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
+        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
         self.calculate_matrix_pair = None
 
         os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
@@ -206,6 +209,21 @@ class PastisMatrixIntensities(PastisMatrix):
     @abstractmethod
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
+        log.info(f'contrast floor: {self.instrument.contrast_floor}')
+
+        if self.save_coro_floor:
+            # Save contrast floor to text file
+            with open(os.path.join(self.overall_dir, 'coronagraph_floor.txt'), 'w') as file:
+                file.write(f'Coronagraph floor: {self.instrument.contrast_floor}')
+
+        if self.save_psfs:
+            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, self.overall_dir)
+
+        if return_coro_simulator:
+            return contrast_floor, norm, coro_simulator
+        else:
+            return contrast_floor, norm
+
 
     @abstractmethod
     def setup_one_pair_function(self):

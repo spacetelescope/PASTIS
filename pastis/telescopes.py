@@ -20,7 +20,6 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 
 
 class RST():
-
         def __init__(self):
                 self.sim = webbpsf_imaging.set_up_cgi()
                 self.nb_actu = self.sim.nbactuator
@@ -43,6 +42,9 @@ class RST():
 
                 # Return the coronagraphic simulator (a tuple in the RST case!)
                 self.coro_simulator = self.sim
+
+                # Calculate coronagraph floor in dark hole
+                self.contrast_floor = self.contrast()
 
         def flatten(self):
                 self.sim.dm1.flatten()
