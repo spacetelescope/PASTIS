@@ -297,7 +297,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         rst_sim = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = rst_sim.raw_PSF()
+        rst_direct = rst_sim.raw_coronagraph()
         direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct[0].data
         norm = direct_psf.max()
@@ -538,7 +538,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     if saveopds:
         opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(nb_actu, nb_actu))
         rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 

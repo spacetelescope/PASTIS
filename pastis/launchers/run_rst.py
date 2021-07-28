@@ -14,10 +14,10 @@ import pastis.util as util
 if __name__ == '__main__':
 
     # Generate intensity matrix
-    #run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     # Generate E_field matrix
-    run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+    #run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
