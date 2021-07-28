@@ -24,7 +24,7 @@ mplt_logger.setLevel(logging.WARNING)
 mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    '''
+
     # Generate intensity matrix
     run_matrix = MatrixIntensityRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
-    '''
+
 
     # Alternatively, pick data location to run PASTIS analysis on
     dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2021-07-08T15-20-33_rst_12x12_intensity')
