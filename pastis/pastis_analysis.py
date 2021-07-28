@@ -516,13 +516,13 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
     """
 
     # Which parts are we running?
-    calculate_modes = True
-    calculate_sigmas = True
+    calculate_modes = False
+    calculate_sigmas = False
     calc_cumulative_contrast = True
-    calculate_covariance_matrices = True
-    calculate_mus = True
-    analytical_statistics = True
-    calculate_segment_based = True
+    calculate_covariance_matrices = False
+    calculate_mus = False
+    analytical_statistics = False
+    calculate_segment_based = False
     run_monte_carlo_modes = False
     run_monte_carlo_segments = False
 
@@ -669,9 +669,18 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
 
         cumulative_diff = np.array(cumulative_e2e) - np.array(cumulative_pastis)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_dif_{c_target}.txt'), cumulative_diff)
+        '''
+        correction = np.array(cumulative_e2e) / np.array(cumulative_pastis)
+        for i in range(modes_max):
+            pmodes[i] = np.array(pmodes[i]) * correction[i]
+
+
+        cumulative_e2e_new = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm)
+        cumulative_pastis_new = cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, coro_floor)
+        '''
 
         # Plot the cumulative contrast from E2E simulator and matrix
-        ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,
+        ppl.plot_cumulative_contrast_compare_accuracy(cumulative_e2e, cumulative_pastis,
                                                       out_dir=os.path.join(workdir, 'results'),
                                                       coro_floor=coro_floor,
                                                       c_target=c_target,
@@ -788,7 +797,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8,
 
         # Calculate segment-based cumulative contrast
         log.info('Calculating segment-based cumulative contrast')
-        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
+        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas_opt, sim_instance, dh_mask, norm)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
                    cumulative_opt_e2e)
 

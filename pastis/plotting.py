@@ -376,11 +376,11 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
         plt.savefig(os.path.join(out_dir, '.'.join([fname2, 'pdf'])))
 
     plt.figure(figsize=(12, 8))
-    corection = np.array(cumulative_c_pastis) / np.array(cumulative_c_e2e)
-    plt.plot(corection)
+    correction = np.array(cumulative_c_pastis) / np.array(cumulative_c_e2e)
+    plt.plot(correction)
 
     if save:
-        plt.savefig(os.path.join(out_dir, '.'.join(['corection', 'pdf'])))
+        plt.savefig(os.path.join(out_dir, '.'.join(['correction', 'pdf'])))
 
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
@@ -547,7 +547,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
             sim_instance.dm1.set_actuator(actu_x, actu_y, mus[segnum])
 
         psf, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
-        wf_sm = inter[1].phase
+        wf_sm = inter[4].phase
 
         rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / rst_wavenumber) * 1e12  # in picometers
