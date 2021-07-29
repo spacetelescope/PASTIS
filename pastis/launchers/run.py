@@ -16,13 +16,15 @@ if __name__ == '__main__':
     # Generate intensity matrix
     run_matrix = MatrixIntensity(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
-    """
+
     # Generate E_field matrix
     #run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
+    run_matrix.telescope_definition()
+    run_matrix.saves_definition()
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
-
+    """
     # Alternatively, pick data location to run PASTIS analysis on
     # dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2020-08-26T00-00-00_rst')
 

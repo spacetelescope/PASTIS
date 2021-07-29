@@ -552,7 +552,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     return contrast, actuator_pair
 
 
-def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair, seg_max):
+def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
         """
         Function to calculate general mean contrast of one DM actuator pair in CGI.
         :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -939,30 +939,29 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 class MatrixIntensity(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
     instrument = CONFIG_PASTIS.get('telescope', 'name')
-    print(instrument)
 
-    def __int__(self, initial_path='', savepsfs=True, saveopds=True, return_coro_simulator=True):
-        instrument = CONFIG_PASTIS.get('telescope', 'name')
-        print(instrument)
-        self.telescope_definition(instrument)
-        self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
-        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
-        self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
-        super().__init__(design=None, savepsfs=self.savepsfs, saveopds=self.saveopds, return_coro_simulator=self.return_coro_simulator, telescope=self.telescope)
+    def __int__(self, initial_path=''):
+        super().__init__(design=None)
 
     def telescope_definition(self, instrument=None):
+        instrument = CONFIG_PASTIS.get('telescope', 'name')
         if instrument == 'RST':
             self.telescope = pastis.telescopes.RST()
+
+    def saves_definition(self):
+        self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
+        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
+        self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
+        self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
 
-        self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
+        self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self):
         """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
-
         telescope = self.telescope
         telescope.calculate_unaberrated_contrast_and_normalization()
         outpath = self.overall_dir
@@ -974,7 +973,7 @@ class MatrixIntensity(PastisMatrixIntensities):
             with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
                 file.write(f'Coronagraph floor: {telescope.contrast_floor}')
 
-        if self.save_psfs:
+        if self.savepsfs:
             ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask, outpath)
 
         if self.return_coro_simulator:

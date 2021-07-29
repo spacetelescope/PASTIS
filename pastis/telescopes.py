@@ -29,13 +29,12 @@ class RST():
         def calculate_unaberrated_contrast_and_normalization(self):
                 # Calculate direct reference images for contrast normalization
                 rst_direct = self.sim.raw_coronagraph()
-                direct = rst_direct.imaging_psf()
-                self.direct_psf = direct[0].data
-                self.norm = direct_psf.max()
+                direct = self.imaging_psf(inst=rst_direct)
+                self.norm = direct.max()
 
                 # Calculate unaberrated coronagraph image for contrast floor
                 coro_image = self.imaging_psf()
-                coro_psf = coro_image[0].data / self.norm
+                coro_psf = coro_image / self.norm
 
                 self.iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
                 self.owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
@@ -56,8 +55,11 @@ class RST():
                 actu_x, actu_y = util.seg_to_dm_xy(self.nb_actu, seg)
                 self.sim.dm1.set_actuator(actu_x, actu_y, amplitude)
 
-        def imaging_psf(self):
-                self.psf = self.sim.calc_psf(nlambda=1, fov_arcsec=1.6)
+        def imaging_psf(self, inst=None):
+                if inst == None :
+                        inst = self.sim
+                fit_psf = inst.calc_psf(nlambda=1, fov_arcsec=1.6)
+                self.psf = fit_psf[0].data
                 return self.psf
 
         def imaging_efielf(self):
@@ -69,6 +71,14 @@ class RST():
                 self.imaging_psf()
                 return util.dh_mean(self.psf, self.dh_mask)
 
-        def display_opd(self):
+        def display_opd(self, saveopds, resDir, actuator_pair):
                 self.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
                      title='Aberrated actuator pair')
+
+                if saveopds:
+                        opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
+                        plt.clf()
+                        plt.figure(figsize=(self.nb_actu, self.nb_actu))
+                        self.sim.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
+                                            title='Aberrated actuator pair')
+                        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
