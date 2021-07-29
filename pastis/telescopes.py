@@ -58,5 +58,10 @@ class RST():
                 self.psf = self.sim.calc_psf(nlambda=1, fov_arcsec=1.6)
                 return self.psf
 
+        def imaging_efielf(self):
+                _psf , inter = self.sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+                self.efield = inter[-1].wavefront
+                return self.efield
+
         def contrast(self):
                 return util.dh_mean(self.psf, self.dh_mask)

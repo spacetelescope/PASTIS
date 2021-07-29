@@ -217,10 +217,10 @@ class PastisMatrixIntensities(PastisMatrix):
                 file.write(f'Coronagraph floor: {self.instrument.contrast_floor}')
 
         if self.save_psfs:
-            ppl.plot_direct_coro_dh(direct_psf, coro_psf, dh_mask, self.overall_dir)
+            ppl.plot_direct_coro_dh(self.instrument.direct_psf, self.instrument.coro_psf, self.dh_mask, self.overall_dir)
 
         if return_coro_simulator:
-            return contrast_floor, norm, coro_simulator
+            return self.instrument.contrast_floor, self.instrument.norm, self.instrument.coro_simulator
         else:
             return contrast_floor, norm
 
