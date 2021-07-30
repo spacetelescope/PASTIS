@@ -9,7 +9,18 @@ from pastis.matrix_generation.matrix_building_numerical import MatrixIntensity
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldRST
 from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
+import logging
 
+log = logging.getLogger()
+mplfm_logger = logging.getLogger('matplotlib.font_manager')
+mplcb_logger = logging.getLogger('matplotlib.colorbar')
+mplt_logger = logging.getLogger('matplotlib.ticker')
+mplbe_logger = logging.getLogger('matplotlib.backends')
+
+mplfm_logger.setLevel(logging.WARNING)
+mplcb_logger.setLevel(logging.WARNING)
+mplt_logger.setLevel(logging.WARNING)
+mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
 

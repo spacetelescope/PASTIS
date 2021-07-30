@@ -194,7 +194,7 @@ class PastisMatrixIntensities(PastisMatrix):
         """ Take the contrast matrix and calculate the PASTIS matrix from it. """
 
         # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
-        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
+        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.telescope.contrast_floor))
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -573,8 +573,7 @@ def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopd
             telescope.push_seg(segment_pair[1], wfe_aber)
 
         log.info('Calculating coro image...')
-        image = telescope.imaging_psf()
-        psf = image[0].data / norm
+        psf = telescope.imaging_psf()
 
         # Save PSF image to disk
         if savepsfs:
@@ -585,7 +584,6 @@ def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopd
         if saveopds:
             opd_name = f'opd_segnement_{segment_pair[0]}-{segment_pair[1]}'
             plt.clf()
-            plt.figure(figsize=(seg_max, seg_max))
             telescope.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
@@ -974,7 +972,7 @@ class MatrixIntensity(PastisMatrixIntensities):
                 file.write(f'Coronagraph floor: {telescope.contrast_floor}')
 
         if self.savepsfs:
-            ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask, outpath)
+            ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask.astype(bool), outpath)
 
         if self.return_coro_simulator:
             return telescope.contrast_floor, telescope.norm, telescope.coro_simulator

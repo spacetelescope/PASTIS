@@ -18,27 +18,26 @@ import pastis.util as util
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 
 
-
 class RST():
         def __init__(self):
                 self.sim = webbpsf_imaging.set_up_cgi()
                 self.nb_actu = self.sim.nbactuator
+                self.norm = 1
 
                 self.wfe_aber = CONFIG_PASTIS.getfloat('RST', 'calibration_aberration') * 1e-9   # m
 
         def calculate_unaberrated_contrast_and_normalization(self):
                 # Calculate direct reference images for contrast normalization
                 rst_direct = self.sim.raw_coronagraph()
-                direct = self.imaging_psf(inst=rst_direct)
-                self.norm = direct.max()
+                self.direct_psf = self.imaging_psf(inst=rst_direct)
+                self.norm = self.direct_psf.max()
 
                 # Calculate unaberrated coronagraph image for contrast floor
-                coro_image = self.imaging_psf()
-                coro_psf = coro_image / self.norm
+                self.coro_psf = self.imaging_psf()
 
                 self.iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
                 self.owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-                self.sim.working_area(im=coro_psf, inner_rad=self.iwa, outer_rad=self.owa)
+                self.sim.working_area(im=self.coro_psf, inner_rad=self.iwa, outer_rad=self.owa)
                 self.dh_mask = self.sim.WA
 
                 # Return the coronagraphic simulator (a tuple in the RST case!)
@@ -59,7 +58,7 @@ class RST():
                 if inst == None :
                         inst = self.sim
                 fit_psf = inst.calc_psf(nlambda=1, fov_arcsec=1.6)
-                self.psf = fit_psf[0].data
+                self.psf = fit_psf[0].data/self.norm
                 return self.psf
 
         def imaging_efielf(self):
@@ -71,14 +70,7 @@ class RST():
                 self.imaging_psf()
                 return util.dh_mean(self.psf, self.dh_mask)
 
-        def display_opd(self, saveopds, resDir, actuator_pair):
-                self.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
+        def display_opd(self):
+                plt.figure(figsize=(self.nb_actu, self.nb_actu))
+                self.sim.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
                      title='Aberrated actuator pair')
-
-                if saveopds:
-                        opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
-                        plt.clf()
-                        plt.figure(figsize=(self.nb_actu, self.nb_actu))
-                        self.sim.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
-                                            title='Aberrated actuator pair')
-                        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
