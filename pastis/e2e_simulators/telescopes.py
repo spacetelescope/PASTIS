@@ -2,15 +2,7 @@
 This module contains class and all necessary requierement to work RST
 """
 
-import os
-import time
-import functools
-import shutil
-import logging
-import matplotlib
 import matplotlib.pyplot as plt
-import multiprocessing
-import numpy as np
 import hcipy
 
 from pastis.config import CONFIG_PASTIS
@@ -19,6 +11,7 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 
 
 class RST():
+
         def __init__(self):
                 self.sim = webbpsf_imaging.set_up_cgi()
                 self.nb_actu = self.sim.nbactuator

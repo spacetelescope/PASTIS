@@ -26,7 +26,7 @@ from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
-import pastis.telescopes
+import pastis.e2e_simulators.telescopes
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -944,7 +944,7 @@ class MatrixIntensity(PastisMatrixIntensities):
     def telescope_definition(self, instrument=None):
         instrument = CONFIG_PASTIS.get('telescope', 'name')
         if instrument == 'RST':
-            self.telescope = pastis.telescopes.RST()
+            self.telescope = pastis.e2e_simulators.telescopes.RST()
 
     def saves_definition(self):
         self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')

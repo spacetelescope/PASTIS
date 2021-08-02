@@ -254,6 +254,58 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
+class MatrixEfield(PastisMatrixEfields):
+    """
+    Class to calculate the PASTIS matrix from E-fields of RST CGI.
+    """
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+
+    def __init__(self, initial_path=''):
+        super().__init__(initial_path=initial_path)
+
+    def telescope_definition(self, instrument=None):
+        instrument = CONFIG_PASTIS.get('telescope', 'name')
+        if instrument == 'RST':
+            self.telescope = pastis.telescopes.RST()
+
+    def saves_definition(self):
+        self.saveefields = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
+        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
+        self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
+        self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
+
+    def calculate_ref_efield(self):
+        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+        self.rst_cgi = webbpsf_imaging.set_up_cgi()
+
+        # Calculate direct reference images for contrast normalization
+        rst_direct = self.rst_cgi.raw_coronagraph()
+        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        direct_psf = direct[0].data
+        self.norm = direct_psf.max()
+
+        telescope = self.telescope
+        telescope.calculate_unaberrated_contrast_and_normalization()
+        outpath = self.overall_dir
+
+        log.info(f'contrast floor: {telescope.contrast_floor}')
+
+        # Calculate dark hole mask
+        self.rst_cgi.working_area(im=direct_psf, inner_rad=iwa, outer_rad=owa)
+        self.dh_mask = self.rst_cgi.WA
+
+        # Calculate reference E-field in focal plane, without any aberrations applied
+        _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
+        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
+
+    def setup_deformable_mirror(self):
+        """DM setup not needed for RST, just define number of total modes"""
+        self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
+
+    def setup_single_mode_function(self):
+        self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
+                                                    self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
     """
