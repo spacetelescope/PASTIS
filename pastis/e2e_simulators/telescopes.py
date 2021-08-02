@@ -43,8 +43,8 @@ class RST():
                 self.sim.dm1.flatten()
                 return []
 
-        def push_seg(self, seg, amplitude):
-                actu_x, actu_y = util.seg_to_dm_xy(self.nb_actu, seg)
+        def push_mode(self, mode, amplitude):
+                actu_x, actu_y = util.seg_to_dm_xy(self.nb_actu, mode)
                 self.sim.dm1.set_actuator(actu_x, actu_y, amplitude)
 
         def imaging_psf(self, inst=None):
@@ -54,7 +54,7 @@ class RST():
                 self.psf = fit_psf[0].data/self.norm
                 return self.psf
 
-        def imaging_efielf(self):
+        def imaging_efield(self):
                 _psf , inter = self.sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
                 self.efield = inter[-1].wavefront
                 return self.efield

@@ -24,9 +24,9 @@ from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.launchers.selector import paramaters
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
-import pastis.e2e_simulators.telescopes
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -552,45 +552,45 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     return contrast, actuator_pair
 
 
-def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
+def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopds, mode_pair):
         """
-        Function to calculate general mean contrast of one DM actuator pair in CGI.
+        Function to calculate general mean contrast of pair in telescope.
         :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
         :param wfe_aber: calibration aberration per segment in m
         :param resDir: str, directory for matrix calculations
         :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
         :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-        :param actuator_pair: tuple, pair of actuators to aberrate. If same segment gets passed in both tuple entries, the actuator will be aberrated only once
+        :param mode_pair: tuple, pair of actuators to aberrate. If same segment gets passed in both tuple entries, the actuator will be aberrated only once
         :return: contrast as float, and segment pair as tuple
         """
         # Put aberration on correct segments. If i=j, apply only once!
-        log.info(f'PAIR: {segment_pair[0]}-{segment_pair[1]}')
+        log.info(f'PAIR: {mode_pair[0]}-{mode_pair[1]}')
 
         # Put aberration on correct segments. If i=j, apply only once!
         telescope.flatten()
-        telescope.push_seg(segment_pair[0], wfe_aber)
-        if segment_pair[0] != segment_pair[1]:
-            telescope.push_seg(segment_pair[1], wfe_aber)
+        telescope.push_mode(mode_pair[0], wfe_aber)
+        if mode_pair[0] != mode_pair[1]:
+            telescope.push_mode(mode_pair[1], wfe_aber)
 
         log.info('Calculating coro image...')
         psf = telescope.imaging_psf()
 
         # Save PSF image to disk
         if savepsfs:
-            filename_psf = f'psf_segment_{segment_pair[0]}-{segment_pair[1]}'
+            filename_psf = f'psf_segment_{mode_pair[0]}-{mode_pair[1]}'
             hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
 
         # Plot deformable mirror WFE and save to disk
         if saveopds:
-            opd_name = f'opd_segnement_{segment_pair[0]}-{segment_pair[1]}'
+            opd_name = f'opd_segnement_{mode_pair[0]}-{mode_pair[1]}'
             plt.clf()
             telescope.display_opd()
             plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-        log.info('Calculating mean contrast in dark hole')
+        log.info(f'Calculating mean contrast in dark hole {mode_pair[0]}-{mode_pair[1]}')
         contrast = telescope.contrast()
 
-        return contrast, segment_pair
+        return contrast, mode_pair
 
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
@@ -936,27 +936,18 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 
 class MatrixIntensity(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
-    instrument = CONFIG_PASTIS.get('telescope', 'name')
+
+    telescope = paramaters.telescope()
+    instrument = 'RST'
 
     def __int__(self, initial_path=''):
         super().__init__(design=None)
-
-    def telescope_definition(self, instrument=None):
-        instrument = CONFIG_PASTIS.get('telescope', 'name')
-        if instrument == 'RST':
-            self.telescope = pastis.e2e_simulators.telescopes.RST()
-
-    def saves_definition(self):
-        self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
-        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
-        self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
-        self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
 
         self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
-                                                       self.savepsfs, self.saveopds)
+                                                       paramaters.savepsfs, paramaters.saveopds)
 
     def calculate_ref_image(self):
         """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
@@ -971,10 +962,10 @@ class MatrixIntensity(PastisMatrixIntensities):
             with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
                 file.write(f'Coronagraph floor: {telescope.contrast_floor}')
 
-        if self.savepsfs:
+        if paramaters.savepsfs:
             ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask.astype(bool), outpath)
 
-        if self.return_coro_simulator:
+        if paramaters.return_coro_simulator:
             return telescope.contrast_floor, telescope.norm, telescope.coro_simulator
         else:
             return telescope.contrast_floor, telescope.norm

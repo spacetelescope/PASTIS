@@ -461,6 +461,65 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     return contrast_rst, contrast_matrix
 
 
+def contrast_general_num(telescope, coro_floor, norm, matrix_dir, rms=50*u.nm):
+    """
+    Compute the contrast for a random aberration over all DM actuators in the RST simulator.
+
+    :param coro_floor: float, coronagraph contrast floor
+    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
+    :param matrix_dir: str, directory of saved matrix
+    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire continuous mirror
+    :return: 2x float, E2E and matrix contrast
+    """
+    # Keep track of time
+    start_time = time.time()
+
+    # Parameters
+    total_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
+
+    # Import numerical PASTIS matrix
+    filename = 'pastis_matrix'
+    matrix_pastis = fits.getdata(os.path.join(matrix_dir, filename + '.fits'))
+
+    # Create random aberration coefficients on segments, scaled to total rms
+    aber = util.create_random_rms_values(total_seg, rms)
+
+    ### E2E RST sim
+    start_e2e = time.time()
+
+    # Put aberration on OTE
+    rst_sim.dm1.flatten()
+    for nseg in range(total_seg):
+        telescope.push_mode(aber[nseg].value*u.nm, wfe_aber)
+
+    telescope.imaging()
+
+    # Get the mean contrast
+    telescope.contrast()
+    end_e2e = time.time()
+
+    ## MATRIX PASTIS
+    log.info('Generating contrast from matrix-PASTIS')
+    start_matrixpastis = time.time()
+    # Get mean contrast from matrix PASTIS
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
+    end_matrixpastis = time.time()
+
+    ## Outputs
+    log.info('\n--- CONTRASTS: ---')
+    log.info(f'Mean contrast from E2E: {contrast_rst}')
+    log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
+
+    log.info('\n--- RUNTIMES: ---')
+    log.info(f'E2E: {end_e2e-start_e2e}sec = {(end_e2e-start_e2e)/60}min')
+    log.info(f'Matrix PASTIS: {end_matrixpastis-start_matrixpastis}sec = {(end_matrixpastis-start_matrixpastis)/60}min')
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
+
+    return contrast_rst, contrast_matrix
+
 if __name__ == '__main__':
 
     # Test JWST

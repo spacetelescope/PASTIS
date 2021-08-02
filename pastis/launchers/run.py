@@ -9,7 +9,19 @@ from pastis.matrix_generation.matrix_building_numerical import MatrixIntensity
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldRST
 from pastis.pastis_analysis import run_full_pastis_analysis
 import pastis.util as util
+from pastis.launchers.selector import paramaters
+
 import logging
+
+
+class generation(dir=''):
+    method = CONFIG_PASTIS.get('generation', 'method')
+    if method == 'intensity' :
+        MatrixIntensity(dir)
+    if method == 'Efield':
+        MatrixEfield(dir)
+    if method == 'both':
+    else
 
 log = logging.getLogger()
 mplfm_logger = logging.getLogger('matplotlib.font_manager')
@@ -23,16 +35,16 @@ mplt_logger.setLevel(logging.WARNING)
 mplbe_logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
+    initial_path = CONFIG_PASTIS.get('local', 'local_data_path')
+
+    generation(initial_path)
 
     # Generate intensity matrix
     run_matrix = MatrixIntensity(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
-
     # Generate E_field matrix
     #run_matrix = MatrixEfieldRST(initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
-    run_matrix.telescope_definition()
-    run_matrix.saves_definition()
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
     """
