@@ -22,21 +22,18 @@ class RST():
 
         def normalization_and_dark_hole(self):
                 # Calculate direct reference images for contrast normalization
+                self.sim.flatten()
                 rst_direct = self.sim.raw_coronagraph()
                 self.direct_psf = self.imaging_psf(inst=rst_direct)
                 self.norm = self.direct_psf.max()
 
-                # Calculate unaberrated coronagraph image for contrast floor
-                self.coro_psf = self.imaging_psf()
-
                 self.iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
                 self.owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-                self.sim.working_area(im=self.coro_psf, inner_rad=self.iwa, outer_rad=self.owa)
+                self.sim.working_area(im=self.direct_psf, inner_rad=self.iwa, outer_rad=self.owa)
                 self.dh_mask = self.sim.WA
 
         def calculate_unaberrated_contrast(self):
-                self.sim.raw_coronagraph()
-                # Return the coronagraphic simulator (a tuple in the RST case!)
+                self.sim.flatten()
                 self.coro_simulator = self.sim
 
                 # Calculate coronagraph floor in dark hole

@@ -20,6 +20,7 @@ from matplotlib.colors import LogNorm
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.launchers.parameters import parameters
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.analytical_pastis.image_pastis as impastis
 import pastis.util as util
@@ -461,7 +462,7 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     return contrast_rst, contrast_matrix
 
 
-def contrast_general_num(telescope, coro_floor, norm, matrix_dir, rms=50*u.nm):
+def contrast_general_num(matrix_dir, rms=50*u.nm):
     """
     Compute the contrast for a random aberration over all DM actuators in the RST simulator.
 
@@ -475,7 +476,10 @@ def contrast_general_num(telescope, coro_floor, norm, matrix_dir, rms=50*u.nm):
     start_time = time.time()
 
     # Parameters
-    total_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
+    param = parameters()
+    telescope = param.def_telescope()
+    telescope.normalization_and_dark_hole()
+    total_seg = telescope.number_all_modes
 
     # Import numerical PASTIS matrix
     filename = 'pastis_matrix'
@@ -488,26 +492,26 @@ def contrast_general_num(telescope, coro_floor, norm, matrix_dir, rms=50*u.nm):
     start_e2e = time.time()
 
     # Put aberration on OTE
-    rst_sim.dm1.flatten()
+    telescope.flatten()
     for nseg in range(total_seg):
-        telescope.push_mode(aber[nseg].value*u.nm, wfe_aber)
+        telescope.push_mode(nseg, aber[nseg].value*u.nm)
 
-    telescope.imaging()
+    telescope.imaging_psf()
 
     # Get the mean contrast
-    telescope.contrast()
+    contrast = telescope.contrast()
     end_e2e = time.time()
 
     ## MATRIX PASTIS
     log.info('Generating contrast from matrix-PASTIS')
     start_matrixpastis = time.time()
     # Get mean contrast from matrix PASTIS
-    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + coro_floor   # calculating contrast with PASTIS matrix model
+    contrast_matrix = util.pastis_contrast(aber, matrix_pastis) + telescope.contrast_floor   # calculating contrast with PASTIS matrix model
     end_matrixpastis = time.time()
 
     ## Outputs
     log.info('\n--- CONTRASTS: ---')
-    log.info(f'Mean contrast from E2E: {contrast_rst}')
+    log.info(f'Mean contrast from E2E: {contrast}')
     log.info(f'Contrast from matrix PASTIS: {contrast_matrix}')
 
     log.info('\n--- RUNTIMES: ---')
@@ -518,7 +522,7 @@ def contrast_general_num(telescope, coro_floor, norm, matrix_dir, rms=50*u.nm):
     runtime = end_time - start_time
     log.info(f'Runtime for contrast_calculation_simple.py: {runtime} sec = {runtime/60} min')
 
-    return contrast_rst, contrast_matrix
+    return contrast, contrast_matrix
 
 if __name__ == '__main__':
 

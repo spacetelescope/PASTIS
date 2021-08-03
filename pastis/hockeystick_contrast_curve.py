@@ -174,7 +174,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
             log.info(f"Random realization: {j+1}/{no_realizations}")
             log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}")
 
-            c_e2e, c_matrix = consim.contrast_general_num(instrument, contrast_floor, norm, matrix_dir=matrixdir, rms=rms)
+            c_e2e, c_matrix = consim.contrast_general_num(matrix_dir=matrixdir, rms=rms)
             e2e_rand.append(c_e2e)
             matrix_rand.append(c_matrix)
 
