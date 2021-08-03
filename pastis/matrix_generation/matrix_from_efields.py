@@ -14,6 +14,7 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_generation.matrix_building_numerical import PastisMatrix
 import pastis.plotting as ppl
 import pastis.util as util
+import pastis.e2e_simulators.telescopes
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -24,7 +25,7 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
         ----------
@@ -37,10 +38,11 @@ class PastisMatrixEfields(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        super().__init__(design=design, initial_path=initial_path , param=param)
 
-        self.save_efields = saveefields
-        self.saveopds = saveopds
+        self.param = param
+        self.save_efields = param.saveefields
+        self.saveopds = self.param.saveopds
         self.calculate_one_mode = None
         self.efields_per_mode = []
 
@@ -72,7 +74,8 @@ class PastisMatrixEfields(PastisMatrix):
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
 
-        self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
+        self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.telescope.norm,
+                                                        self.telescope.dh_mask, self.wfe_aber)
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -254,58 +257,35 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
+
 class MatrixEfield(PastisMatrixEfields):
     """
-    Class to calculate the PASTIS matrix from E-fields of RST CGI.
+    Class to calculate the PASTIS matrix from E-fields.
     """
     instrument = CONFIG_PASTIS.get('telescope', 'name')
 
-    def __init__(self, initial_path=''):
-        super().__init__(initial_path=initial_path)
-
-    def telescope_definition(self, instrument=None):
-        instrument = CONFIG_PASTIS.get('telescope', 'name')
-        if instrument == 'RST':
-            self.telescope = pastis.telescopes.RST()
-
-    def saves_definition(self):
-        self.saveefields = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
-        self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
-        self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
-        self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
+    def __int__(self, initial_path='', param=None):
+        super().__init__(design=None, param=param)
 
     def calculate_ref_efield(self):
-        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
-        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-        self.rst_cgi = webbpsf_imaging.set_up_cgi()
-
         # Calculate direct reference images for contrast normalization
-        rst_direct = self.rst_cgi.raw_coronagraph()
-        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
-        direct_psf = direct[0].data
-        self.norm = direct_psf.max()
+        self.telescope = self.param.def_telescope()
+        self.telescope.normalization_and_dark_hole()
+        self.telescope.calculate_unaberrated_contrast()
 
-        telescope = self.telescope
-        telescope.calculate_unaberrated_contrast_and_normalization()
-        outpath = self.overall_dir
-
-        log.info(f'contrast floor: {telescope.contrast_floor}')
-
-        # Calculate dark hole mask
-        self.rst_cgi.working_area(im=direct_psf, inner_rad=iwa, outer_rad=owa)
-        self.dh_mask = self.rst_cgi.WA
+        log.info(f'contrast floor: {self.telescope.contrast_floor}')
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
+        self.efield_ref = self.telescope.imaging_efield()
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
-        self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
+        self.number_all_modes = self.param.telescope.number_all_modes
 
     def setup_single_mode_function(self):
-        self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
-                                                    self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
+        self.calculate_one_mode = functools.partial(general_matrix_single_mode, self.telescope, self.wfe_aber,
+                                                    self.resDir, self.save_efields, self.saveopds)
+
 
 def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
     """
@@ -395,3 +375,40 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane.wavefront
+
+
+def general_matrix_single_mode(telescope, wfe_aber, resDir, saveefields, saveopds, mode_no):
+    """
+    Function to calculate Electrical field (E_field) of one mode.
+    :param telescope:
+    :param wfe_aber: float, calibration aberration per actuator in m
+    :param resDir: str, directory for matrix calculations
+    :param saveefields: bool, if True, all E_field will be saved to disk individually, as fits files
+    :param savepods: bool, if True, all pupil surface maps of aberrated actuators pairs will be saved to disk as PDF
+    :param mode_no: int, which aberrated actuator to calculate the E-field for
+    """
+
+    log.info(f'MODE NUMBER: {mode_no}')
+
+    # Apply calibration aberration to used mode
+    telescope.flatten()
+    telescope.push_mode(mode_no, wfe_aber)
+
+    # Calculate coronagraphic E-field
+    efield_focal_plane = telescope.imaging_efield()
+
+    # Save E field image to disk
+    if saveefields:
+        fname_real = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
+        fname_imag = f'efield_imag_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+
+    # Plot deformable mirror WFE and save to disk
+    if saveopds:
+        opd_name = f'opd_actuator_{mode_no}'
+        plt.clf()
+        telescope.display_opd()
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    return efield_focal_plane

@@ -24,9 +24,9 @@ from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.e2e_simulators.hicat_imaging import set_up_hicat
 from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-from pastis.launchers.selector import paramaters
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
+
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -41,7 +41,7 @@ class PastisMatrix(ABC):
     """
 
     instrument = None
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
         ----------
@@ -99,7 +99,7 @@ class PastisMatrixIntensities(PastisMatrix):
 
     instrument = None
 
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
         ----------
@@ -112,7 +112,8 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        self.param = param
+        super().__init__(design=design, initial_path=initial_path, param=param)
 
         self.calculate_matrix_pair = None
 
@@ -124,6 +125,8 @@ class PastisMatrixIntensities(PastisMatrix):
     def calc(self):
         """ Main method that calculates the PASTIS matrix """
         start_time = time.time()
+
+        self.telescope = self.param.def_telescope()
 
         # Calculate coronagraph floor, and normalization factor from direct image
         self.calculate_ref_image()
@@ -937,35 +940,35 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 class MatrixIntensity(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
-    telescope = paramaters.telescope()
-    instrument = 'RST'
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
 
-    def __int__(self, initial_path=''):
-        super().__init__(design=None)
+    def __int__(self, initial_path='', param=None):
+        super().__init__(design=None, param=param)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
 
         self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
-                                                       paramaters.savepsfs, paramaters.saveopds)
+                                                       self.param.savepsfs, self.param.saveopds)
 
     def calculate_ref_image(self):
         """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
         telescope = self.telescope
-        telescope.calculate_unaberrated_contrast_and_normalization()
+        telescope.normalization_and_dark_hole()
+        telescope.calculate_unaberrated_contrast()
         outpath = self.overall_dir
 
         log.info(f'contrast floor: {telescope.contrast_floor}')
 
-        if self.save_coro_floor:
+        if self.param.save_coro_floor:
             # Save contrast floor to text file
             with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
                 file.write(f'Coronagraph floor: {telescope.contrast_floor}')
 
-        if paramaters.savepsfs:
+        if self.param.savepsfs:
             ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask.astype(bool), outpath)
 
-        if paramaters.return_coro_simulator:
+        if self.param.return_coro_simulator:
             return telescope.contrast_floor, telescope.norm, telescope.coro_simulator
         else:
             return telescope.contrast_floor, telescope.norm
