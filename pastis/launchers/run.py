@@ -13,7 +13,7 @@ import pastis.launchers.parameters as parameters
 if __name__ == '__main__':
     initial_path = CONFIG_PASTIS.get('local', 'local_data_path')
 
-    run_matrix = parameters.gen_method(dir = initial_path)
+    run_matrix = parameters.gen_method(dir=initial_path)
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir

@@ -14,15 +14,15 @@ class RST():
 
         def __init__(self):
                 self.sim = webbpsf_imaging.set_up_cgi()
-                self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
                 self.nb_actu = self.sim.nbactuator
                 self.norm = 1
 
                 self.wfe_aber = CONFIG_PASTIS.getfloat('RST', 'calibration_aberration') * 1e-9   # m
+                self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
         def normalization_and_dark_hole(self):
                 # Calculate direct reference images for contrast normalization
-                self.sim.flatten()
+                self.flatten()
                 rst_direct = self.sim.raw_coronagraph()
                 self.direct_psf = self.imaging_psf(inst=rst_direct)
                 self.norm = self.direct_psf.max()
@@ -33,7 +33,7 @@ class RST():
                 self.dh_mask = self.sim.WA
 
         def calculate_unaberrated_contrast(self):
-                self.sim.flatten()
+                self.flatten()
                 self.coro_simulator = self.sim
 
                 # Calculate coronagraph floor in dark hole

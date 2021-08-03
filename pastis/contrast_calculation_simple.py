@@ -479,6 +479,7 @@ def contrast_general_num(matrix_dir, rms=50*u.nm):
     param = parameters()
     telescope = param.def_telescope()
     telescope.normalization_and_dark_hole()
+    telescope.calculate_unaberrated_contrast()
     total_seg = telescope.number_all_modes
 
     # Import numerical PASTIS matrix

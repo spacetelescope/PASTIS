@@ -966,7 +966,7 @@ class MatrixIntensity(PastisMatrixIntensities):
                 file.write(f'Coronagraph floor: {telescope.contrast_floor}')
 
         if self.param.savepsfs:
-            ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.coro_psf, telescope.dh_mask.astype(bool), outpath)
+            ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.psf, telescope.dh_mask.astype(bool), outpath)
 
         if self.param.return_coro_simulator:
             return telescope.contrast_floor, telescope.norm, telescope.coro_simulator

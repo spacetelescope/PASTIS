@@ -59,7 +59,7 @@ class parameters():
     def def_saves(self):
         self.savepsfs = CONFIG_PASTIS.getboolean('save_data', 'save_psfs')
         self.saveopds = CONFIG_PASTIS.getboolean('save_data', 'save_opds')
-        self.saveefields = CONFIG_PASTIS.getboolean('save_data', 'saveefields')
+        self.saveefields = CONFIG_PASTIS.getboolean('save_data', 'save_efields')
         self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
         self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
 
