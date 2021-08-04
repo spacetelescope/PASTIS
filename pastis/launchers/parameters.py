@@ -9,7 +9,6 @@ from pastis.matrix_generation.matrix_building_numerical import MatrixIntensity
 from pastis.matrix_generation.matrix_from_efields import MatrixEfield
 from pastis.config import CONFIG_PASTIS
 
-
 log = logging.getLogger()
 
 
@@ -26,14 +25,12 @@ def gen_method(dir=''):
         gen = MatrixIntensity(initial_path=dir, param=param)
     elif method == 'Efield':
         gen = MatrixEfield(initial_path=dir, param=param)
-    elif method == 'both':
-        gen = MatrixIntensity(dir, param=param)
-        gen = MatrixEfield(dir, param=param)
     else:
         error_msg = f"{method} inside config.ini file is not a valid generation method!" \
-                    f"excepted intensity, Efield or both"
+                    f"excepted intensity or Efield"
         log.error(error_msg)
         raise ValueError(error_msg)
+    log.info(f'Start matrix generation with {method} method')
     return gen
 
 

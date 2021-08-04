@@ -14,7 +14,6 @@ import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_generation.matrix_building_numerical import PastisMatrix
 import pastis.plotting as ppl
 import pastis.util as util
-import pastis.e2e_simulators.telescopes
 
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
@@ -67,7 +66,7 @@ class PastisMatrixEfields(PastisMatrix):
     def calculate_efields(self):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
 
-        for i in range(self.number_all_modes):
+        for i in range(self.telescope.number_all_modes):
             self.efields_per_mode.append(self.calculate_one_mode(i))
         self.efields_per_mode = np.array(self.efields_per_mode)
 
@@ -247,7 +246,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
+        self.efield_ref = inter[-1].wavefront    # [-1] is the last optic = detector
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
@@ -280,7 +279,7 @@ class MatrixEfield(PastisMatrixEfields):
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
-        self.number_all_modes = self.param.telescope.number_all_modes
+        self.telescope.setup_deformable_mirror()
 
     def setup_single_mode_function(self):
         self.calculate_one_mode = functools.partial(general_matrix_single_mode, self.telescope, self.wfe_aber,
