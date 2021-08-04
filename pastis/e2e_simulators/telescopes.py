@@ -98,40 +98,6 @@ class LUVOIRA():
                                             CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
 
                 self.sim = LuvoirAPLC(self.optics_input, self.design, self.sampling)
-
-                #DM config
-                fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
-                pad_orientations = np.pi / 2 * np.ones(120)
-                self.which_dm = CONFIG_PASTIS.get('LUVOIR', 'DM')
-                self.dm_spec = (fpath, pad_orientations, False, True, False)
-
-                # Create directory names
-                tel_suffix = f'{self.instrument.lower()}'
-                if self.instrument == 'LUVOIR':
-                        if self.design is None:
-                                self.design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
-                        tel_suffix += f'-{self.design}'
-                self.overall_dir = util.create_data_path(initial_path, telescope=tel_suffix)
-                os.makedirs(self.overall_dir, exist_ok=True)
-                self.resDir = os.path.join(self.overall_dir, 'matrix_numerical')
-
-                # Create necessary directories if they don't exist yet
-                os.makedirs(self.resDir, exist_ok=True)
-                os.makedirs(os.path.join(self.resDir, 'OTE_images'), exist_ok=True)
-
-                # Set up logger
-                util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
-                log.info(f'Building numerical matrix for {tel_suffix}\n')
-
-                # Record some of the defined parameters
-                log.info(f'Instrument: {tel_suffix}')
-                log.info(f'Wavelength: {self.wvln} m')
-                log.info(f'Number of segments: {self.nb_seg}')
-                log.info(f'Segment list: {self.seglist}')
-                log.info(f'wfe_aber: {self.wfe_aber} m')
-
-                # Copy configfile to resulting matrix directory
-                util.copy_config(self.resDir)
                 self.parameters = pastis.launchers.parameters.parameters()
                 self.parameters.def_saves()
 
@@ -141,7 +107,8 @@ class LUVOIRA():
                 self.dh_mask = self.sim.dh_mask.shaped
 
                 # Calculate contrast normalization factor from direct PSF (intensity)
-                _unaberrated_coro_psf, self.direct_psf = self.sim.calc_psf(ref=True)
+                _unaberrated_coro_psf, psf = self.sim.calc_psf(ref=True)
+                self.direct_psf = psf.shaped
                 self.norm = self.direct_psf.max()
 
         def calculate_unaberrated_contrast(self):
@@ -166,12 +133,12 @@ class LUVOIRA():
                 if inst == None :
                         inst = self.sim
                 if self.parameters.saveopds:
-                        fit_psf, self.inter = self.sim.calc_psf(ref=False, display_intermediate=False,
+                        psf, self.inter = inst.calc_psf(ref=False, display_intermediate=False,
                                                     return_intermediate='intensity')
                 else:
-                        fit_psf = self.sim.calc_psf(ref=False, display_intermediate=False,
+                        psf = inst.calc_psf(ref=False, display_intermediate=False,
                                                            return_intermediate=None)
-                self.psf = fit_psf[0].data/self.norm
+                self.psf = (psf/self.norm).shaped
                 return self.psf
 
         def imaging_efield(self):
@@ -186,22 +153,27 @@ class LUVOIRA():
         def setup_deformable_mirror(self):
                 """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
 
+                #DM config
+                self.which_dm = CONFIG_PASTIS.get('LUVOIR', 'DM')
+
                 log.info('Setting up deformable mirror...')
                 if self.which_dm == 'seg_mirror':
-                        n_modes_segs = self.dm_spec
-                        log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
-                        self.sim.create_segmented_mirror(n_modes_segs)
-                        self.number_all_modes = self.sim.sm.num_actuators
+                        log.info(f'Creating segmented mirror with {self.nb_seg} local modes on each segment...')
+                        self.sim.create_segmented_mirror(self.nb_seg)
                         self.seg = self.sim.sm.set_segment()
                 elif self.which_dm == 'harris_seg_mirror':
-                        fpath, pad_orientations, therm, mech, other = self.dm_spec
+                        fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
+                        pad_orientations = np.pi / 2 * np.ones(120)
+                        therm = False
+                        mech = True
+                        other = False
                         log.info(f'Reading Harris spreadsheet from {fpath}')
                         log.info(f'Using pad orientations: {pad_orientations}')
                         self.sim.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
                         self.number_all_modes = self.sim.harris_sm.num_actuators
                         self.seg = self.sim.harris_sm.set_segment()
                 elif self.which_dm == 'zernike_mirror':
-                        n_modes_zernikes = self.dm_spec
+                        n_modes_zernikes = CONFIG_PASTIS.getin('zernikes','max_zern')
                         log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
                         self.sim.create_global_zernike_mirror(n_modes_zernikes)
                         self.number_all_modes = self.sim.zernike_mirror.num_actuators

@@ -130,6 +130,7 @@ class PastisMatrixIntensities(PastisMatrix):
 
         # Calculate coronagraph floor, and normalization factor from direct image
         self.calculate_ref_image()
+        self.setup_deformable_mirror()
         self.setup_one_pair_function()
         self.calculate_contrast_matrix()
         self.calculate_pastis_from_contrast_matrix()
@@ -209,6 +210,10 @@ class PastisMatrixIntensities(PastisMatrix):
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
 
+    @abstractmethod
+    def setup_deformable_mirror(self):
+        """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
+        pass
 
     @abstractmethod
     def setup_one_pair_function(self):
@@ -950,6 +955,10 @@ class MatrixIntensity(PastisMatrixIntensities):
 
         self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
                                                        self.param.savepsfs, self.param.saveopds)
+
+    def setup_deformable_mirror(self):
+        """DM setup not needed for RST, just define number of total modes"""
+        self.telescope.setup_deformable_mirror()
 
     def calculate_ref_image(self):
         """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """

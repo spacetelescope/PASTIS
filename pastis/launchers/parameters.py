@@ -36,7 +36,8 @@ def gen_method(dir=''):
 
 class parameters():
 
-    def __int__(self):
+    def __int__(self, initial_path=''):
+
         super().__init__()
 
     def def_telescope(self):
@@ -45,6 +46,8 @@ class parameters():
             self.telescope = pastis.e2e_simulators.telescopes.RST()
         elif self.instrument == 'JWST':
             self.telescope = pastis.e2e_simulators.telescopes.JWST()
+        elif self.instrument == 'LUVOIR':
+            self.telescope = pastis.e2e_simulators.telescopes.LUVOIRA()
         else:
             error_msg = f"{self.instrument} inside config.ini file is not a valid telescope name!" \
                         f"excepted JWST, RST, ATLAST, HiCAT or LUVOIR"
