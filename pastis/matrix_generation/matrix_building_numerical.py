@@ -586,7 +586,7 @@ def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopd
         # Save PSF image to disk
         if savepsfs:
             filename_psf = f'psf_segment_{mode_pair[0]}-{mode_pair[1]}'
-            hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'))
+            hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'),psf.shape)
 
         # Plot deformable mirror WFE and save to disk
         if saveopds:

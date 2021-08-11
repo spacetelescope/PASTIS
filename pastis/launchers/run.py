@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # Then generate hockey stick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='RST', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
+    hockeystick_curve(instrument='LUVOIR', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 
     #In development...
     # Finally run the analysis

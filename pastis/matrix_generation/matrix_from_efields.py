@@ -399,9 +399,9 @@ def general_matrix_single_mode(telescope, wfe_aber, resDir, saveefields, saveopd
     # Save E field image to disk
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'), efield_focal_plane.shape)
         fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'), efield_focal_plane.shape)
 
     # Plot deformable mirror WFE and save to disk
     if saveopds:

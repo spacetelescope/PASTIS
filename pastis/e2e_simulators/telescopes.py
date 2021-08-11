@@ -42,6 +42,7 @@ class RST():
                 '''Calcul an underrated contrast, usually needs one execution of normalization_and_dark_hole'''
                 self.flatten()
                 self.coro_simulator = self.sim
+                self.direct_psf = self.psf
 
                 # Calculate coronagraph floor in dark hole
                 self.contrast_floor = self.contrast()
@@ -89,7 +90,7 @@ class LUVOIRA():
         def __init__(self, initial_path=''):
                 # General telescope parameters
                 self.design = CONFIG_PASTIS.get('LUVOIR', 'design')
-                self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+                self.number_all_modes = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
                 self.seglist = util.get_segment_list(self.instrument)
                 self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
                 self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
@@ -107,9 +108,9 @@ class LUVOIRA():
                 self.dh_mask = self.sim.dh_mask.shaped
 
                 # Calculate contrast normalization factor from direct PSF (intensity)
-                _unaberrated_coro_psf, psf = self.sim.calc_psf(ref=True)
+                psf, direct = self.sim.calc_psf(ref=True)
+                self.norm = direct.max()
                 self.direct_psf = psf.shaped
-                self.norm = self.direct_psf.max()
 
         def calculate_unaberrated_contrast(self):
                 '''Calcul an underrated contrast, usually needs one execution of normalization_and_dark_hole'''
@@ -126,24 +127,26 @@ class LUVOIRA():
                 return []
 
         def push_mode(self, mode, amplitude):
-                self.seg.set_segment(mode+1, amplitude / 2, 0, 0)
+                self.seg.set_segment(mode+1, amplitude /2, 0, 0)
 
         def imaging_psf(self, inst=None):
 
                 if inst == None :
                         inst = self.sim
                 if self.parameters.saveopds:
-                        psf, self.inter = inst.calc_psf(ref=False, display_intermediate=False,
+                        psf, inter = inst.calc_psf(ref=False, display_intermediate=False,
                                                     return_intermediate='intensity')
+                        self.inter = inter['seg_mirror']
                 else:
                         psf = inst.calc_psf(ref=False, display_intermediate=False,
                                                            return_intermediate=None)
-                self.psf = (psf/self.norm).shaped
+                self.psf = (psf.shaped/self.norm)
                 return self.psf
 
         def imaging_efield(self):
-                efield_focal_plane , self.inter = self.sim.calc_psf(return_intermediate='efield')
-                self.efield = efield_focal_plane.electric_field
+                efield_focal_plane , inter = self.sim.calc_psf(return_intermediate='efield')
+                self.efield = efield_focal_plane.electric_field.shaped
+                self.inter = inter['seg_mirror'].phase
                 return self.efield
 
         def contrast(self):
@@ -155,12 +158,14 @@ class LUVOIRA():
 
                 #DM config
                 self.which_dm = CONFIG_PASTIS.get('LUVOIR', 'DM')
+                self.dm_modes = CONFIG_PASTIS.getint('zernikes', 'max_zern')
 
                 log.info('Setting up deformable mirror...')
+                #TODO Check harris_seg
                 if self.which_dm == 'seg_mirror':
-                        log.info(f'Creating segmented mirror with {self.nb_seg} local modes on each segment...')
-                        self.sim.create_segmented_mirror(self.nb_seg)
-                        self.seg = self.sim.sm.set_segment()
+                        log.info(f'Creating segmented mirror with {self.dm_modes} local modes on each segment...')
+                        self.sim.create_segmented_mirror(self.dm_modes)
+                        self.seg = self.sim.sm
                 elif self.which_dm == 'harris_seg_mirror':
                         fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
                         pad_orientations = np.pi / 2 * np.ones(120)
@@ -171,20 +176,22 @@ class LUVOIRA():
                         log.info(f'Using pad orientations: {pad_orientations}')
                         self.sim.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
                         self.number_all_modes = self.sim.harris_sm.num_actuators
-                        self.seg = self.sim.harris_sm.set_segment()
+                        self.seg = self.sim.harris_sm
                 elif self.which_dm == 'zernike_mirror':
-                        n_modes_zernikes = CONFIG_PASTIS.getin('zernikes','max_zern')
-                        log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
-                        self.sim.create_global_zernike_mirror(n_modes_zernikes)
+                        log.info(f'Creating global Zernike mirror with {self.dm_modes} global modes...')
+                        self.sim.create_global_zernike_mirror(self.dm_modes)
                         self.number_all_modes = self.sim.zernike_mirror.num_actuators
                         self.seg = self.sim.zernike_mirror.set_segment()
                 else:
-                        raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
+                        self.seg = self.sim
+                        if self.which_dm != 'default':
+                                log.info(f'DM with name "{self.which_dm}" not recognized.')
+                        log.info('Default mode is on')
 
                 log.info(f'Total number of modes: {self.number_all_modes}')
 
         def display_opd(self):
-                hcipy.imshow_field(self.inter['seg_mirror'], grid=self.sim.aperture.grid, mask=self.sim.aperture, cmap='RdBu')
+                hcipy.imshow_field(self.inter, grid=self.sim.aperture.grid, mask=self.sim.aperture, cmap='RdBu')
 
 class MODEL():
         '''This is minial template for a new telescope implementation all parameter inside are necessary replace every #message#'''
@@ -201,14 +208,10 @@ class MODEL():
 
                 # Calculate direct reference images for contrast normalization
                 self.flatten()
-                rst_direct = self.sim.raw_coronagraph()
-                self.direct_psf = self.imaging_psf(inst=rst_direct)
-                self.norm = self.direct_psf.max()
+                self.direct_psf
+                self.norm
 
-                self.iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
-                self.owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-                self.sim.working_area(im=self.direct_psf, inner_rad=self.iwa, outer_rad=self.owa)
-                self.dh_mask = self.sim.WA
+                self.dh_mask
 
         def calculate_unaberrated_contrast(self):
                 self.flatten()
@@ -223,19 +226,14 @@ class MODEL():
                 return []
 
         def push_mode(self, mode, amplitude):
-                actu_x, actu_y = util.seg_to_dm_xy(self.nb_actu, mode)
-                self.sim.dm1.set_actuator(actu_x, actu_y, amplitude)
+                pass
 
         def imaging_psf(self, inst=None):
-                if inst == None :
-                        inst = self.sim
-                fit_psf = inst.calc_psf(nlambda=1, fov_arcsec=1.6)
-                self.psf = fit_psf[0].data/self.norm
+
                 return self.psf
 
         def imaging_efield(self):
-                _psf , inter = self.sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-                self.efield = inter[-1].wavefront
+
                 return self.efield
 
         def contrast(self):
