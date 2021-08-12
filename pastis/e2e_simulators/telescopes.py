@@ -7,6 +7,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import hcipy
+import re
 
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
@@ -98,6 +99,9 @@ class LUVOIRA():
                 self.optics_input = os.path.join(util.find_repo_location(),
                                             CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
 
+                self.dm_modes_list = [0]
+                self.dm_modes_max = 1
+
                 self.sim = LuvoirAPLC(self.optics_input, self.design, self.sampling)
                 self.parameters = pastis.launchers.parameters.parameters()
                 self.parameters.def_saves()
@@ -127,7 +131,19 @@ class LUVOIRA():
                 return []
 
         def push_mode(self, mode, amplitude):
-                self.seg.set_segment(mode+1, amplitude /2, 0, 0)
+                mode_type = (mode % self.dm_modes_max)+1
+                if mode_type in self.dm_modes_list or 0 in self.dm_modes_list:
+                        if self.which_dm == 'default':
+                                if mode_type ==  1 :
+                                        self.dm_mode.set_segment(mode%self.dm_modes_max+1, amplitude /2, 0, 0)
+                                elif mode_type == 2 :
+                                        self.dm_mode.set_segment(mode%self.dm_modes_max+1, 0, amplitude /2, 0)
+                                elif mode_type == 3 :
+                                        self.dm_mode.set_segment(mode%self.dm_modes_max+1, 0, 0, amplitude /2)
+                        else:
+                                all_modes = np.zeros(self.number_all_modes)
+                                all_modes[mode] = amplitude / 2
+                                self.dm_mode.actuators = all_modes
 
         def imaging_psf(self, inst=None):
 
@@ -158,35 +174,51 @@ class LUVOIRA():
 
                 #DM config
                 self.which_dm = CONFIG_PASTIS.get('LUVOIR', 'DM')
-                self.dm_modes = CONFIG_PASTIS.getint('zernikes', 'max_zern')
+                self.dm_modes_max = CONFIG_PASTIS.getint('LUVOIR', 'DM_mode')
+
+                dm_modes_list = CONFIG_PASTIS.get('LUVOIR', 'DM_mode_select')
+                dm_modes_list = map(int, re.findall(r'\d+', dm_modes_list)) #Find integer
+                self.dm_modes_list = list(set(dm_modes_list)) #return unique items
+
+                if np.max(self.dm_modes_list) > self.dm_modes_max :
+                        error_msg = "one or more DM_mode_select in LUVOIR section inside config file is/are higher than DM_mode!"
+                        log.error(error_msg)
+                        raise ValueError(error_msg)
 
                 log.info('Setting up deformable mirror...')
-                #TODO Check harris_seg
                 if self.which_dm == 'seg_mirror':
-                        log.info(f'Creating segmented mirror with {self.dm_modes} local modes on each segment...')
-                        self.sim.create_segmented_mirror(self.dm_modes)
-                        self.seg = self.sim.sm
-                elif self.which_dm == 'harris_seg_mirror':
+                        log.info(f'Creating segmented mirror with {self.dm_modes_max} local modes on each segment...')
+                        self.sim.create_segmented_mirror(self.dm_modes_max)
+                        self.number_all_modes = self.sim.sm.num_actuators
+                        self.dm_mode = self.sim.sm
+                elif self.which_dm == 'harris_seg_mirror': #TODO TEST IT
                         fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
                         pad_orientations = np.pi / 2 * np.ones(120)
-                        therm = False
-                        mech = True
-                        other = False
+                        therm = CONFIG_PASTIS.getboolean('LUVOIR', 'therm')
+                        mech = CONFIG_PASTIS.getboolean('LUVOIR', 'mech')
+                        other = CONFIG_PASTIS.getboolean('LUVOIR', 'other')
                         log.info(f'Reading Harris spreadsheet from {fpath}')
                         log.info(f'Using pad orientations: {pad_orientations}')
                         self.sim.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
                         self.number_all_modes = self.sim.harris_sm.num_actuators
-                        self.seg = self.sim.harris_sm
+                        self.dm_mode = self.sim.harris_sm
+                        self.dm_modes_max = 1
                 elif self.which_dm == 'zernike_mirror':
-                        log.info(f'Creating global Zernike mirror with {self.dm_modes} global modes...')
-                        self.sim.create_global_zernike_mirror(self.dm_modes)
+                        log.info(f'Creating global Zernike mirror with {self.dm_modes_max} global modes...')
+                        self.sim.create_global_zernike_mirror(self.dm_modes_max)
                         self.number_all_modes = self.sim.zernike_mirror.num_actuators
-                        self.seg = self.sim.zernike_mirror.set_segment()
+                        self.dm_mode = self.sim.zernike_mirror
                 else:
-                        self.seg = self.sim
+                        self.dm_mode = self.sim
                         if self.which_dm != 'default':
                                 log.info(f'DM with name "{self.which_dm}" not recognized.')
-                        log.info('Default mode is on')
+                                self.which_dm = 'default'
+                        log.info('Default mirror is on')
+                        if np.max(self.dm_modes_max) > self.dm_modes_max:
+                                error_msg = f"DM_mode={self.dm_modes_max}in LUVOIR section inside config file is higher than 3!"
+                                log.error(error_msg)
+                                raise ValueError(error_msg)
+                        self.number_all_modes *= self.dm_modes_max
 
                 log.info(f'Total number of modes: {self.number_all_modes}')
 
