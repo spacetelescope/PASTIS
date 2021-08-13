@@ -79,7 +79,7 @@ class PastisMatrix(ABC):
         # Record some of the defined parameters
         log.info(f'Instrument: {tel_suffix}')
         log.info(f'Wavelength: {self.wvln} m')
-        log.info(f'Number of segments: {self.nb_seg}')
+        log.info(f'Number of modes: {self.nb_seg}')
         log.info(f'Segment list: {self.seglist}')
         log.info(f'wfe_aber: {self.wfe_aber} m')
 
@@ -131,6 +131,8 @@ class PastisMatrixIntensities(PastisMatrix):
         # Calculate coronagraph floor, and normalization factor from direct image
         self.calculate_ref_image()
         self.setup_deformable_mirror()
+        if self.general:
+            self.nb_seg = self.telescope.number_all_modes
         self.setup_one_pair_function()
         self.calculate_contrast_matrix()
         self.calculate_pastis_from_contrast_matrix()
@@ -848,6 +850,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     instrument = 'LUVOIR'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
@@ -875,6 +878,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        self.general = False
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
@@ -898,6 +902,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
     instrument = 'JWST'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
@@ -921,6 +926,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
@@ -946,6 +952,7 @@ class MatrixIntensity(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     instrument = CONFIG_PASTIS.get('telescope', 'name')
+    general = True  # temp attribut to not break legacy
 
     def __int__(self, initial_path='', param=None):
         super().__init__(design=None, param=param)

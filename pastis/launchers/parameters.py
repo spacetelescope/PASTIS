@@ -10,9 +10,9 @@ from pastis.matrix_generation.matrix_from_efields import MatrixEfield
 from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
+init_path = CONFIG_PASTIS.get('local', 'local_data_path')
 
-
-def gen_method(dir=''):
+def gen_method(dir=init_path):
     '''
     Select the right matrix generator
     '''

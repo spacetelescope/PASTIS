@@ -17,6 +17,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pastis.config
 
 from pastis.config import CONFIG_PASTIS
 import pastis.contrast_calculation_simple as consim
@@ -198,6 +199,92 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
     runtime = end_time - start_time
     log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
+
+def hockeystick_curve_class(dir_run=None):
+    """
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for one particular instrument.
+
+    The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
+    used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
+    want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
+    mean of this set of results in a figure that shows contrast vs. WFE rms error.
+
+    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
+    :param apodizer_choice: string, needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
+    :param matrixdir: string, Path to matrix that should be used.
+    :param resultdir: string, Path to directory where results will be saved.
+    :param range_points: int, How many points of WFE rms error to use in the predefined aberration range.
+    :param no_realizations: int, How many realizations per WFE rms error should be calculated; the mean of the realizations
+                                is used in the plot
+    :return:
+    """
+
+
+    # d=paths
+    matrixdir = os.path.join(dir_run, 'results')
+    resultdir = os.path.join(dir_run, 'matrix_numerical')
+    config_file = pastis.config.load_config_ini(dir_run)
+
+    if instrument == 'LUVOIR' and apodizer_choice is None:
+        raise ValueError('Need to specify apodizer_choice when working with LUVOIR instrument.')
+
+    # Keep track of time
+    start_time = time.time()
+
+    # Create range of WFE RMS values to test
+    rms_range = np.logspace(config_file.getfloat(instrument, 'valid_range_lower'),
+                            config_file.getfloat(instrument, 'valid_range_upper'),
+                            range_points)
+
+    # Create results directory if it doesn't exist yet
+    os.makedirs(resultdir, exist_ok=True)
+
+    # Calculate coronagraph floor, and normalization factor from direct image
+    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice, return_coro_simulator=False)
+
+    # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
+    e2e_contrasts = []        # contrasts from E2E sim
+    matrix_contrasts = []     # contrasts from matrix PASTIS
+
+    log.info("WFE RMS range: {} nm".format(rms_range, fmt="%e"))
+    log.info(f"Random realizations: {no_realizations}")
+
+    for i, rms in enumerate(rms_range):
+
+        rms *= u.nm  # Making sure this has the correct units
+
+        e2e_rand = []
+        matrix_rand = []
+
+        for j in range(no_realizations):
+            log.info("CALCULATING CONTRAST FOR {:.4f}".format(rms))
+            log.info(f"WFE RMS number {i + 1}/{len(rms_range)}")
+            log.info(f"Random realization: {j+1}/{no_realizations}")
+            log.info(f"Total: {(i*no_realizations)+(j+1)}/{len(rms_range)*no_realizations}")
+
+            c_e2e, c_matrix = consim.contrast_general_num(matrix_dir=matrixdir, rms=rms)
+            e2e_rand.append(c_e2e)
+            matrix_rand.append(c_matrix)
+
+        e2e_contrasts.append(np.mean(e2e_rand))
+        matrix_contrasts.append(np.mean(matrix_rand))
+
+    # Save contrasts and rms range
+    np.savetxt(os.path.join(resultdir, 'hockey_rms_range.txt'), rms_range)
+    np.savetxt(os.path.join(resultdir, 'hockey_e2e_contrasts.txt'), e2e_contrasts)
+    np.savetxt(os.path.join(resultdir, 'hockey_matrix_contrasts.txt'), matrix_contrasts)
+
+    # Plot
+    plt.clf()
+    ppl.plot_hockey_stick_curve(rms_range, matrix_contrasts, e2e_contrasts,
+                                wvln=config_file.getfloat(instrument, 'lambda'),
+                                out_dir=resultdir,
+                                fname_suffix=f'{no_realizations}_realizations_each',
+                                save=True)
+
+    end_time = time.time()
+    runtime = end_time - start_time
+    log.info(f'\nTotal runtime for pastis_vs_e2e_contrast_calc.py: {runtime} sec = {runtime/60} min')
 
 if __name__ == '__main__':
 

@@ -87,7 +87,6 @@ class LUVOIRA():
 
         instrument = 'LUVOIR'
 
-
         def __init__(self, initial_path=''):
                 # General telescope parameters
                 self.design = CONFIG_PASTIS.get('LUVOIR', 'design')
@@ -188,10 +187,14 @@ class LUVOIRA():
                 log.info('Setting up deformable mirror...')
                 if self.which_dm == 'seg_mirror':
                         log.info(f'Creating segmented mirror with {self.dm_modes_max} local modes on each segment...')
+                        if np.max(self.dm_modes_max) > 3:
+                                error_msg = f"DM_mode={self.dm_modes_max} in LUVOIR section inside config file is higher than 3!"
+                                log.error(error_msg)
+                                raise ValueError(error_msg)
                         self.sim.create_segmented_mirror(self.dm_modes_max)
                         self.number_all_modes = self.sim.sm.num_actuators
                         self.dm_mode = self.sim.sm
-                elif self.which_dm == 'harris_seg_mirror': #TODO TEST IT
+                elif self.which_dm == 'harris_seg_mirror': #TODO Test it
                         fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
                         pad_orientations = np.pi / 2 * np.ones(120)
                         therm = CONFIG_PASTIS.getboolean('LUVOIR', 'therm')
@@ -214,8 +217,8 @@ class LUVOIRA():
                                 log.info(f'DM with name "{self.which_dm}" not recognized.')
                                 self.which_dm = 'default'
                         log.info('Default mirror is on')
-                        if np.max(self.dm_modes_max) > self.dm_modes_max:
-                                error_msg = f"DM_mode={self.dm_modes_max}in LUVOIR section inside config file is higher than 3!"
+                        if np.max(self.dm_modes_max) > 3:
+                                error_msg = f"DM_mode={self.dm_modes_max} in LUVOIR section inside config file is higher than 3!"
                                 log.error(error_msg)
                                 raise ValueError(error_msg)
                         self.number_all_modes *= self.dm_modes_max
@@ -276,8 +279,7 @@ class MODEL():
                 pass
 
         def display_opd(self):
-                line = int(np.sqrt(self.number_all_modes))
-                plt.figure(figsize=(self.nb_actu, self.nb_actu))
-                self.sim.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
-                     title='Aberrated actuator pair')
+                ""
+                pass
+
 

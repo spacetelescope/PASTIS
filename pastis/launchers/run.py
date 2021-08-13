@@ -13,7 +13,7 @@ import pastis.launchers.parameters as parameters
 if __name__ == '__main__':
     initial_path = CONFIG_PASTIS.get('local', 'local_data_path')
 
-    run_matrix = parameters.gen_method(dir=initial_path)
+    run_matrix = parameters.gen_method()
 
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
@@ -27,7 +27,8 @@ if __name__ == '__main__':
     # Then generate hockey stick curve
     result_dir = os.path.join(dir_run, 'results')
     matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve(instrument='LUVOIR', matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
+    hockeystick_curve_class()
+    hockeystick_curve(instrument=CONFIG_PASTIS.get('telescope', 'name'), apodizer_choice=CONFIG_PASTIS.get('LUVOIR', 'design'), matrixdir=matrix_dir, resultdir=result_dir, range_points=30, no_realizations=1)
 
     #In development...
     # Finally run the analysis

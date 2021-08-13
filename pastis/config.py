@@ -20,9 +20,12 @@ def get_config_ini_path():
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file_name)
 
 
-def load_config_ini():
+def load_config_ini(dir=None):
     # Locate where on disk this file is.
-    code_directory = os.path.dirname(os.path.realpath(__file__))
+    if dir == None:
+        code_directory = os.path.dirname(os.path.realpath(__file__))
+    else:
+        code_directory = dir
 
     # Read config file once here.
     config = configparser.ConfigParser()
