@@ -331,7 +331,7 @@ def calculate_segment_constraints(pastismatrix, c_target, coronagraph_floor):
     return mu_map
 
 
-def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
+def calc_random_segment_configuration(instrument, sim_instance, Cth, v_matrix, mus, dh_mask, norm_direct):
     """
     Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
     :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
@@ -344,8 +344,15 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     """
 
     # Create a random set of segment weights with mus as stddevs in the normal distribution
-    segments_random_state = np.random.RandomState()
-    random_weights = segments_random_state.normal(0, mus) * u.nm
+    #segments_random_state = np.random.RandomState()
+    #random_weights = segments_random_state.normal(0, mus) * u.nm
+
+    # Draw random set of mode weights from sigmas as stddevs in a normal distribution
+    modes_random_state = np.random.RandomState()
+    random_mode_weights = modes_random_state.normal(0, np.diag(Cth)) * u.nm
+
+    # Transform the set of mode weights into a set (vector) of segment weights: a = U dot b
+    random_weights = np.dot(v_matrix, random_mode_weights)
 
     # Apply random aberration to E2E simulator
     if instrument == "LUVOIR":
@@ -448,15 +455,15 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     """
 
     # Which parts are we running?
-    calculate_modes = True
-    calculate_sigmas = True
-    run_monte_carlo_modes = True
-    calc_cumulative_contrast = True
-    calculate_mus = True
+    calculate_modes = False
+    calculate_sigmas = False
+    run_monte_carlo_modes = False
+    calc_cumulative_contrast = False
+    calculate_mus = False
     run_monte_carlo_segments = True
-    calculate_covariance_matrices = True
-    analytical_statistics = True
-    calculate_segment_based = True
+    calculate_covariance_matrices = False
+    analytical_statistics = False
+    calculate_segment_based = False
 
     # Data directory
     workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
@@ -615,7 +622,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
     else:
         log.info('Loading uniform cumulative contrast from disk.')
-        cumulative_e2e = np.loadtxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'))
+        #cumulative_e2e = np.loadtxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'))
 
     ### Calculate segment-based static constraints
     if calculate_mus:
@@ -656,11 +663,20 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
     else:
         log.info(f'Reading mus from {workdir}')
-        mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
+        #mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
+        mus = np.arange(120)
         mus *= u.nm
 
     ### Calculate Monte Carlo confirmation for segments, with E2E
     if run_monte_carlo_segments:
+
+        ### Read Ca form analysis
+        Ca = fits.getdata('/Users/ilaginja/Documents/MakidonLabWork/ultra/scda_LUVOIR_OPDtimeseries/Ca.fits')
+        # Calculate Cth
+        v_matrix, th_vals, v_T = np.linalg.svd(Ca, full_matrices=True)
+        Cth = np.diag(th_vals)
+        ###
+
         log.info('\nRunning Monte Carlo simulation for segments')
         # Keep track of time
         start_monte_carlo_seg = time.time()
@@ -669,7 +685,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         all_random_maps = []
         for rep in range(n_repeat):
             log.info(f'Segment realization {rep + 1}/{n_repeat}')
-            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm)
+            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, Cth, v_matrix, mus, dh_mask, norm)
             all_random_maps.append(random_map)
             all_contr_rand_seg.append(one_contrast_seg)
 
