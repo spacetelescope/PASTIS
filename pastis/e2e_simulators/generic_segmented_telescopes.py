@@ -481,8 +481,8 @@ class Telescope:
                                                                          phase_step=step,
                                                                          phase_dot_diameter=spot_diam,
                                                                          num_pix=spot_points,
-                                                                         pupil_diameter=1/self.diam,
-                                                                         reference_wavelength=1/self.wvln)
+                                                                         pupil_diameter=self.diam,
+                                                                         reference_wavelength=self.wvln)
 
     def calc_out_of_band_wfs(self, norm_one_photon=False):
         """ Propagate pupil through an out-of-band wavefront sensor.
