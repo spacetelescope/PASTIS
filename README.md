@@ -388,6 +388,21 @@ The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_
 ### HiCAT
 The HiCAT simulator is private and its support is only provided for internal use.
 
+### HiCAT
+The HiCAT simulator is private and its support is only provided for internal use.
+
+HiCAT-PASTIS compatible conda env:
+1. Clone the PASTIS repo
+2. Create a hicat env with a custom <env-name> as described in https://github.com/spacetelescope/hicat-package#installation
+3. `$ conda activate <env-name>`
+4. `$ pip uninstall pastis`
+5. `$ cd ../PASTIS`
+6. `$ git checkout develop`
+7. `$ python setup.py develop`
+8. `$ conda install pypdf2`
+9. `$ conda install progressbar2`
+10. `$ pip install fpdf`
+
 
 ## Jupyter notebooks
 
