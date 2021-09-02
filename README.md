@@ -385,7 +385,6 @@ webbpsf_data_path = ...
 
 The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_jwst.py`.
 
-
 ### HiCAT
 The HiCAT simulator is private and its support is only provided for internal use.
 
