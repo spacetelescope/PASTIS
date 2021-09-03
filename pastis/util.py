@@ -688,3 +688,10 @@ def seg_to_dm_xy(actuator_total, segment):
     actuator_pair_y = (segment-actuator_pair_x)/actuator_total
 
     return actuator_pair_x, int(actuator_pair_y)
+
+
+def last_folder():
+    local_path = CONFIG_PASTIS.get('local', 'local_data_path')
+    list_of_folder = glob.glob(local_path)
+    latest_folder = max(list_of_folder, key=os.path.getctime)
+    print(list_of_folder)

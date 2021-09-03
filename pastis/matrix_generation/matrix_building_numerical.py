@@ -4,6 +4,7 @@ and saves it.
 
  Currently supported:
  JWST
+ RST
  LUVOIR
  HiCAT
 """
