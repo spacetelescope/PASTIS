@@ -43,7 +43,7 @@ class RST():
                 '''Calcul an underrated contrast, usually needs one execution of normalization_and_dark_hole'''
                 self.flatten()
                 self.coro_simulator = self.sim
-                self.direct_psf = self.psf
+                self.unaberrated = self.imaging_psf()
 
                 # Calculate coronagraph floor in dark hole
                 self.contrast_floor = self.contrast()
@@ -119,6 +119,7 @@ class LUVOIRA():
                 '''Calcul an underrated contrast, usually needs one execution of normalization_and_dark_hole'''
                 self.flatten()
                 self.sim.calc_psf(ref=True)
+                self.unaberrated = self.imaging_psf()
                 self.coro_simulator = self.sim
 
                 # Calculate coronagraph floor in dark hole
