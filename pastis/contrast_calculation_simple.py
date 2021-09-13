@@ -466,8 +466,6 @@ def contrast_general_num(matrix_dir, rms=50*u.nm):
     """
     Compute the contrast for a random aberration over all DM actuators in the RST simulator.
 
-    :param coro_floor: float, coronagraph contrast floor
-    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
     :param matrix_dir: str, directory of saved matrix
     :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire continuous mirror
     :return: 2x float, E2E and matrix contrast

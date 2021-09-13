@@ -12,8 +12,8 @@ import pastis.launchers.parameters as parameters
 
 if __name__ == '__main__':
     run_gen = CONFIG_PASTIS.getboolean('generation','run')
-    run_hockey = CONFIG_PASTIS.getboolean('hockeystick','hockeystick_curve')
-    run_analysis = CONFIG_PASTIS.getboolean('analysis','run_analysis')
+    run_hockey = CONFIG_PASTIS.getboolean('hockeystick','run')
+    run_analysis = CONFIG_PASTIS.getboolean('analysis','run')
 
     #Generate PASTIS matrix
     if run_gen :

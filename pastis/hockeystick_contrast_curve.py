@@ -202,20 +202,14 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
 
 def hockeystick_curve_class(dir_run=None):
     """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for one particular instrument.
+    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for class telescope instrument.
 
     The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
     used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
-    :param apodizer_choice: string, needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
-    :param matrixdir: string, Path to matrix that should be used.
-    :param resultdir: string, Path to directory where results will be saved.
-    :param range_points: int, How many points of WFE rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per WFE rms error should be calculated; the mean of the realizations
-                                is used in the plot
+    :param dir_run: string, indicate direction of matrix folder
     :return:
     """
 
