@@ -28,7 +28,6 @@ from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.plotting as ppl
 
-
 log = logging.getLogger()
 matplotlib.rc('image', origin='lower')
 matplotlib.rc('pdf', fonttype=42)
@@ -42,6 +41,7 @@ class PastisMatrix(ABC):
     """
 
     instrument = None
+
     def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
@@ -97,7 +97,6 @@ class PastisMatrixIntensities(PastisMatrix):
 
     Contrast matrix calculation is multiprocessed.
     """
-
     instrument = None
 
     def __init__(self, design=None, initial_path='', param=None):
