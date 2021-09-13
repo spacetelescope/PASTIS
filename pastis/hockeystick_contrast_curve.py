@@ -221,12 +221,13 @@ def hockeystick_curve_class(dir_run=None):
 
 
     # d=paths
-    matrixdir = os.path.join(dir_run, 'results')
-    resultdir = os.path.join(dir_run, 'matrix_numerical')
-    config_file = pastis.config.load_config_ini(dir_run)
+    resultdir = os.path.join(dir_run, 'results')
+    matrixdir = os.path.join(dir_run, 'matrix_numerical')
+    config_file = pastis.config.load_config_ini(matrixdir)
+    instrument = config_file.get('telescope', 'name')
+    range_points = config_file.getint('hockeystick', 'range_points')
+    no_realizations = config_file.getint('hockeystick', 'no_realizations')
 
-    if instrument == 'LUVOIR' and apodizer_choice is None:
-        raise ValueError('Need to specify apodizer_choice when working with LUVOIR instrument.')
 
     # Keep track of time
     start_time = time.time()
@@ -238,9 +239,6 @@ def hockeystick_curve_class(dir_run=None):
 
     # Create results directory if it doesn't exist yet
     os.makedirs(resultdir, exist_ok=True)
-
-    # Calculate coronagraph floor, and normalization factor from direct image
-    contrast_floor, norm = calculate_unaberrated_contrast_and_normalization(instrument, apodizer_choice, return_coro_simulator=False)
 
     # Loop over different RMS values and calculate contrast with MATRIX PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim

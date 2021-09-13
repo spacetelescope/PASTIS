@@ -692,6 +692,7 @@ def seg_to_dm_xy(actuator_total, segment):
 
 def last_folder():
     local_path = CONFIG_PASTIS.get('local', 'local_data_path')
-    list_of_folder = glob.glob(local_path)
+    list_of_folder = glob.glob(os.path.join(local_path, '*/'))
     latest_folder = max(list_of_folder, key=os.path.getctime)
-    print(list_of_folder)
+
+    return latest_folder

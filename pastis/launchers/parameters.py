@@ -7,6 +7,7 @@ import logging
 import pastis.e2e_simulators.telescopes
 from pastis.matrix_generation.matrix_building_numerical import MatrixIntensity
 from pastis.matrix_generation.matrix_from_efields import MatrixEfield
+import pastis.util as util
 from pastis.config import CONFIG_PASTIS
 
 log = logging.getLogger()
@@ -32,6 +33,14 @@ def gen_method(dir=init_path):
         raise ValueError(error_msg)
     log.info(f'Start matrix generation with {method} method')
     return gen
+
+def dir_analysis(dir=init_path):
+    dir_name = CONFIG_PASTIS.get('local', 'analysis_name')
+    if dir_name == 'last' :
+        dir_ana = util.last_folder()
+    else :
+        dir_ana = dir + dir_name
+    return dir_ana
 
 
 class parameters():
@@ -62,6 +71,17 @@ class parameters():
         self.saveefields = CONFIG_PASTIS.getboolean('save_data', 'save_efields')
         self.save_coro_floor = CONFIG_PASTIS.getboolean('save_data', 'save_coro_floor')
         self.return_coro_simulator = CONFIG_PASTIS.getboolean('save_data', 'coro_simulator')
+
+    def def_analysis(self):
+        self.calculate_modes = CONFIG_PASTIS.getboolean('analysis','calculate_modes')
+        self.calculate_sigmas = CONFIG_PASTIS.getboolean('analysis','calculate_sigmas')
+        self.run_monte_carlo_modes = CONFIG_PASTIS.getboolean('analysis','run_monte_carlo_modes')
+        self.calc_cumulative_contrast = CONFIG_PASTIS.getboolean('analysis','calc_cumulative_contrast')
+        self.calculate_mus = CONFIG_PASTIS.getboolean('analysis','calculate_mus')
+        self.run_monte_carlo_segments = CONFIG_PASTIS.getboolean('analysis','run_monte_carlo_segments')
+        self.calculate_covariance_matrices = CONFIG_PASTIS.getboolean('analysis','calculate_covariance_matrices')
+        self.analytical_statistics = CONFIG_PASTIS.getboolean('analysis','analytical_statistics')
+        self.calculate_segment_based = CONFIG_PASTIS.getboolean('analysis','calculate_segment_based')
 
     def log_off(self):
         mplfm_logger = logging.getLogger('matplotlib.font_manager')

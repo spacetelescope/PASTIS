@@ -104,6 +104,11 @@ class LUVOIRA():
                 self.sim = LuvoirAPLC(self.optics_input, self.design, self.sampling)
                 self.parameters = pastis.launchers.parameters.parameters()
                 self.parameters.def_saves()
+                self.parameters.def_analysis()
+
+                if self.design is None and self.parameters.hockeystick_curve :
+                        raise ValueError(
+                                'Need to specify apodizer_choice when woant plot hockeystick curve with LUVOIR instrument.')
 
         def normalization_and_dark_hole(self):
                 # Calculate direct reference images for contrast normalization

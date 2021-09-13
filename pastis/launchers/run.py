@@ -11,24 +11,27 @@ import pastis.launchers.parameters as parameters
 
 
 if __name__ == '__main__':
-    initial_path = CONFIG_PASTIS.get('local', 'local_data_path')
+    run_gen = CONFIG_PASTIS.getboolean('generation','run')
+    run_hockey = CONFIG_PASTIS.getboolean('hockeystick','hockeystick_curve')
+    run_analysis = CONFIG_PASTIS.getboolean('analysis','run_analysis')
 
-    run_matrix = parameters.gen_method()
-
-    run_matrix.calc()
-    dir_run = run_matrix.overall_dir
-
-    # Alternatively, pick data location to run PASTIS analysis on
-    # dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), '2020-08-26T00-00-00_rst')
+    #Generate PASTIS matrix
+    if run_gen :
+        run_matrix = parameters.gen_method()
+        run_matrix.calc()
 
     # Set up loggers for data analysis
-    util.setup_pastis_logging(dir_run, 'pastis_analysis')
+    if run_hockey or run_analysis :
+        dir_run = parameters.dir_analysis()
+        util.setup_pastis_logging(dir_run, 'pastis_analysis')
+        result_dir = os.path.join(dir_run, 'results')
+        matrix_dir = os.path.join(dir_run, 'matrix_numerical')
 
     # Then generate hockey stick curve
-    result_dir = os.path.join(dir_run, 'results')
-    matrix_dir = os.path.join(dir_run, 'matrix_numerical')
-    hockeystick_curve_class(dir_run)
+    if run_hockey :
+        hockeystick_curve_class(dir_run)
 
     #In development...
     # Finally run the analysis
-    #run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
+    #if run_analysis :
+        #run_full_pastis_analysis(instrument='RST', run_choice=dir_run, c_target=1e-8)
