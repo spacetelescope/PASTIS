@@ -949,7 +949,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 
 
 class MatrixIntensity(PastisMatrixIntensities):
-    """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
+    """ Calculate a PASTIS matrix for telescope class, using intensity images. """
 
     instrument = CONFIG_PASTIS.get('telescope', 'name')
     general = True  # temp attribut to not break legacy
@@ -958,13 +958,13 @@ class MatrixIntensity(PastisMatrixIntensities):
         super().__init__(design=None, param=param)
 
     def setup_one_pair_function(self):
-        """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
+        """ Create the partial function that returns the PSF of a single aberrated mode pair. """
 
         self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
                                                        self.param.savepsfs, self.param.saveopds)
 
     def setup_deformable_mirror(self):
-        """DM setup not needed for RST, just define number of total modes"""
+        """DM setup if requiered for some telescopes (LUVOIR-A)"""
         self.telescope.setup_deformable_mirror()
 
     def calculate_ref_image(self):
