@@ -150,7 +150,8 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 class MatrixEfieldLuvoirA(PastisMatrixEfields):
     instrument = 'LUVOIR'
-    """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
+    """ -- DEPRECATED !! -- This class is deprecated, use the class MatrixEfield instead. 
+    Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
 
     def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True):
         """
@@ -222,6 +223,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
 
 class MatrixEfieldRST(PastisMatrixEfields):
     """
+    -- DEPRECATED !! -- This class is deprecated, use the class MatrixEfield instead.
     Class to calculate the PASTIS matrix from E-fields of RST CGI.
     """
     instrument = 'RST'
@@ -288,6 +290,7 @@ class MatrixEfield(PastisMatrixEfields):
 
 def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
     """
+    DEPRECATED !! -- This function is deprecated, use the class method of telescope.py instead.
     Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
     :param number_all_modes: int, total number of all modes
@@ -335,6 +338,7 @@ def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim,
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
     """
+    -- DEPRECATED !! -- This function is deprecated, use the class method of telescope.py instead.
     Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
     :param wfe_aber: float, calibration aberration per actuator in m
     :param rst_sim: instance of CGI simulator

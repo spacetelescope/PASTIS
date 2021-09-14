@@ -405,7 +405,8 @@ The Roman Space Telescope integrate CGI coronagraphs. You will need a special fo
 ([installation instructions here](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-with-conda-but-not-astroconda))
 in order to be able to use it with `pastis`, and don't forget that you also need to install the [required data files](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-the-required-data-files).
 Once you are done with the installation, you will also need to drop in your local path to your new webbpsf data files to the
-PASTIS configfile.
+PASTIS configfile. Because is it a special fork, you must install it in develop mode in WebbPSF installation folder :
+`$ python setup.py develop`
 
 ## Jupyter notebooks
 

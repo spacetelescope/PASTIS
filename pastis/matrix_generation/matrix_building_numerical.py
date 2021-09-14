@@ -237,6 +237,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     """
 
     if instrument == 'LUVOIR':
+        '''-- DEPRECATED !! -- This function is deprecated, use the class methods in telescope class.'''
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
@@ -302,7 +303,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = jwst_sim
 
     if instrument == 'RST':
-
+        '''-- DEPRECATED !! -- This function is deprecated, use the class methods in telescope class.'''
         # Instantiate CGI object
         rst_sim = webbpsf_imaging.set_up_cgi()
 
@@ -404,6 +405,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
+    -- DEPRECATED !! -- This function is deprecated, use the function general_matrix_one_pair instead.
     Calculate the LUVOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -508,6 +510,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
+    -- DEPRECATED !! -- This function is deprecated, use the function general_matrix_one_pair instead.
     Function to calculate RST mean contrast of one DM actuator pair in CGI.
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
@@ -849,7 +852,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
-    '''-- DEPRECATED !! -- This function is deprecated, use the class MatrixIntensity instead.'''
+    '''-- DEPRECATED !! -- This class is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'LUVOIR'
     general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
@@ -926,7 +929,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 
 class MatrixIntensityRST(PastisMatrixIntensities):
-    '''-- DEPRECATED !! -- This function is deprecated, use the class MatrixIntensity instead.'''
+    '''-- DEPRECATED !! -- This class is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'RST'
     general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
