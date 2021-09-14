@@ -849,6 +849,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
+    '''-- DEPRECATED !! -- This function is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'LUVOIR'
     general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
@@ -925,6 +926,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 
 class MatrixIntensityRST(PastisMatrixIntensities):
+    '''-- DEPRECATED !! -- This function is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'RST'
     general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
