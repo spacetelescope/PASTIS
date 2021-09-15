@@ -81,8 +81,6 @@ class RST():
                 self.sim.dm1.display(what='opd', opd_vmax=self.wfe_aber, colorbar_orientation='horizontal',
                      title='Aberrated actuator pair')
 
-
-
 class LUVOIRA():
 
         instrument = 'LUVOIR'
