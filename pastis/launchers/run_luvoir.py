@@ -14,10 +14,9 @@ import pastis.util as util
 if __name__ == '__main__':
 
     APLC_DESIGN = 'small'
-    poke_amplitude = 1e-8 #m
-    # First generate a couple of matrices
-    run_matrix = MatrixIntensityLuvoirA(design=APLC_DESIGN, wfe_aber=None, initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
 
+    # First generate a couple of matrices
+    run_matrix = MatrixIntensityLuvoirA(design=APLC_DESIGN, initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
 
@@ -28,9 +27,9 @@ if __name__ == '__main__':
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
     
     # Then generate all hockey  stick curves
-    #result_dir_small = os.path.join(dir_run, 'results')
-    #matrix_dir_small = os.path.join(dir_run, 'matrix_numerical')
-    #hockeystick_curve(instrument='LUVOIR', apodizer_choice=APLC_DESIGN, matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=3)
+    result_dir_small = os.path.join(dir_run, 'results')
+    matrix_dir_small = os.path.join(dir_run, 'matrix_numerical')
+    hockeystick_curve(instrument='LUVOIR', apodizer_choice=APLC_DESIGN, matrixdir=matrix_dir_small, resultdir=result_dir_small, range_points=10, no_realizations=3)
 
     # Finally run full analysis on all three cases
-    #run_full_pastis_analysis(instrument='LUVOIR', design=APLC_DESIGN, run_choice=dir_run)
+    run_full_pastis_analysis(instrument='LUVOIR', design=APLC_DESIGN, run_choice=dir_run)
