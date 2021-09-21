@@ -41,7 +41,7 @@ class PastisMatrix(ABC):
 
     instrument = None
 
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, design=None, wfe_aber=None, initial_path=''):
         """
         Parameters:
         ----------
@@ -56,8 +56,9 @@ class PastisMatrix(ABC):
         self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         self.seglist = util.get_segment_list(self.instrument)
         self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
-        self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
-
+        self.wfe_aber = wfe_aber
+        if wfe_aber is None:
+             self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
         # Create directory names
         tel_suffix = f'{self.instrument.lower()}'
         if self.instrument == 'LUVOIR':
@@ -98,7 +99,7 @@ class PastisMatrixIntensities(PastisMatrix):
     """
     instrument = None
 
-    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, design=None, wfe_aber=None, initial_path='', savepsfs=True, saveopds=True):
         """
         Parameters:
         ----------
@@ -111,7 +112,7 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        super().__init__(design=design, wfe_aber=wfe_aber, initial_path=initial_path)
 
         self.savepsfs = savepsfs
         self.saveopds = saveopds
@@ -121,6 +122,7 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(f'Total number of actuator pairs in {self.instrument} pupil: {len(list(util.segment_pairs_all(self.nb_seg)))}')
         log.info(
             f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
+        log.info(f'poke aberation used: {self.wfe_aber}')
 
     def calc(self):
         """ Main method that calculates the PASTIS matrix """
@@ -658,7 +660,7 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
     return matrix_pastis_half
 
 
-def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
+def num_matrix_multiprocess( instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
     """
     Generate a numerical/semi-analytical PASTIS matrix.
 
@@ -708,7 +710,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     log.info(f'Wavelength: {wvln} m')
     log.info(f'Number of segments: {nb_seg}')
     log.info(f'Segment list: {seglist}')
-    log.info(f'wfe_aber: {wfe_aber} m')
+    log.info(f'wfe_aber inside num_matrix_multiprocess function: {wfe_aber} m')
     log.info(f'Total number of segment pairs in {instrument} pupil: {len(list(util.segment_pairs_all(nb_seg)))}')
     log.info(f'Non-repeating pairs in {instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(nb_seg)))}')
 
@@ -801,8 +803,8 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     instrument = 'LUVOIR'
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
-    def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
+    def __int__(self, design='small', wfe_aber=1e-9, initial_path='', savepsfs=True, saveopds=True):
+        super().__init__(design=design, wfe_aber=self.wfe_aber, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -895,5 +897,5 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 
 if __name__ == '__main__':
 
-        MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        MatrixIntensityLuvoirA(design='small', wfe_aber=1e-9, initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
         #MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
