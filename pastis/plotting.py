@@ -847,13 +847,13 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
     start_time = time.time()
 
     # Load the mu map
-    mu_map = np.loadtxt(os.path.join(data_path, f'segment_requirements_{c_target}.txt'))
+    mu_map = np.loadtxt(os.path.join(data_path, 'results', f'segment_requirements_{c_target}.txt'))
     mu_min = np.min(mu_map)
     mu_max = np.max(mu_map)
 
     dist_mean = 0
     range_limits = mu_max + mu_max * 0.5
-    wfe_range = np.linspace(-range_limits, range_limits, 1000)
+    wfe_range = np.linspace(-range_limits, range_limits, 10)
 
     # Define some instrument specific parameters
     if instrument == 'LUVOIR':

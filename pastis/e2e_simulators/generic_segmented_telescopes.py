@@ -721,6 +721,8 @@ class SegmentedTelescope(Telescope):
             log.warning(f"Could not find the Harris spreadsheet under '{filepath}', "
                         f"please double-check your path and that the file exists.")
             return
+        #TODO: reading the excel sheet currently throws an error. Check out:
+        # https://stackoverflow.com/questions/48066517/python-pandas-pd-read-excel-giving-importerror-install-xlrd-0-9-0-for-excel
 
         # Read all modes as arrays
         valuesA = np.asarray(df.a)
