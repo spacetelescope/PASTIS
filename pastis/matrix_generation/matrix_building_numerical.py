@@ -17,6 +17,10 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import multiprocessing
+try:    # kinda forgot why I added this try: ... except: ...
+    multiprocessing.set_start_method('spawn')
+except RuntimeError:
+    pass
 import numpy as np
 import hcipy
 
