@@ -505,7 +505,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         sim_instance[1].zero()
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
             seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
-            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum], trans_unit='nm')
+            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum]/2, trans_unit='nm')    # this function works with physical motions, meaning the piston is in surface
 
         psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
         wf_sm = inter[1].phase

@@ -122,7 +122,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             sim_instance[1].zero()
             for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
                 seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
-                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i], trans_unit='nm')
+                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i]/2, trans_unit='nm')
 
             psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
             psf_detector = psf_detector_data[0].data
@@ -280,7 +280,8 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             sim_instance[1].zero()
             for seg, val in enumerate(opd):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-                sim_instance[1].move_seg_local(seg_num, piston=val.value, trans_unit='nm')
+                # The function below works with physical motions, meaning the piston is in surface
+                sim_instance[1].move_seg_local(seg_num, piston=val.value/2, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
 
@@ -366,7 +367,8 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         sim_instance[1].zero()
         for seg in range(mus.shape[0]):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value, trans_unit='nm')
+            # The function below works with physical motions, meaning the piston is in surface
+            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value/2, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
@@ -415,7 +417,8 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         sim_instance[1].zero()
         for seg, aber in enumerate(opd):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-            sim_instance[1].move_seg_local(seg_num, piston=aber.value, trans_unit='nm')
+            # The function below works with physical motions, meaning the piston is in surface
+            sim_instance[1].move_seg_local(seg_num, piston=aber.value/2, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
@@ -647,7 +650,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             sim_instance[1].zero()
             for seg, mu in enumerate(mus):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
-                sim_instance[1].move_seg_local(seg_num, piston=mu.value, trans_unit='nm')
+                # The function below works with physical motions, meaning the piston is in surface
+                sim_instance[1].move_seg_local(seg_num, piston=mu.value/2, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
 

@@ -12,7 +12,7 @@ from pastis.e2e_simulators.generic_segmented_telescopes import Telescope
 log = logging.getLogger()
 
 
-class Habex_VVC(Telescope):
+class Habex_VC(Telescope):
     def __init__(self, charge):
 
         # Define or read parameters

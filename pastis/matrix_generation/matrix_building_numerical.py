@@ -17,6 +17,10 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import multiprocessing
+try:    # kinda forgot why I added this try: ... except: ...
+    multiprocessing.set_start_method('spawn')
+except RuntimeError:
+    pass
 import numpy as np
 import hcipy
 
@@ -360,9 +364,9 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     # Put aberration on correct segments. If i=j, apply only once!
     jwst_ote.zero()
-    jwst_ote.move_seg_local(seg_i, piston=wfe_aber, trans_unit='m')
+    jwst_ote.move_seg_local(seg_i, piston=wfe_aber/2, trans_unit='m')    # this function works with physical motions, meaning the piston is in surface
     if segment_pair[0] != segment_pair[1]:
-        jwst_ote.move_seg_local(seg_j, piston=wfe_aber, trans_unit='m')
+        jwst_ote.move_seg_local(seg_j, piston=wfe_aber/2, trans_unit='m')
 
     log.info('Calculating coro image...')
     image = jwst_instrument.calc_psf(nlambda=1)

@@ -357,7 +357,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     jwst_sim[1].zero()
     for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
         seg_num = webbpsf_imaging.WSS_SEGS[nseg].split('-')[0]
-        jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value, trans_unit='nm')
+        jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value/2, trans_unit='nm')   # this function works with physical motions, meaning the piston is in surface
 
     image = jwst_sim[0].calc_psf(nlambda=1)
     psf_jwst = image[0].data / norm
