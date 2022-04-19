@@ -4,6 +4,7 @@ and saves it.
 
  Currently supported:
  JWST
+ RST
  LUVOIR
  HiCAT
 """
@@ -45,7 +46,7 @@ class PastisMatrix(ABC):
 
     instrument = None
 
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
         ----------
@@ -83,7 +84,7 @@ class PastisMatrix(ABC):
         # Record some of the defined parameters
         log.info(f'Instrument: {tel_suffix}')
         log.info(f'Wavelength: {self.wvln} m')
-        log.info(f'Number of segments: {self.nb_seg}')
+        log.info(f'Number of modes: {self.nb_seg}')
         log.info(f'Segment list: {self.seglist}')
         log.info(f'wfe_aber: {self.wfe_aber} m')
 
@@ -102,7 +103,7 @@ class PastisMatrixIntensities(PastisMatrix):
     """
     instrument = None
 
-    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, design=None, initial_path='', param=None):
         """
         Parameters:
         ----------
@@ -115,10 +116,9 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        self.param = param
+        super().__init__(design=design, initial_path=initial_path, param=param)
 
-        self.savepsfs = savepsfs
-        self.saveopds = saveopds
         self.calculate_matrix_pair = None
 
         os.makedirs(os.path.join(self.resDir, 'psfs'), exist_ok=True)
@@ -130,8 +130,13 @@ class PastisMatrixIntensities(PastisMatrix):
         """ Main method that calculates the PASTIS matrix """
         start_time = time.time()
 
+        self.telescope = self.param.def_telescope()
+
         # Calculate coronagraph floor, and normalization factor from direct image
         self.calculate_ref_image()
+        self.setup_deformable_mirror()
+        if self.general:
+            self.nb_seg = self.telescope.number_all_modes
         self.setup_one_pair_function()
         self.calculate_contrast_matrix()
         self.calculate_pastis_from_contrast_matrix()
@@ -199,7 +204,7 @@ class PastisMatrixIntensities(PastisMatrix):
         """ Take the contrast matrix and calculate the PASTIS matrix from it. """
 
         # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
-        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
+        self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.telescope.contrast_floor))
 
         # Save matrix to file
         filename_matrix = f'pastis_matrix'
@@ -210,6 +215,11 @@ class PastisMatrixIntensities(PastisMatrix):
     @abstractmethod
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
+
+    @abstractmethod
+    def setup_deformable_mirror(self):
+        """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
+        pass
 
     @abstractmethod
     def setup_one_pair_function(self):
@@ -231,6 +241,7 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
     """
 
     if instrument == 'LUVOIR':
+        '''-- DEPRECATED !! -- This function is deprecated, use the class methods in telescope class.'''
         # Instantiate LuvoirAPLC class
         sampling = CONFIG_PASTIS.getfloat(instrument, 'sampling')
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
@@ -296,12 +307,12 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
         coro_simulator = jwst_sim
 
     if instrument == 'RST':
-
+        '''-- DEPRECATED !! -- This function is deprecated, use the class methods in telescope class.'''
         # Instantiate CGI object
         rst_sim = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = rst_sim.raw_PSF()
+        rst_direct = rst_sim.raw_coronagraph()
         direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
         direct_psf = direct[0].data
         norm = direct_psf.max()
@@ -398,6 +409,7 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
     """
+    -- DEPRECATED !! -- This function is deprecated, use the function general_matrix_one_pair instead.
     Calculate the LUVOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
     :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
@@ -502,6 +514,7 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
     """
+    -- DEPRECATED !! -- This function is deprecated, use the function general_matrix_one_pair instead.
     Function to calculate RST mean contrast of one DM actuator pair in CGI.
     :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
     :param wfe_aber: calibration aberration per segment in m
@@ -542,7 +555,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     if saveopds:
         opd_name = f'opd_actuator_{actuator_pair[0]}-{actuator_pair[1]}'
         plt.clf()
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(nb_actu, nb_actu))
         rst_cgi.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal', title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
@@ -554,6 +567,47 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
     contrast = util.dh_mean(psf, dh_mask)
 
     return contrast, actuator_pair
+
+
+def general_matrix_one_pair(telescope, norm, wfe_aber, resDir, savepsfs, saveopds, mode_pair):
+        """
+        Function to calculate general mean contrast of pair in telescope.
+        :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
+        :param wfe_aber: calibration aberration per segment in m
+        :param resDir: str, directory for matrix calculations
+        :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
+        :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+        :param mode_pair: tuple, pair of actuators to aberrate. If same segment gets passed in both tuple entries, the actuator will be aberrated only once
+        :return: contrast as float, and segment pair as tuple
+        """
+        # Put aberration on correct segments. If i=j, apply only once!
+        log.info(f'PAIR: {mode_pair[0]}-{mode_pair[1]}')
+
+        # Put aberration on correct segments. If i=j, apply only once!
+        telescope.flatten()
+        telescope.push_mode(mode_pair[0], wfe_aber)
+        if mode_pair[0] != mode_pair[1]:
+            telescope.push_mode(mode_pair[1], wfe_aber)
+
+        log.info('Calculating coro image...')
+        psf = telescope.imaging_psf()
+
+        # Save PSF image to disk
+        if savepsfs:
+            filename_psf = f'psf_segment_{mode_pair[0]}-{mode_pair[1]}'
+            hcipy.write_fits(psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'),psf.shape)
+
+        # Plot deformable mirror WFE and save to disk
+        if saveopds:
+            opd_name = f'opd_segnement_{mode_pair[0]}-{mode_pair[1]}'
+            plt.clf()
+            telescope.display_opd()
+            plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+        log.info(f'Calculating mean contrast in dark hole {mode_pair[0]}-{mode_pair[1]}')
+        contrast = telescope.contrast()
+
+        return contrast, mode_pair
 
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
@@ -802,7 +856,9 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
+    '''-- DEPRECATED !! -- This class is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'LUVOIR'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
@@ -830,6 +886,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+        self.general = False
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
@@ -853,6 +910,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
     instrument = 'JWST'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
@@ -875,7 +933,9 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 
 class MatrixIntensityRST(PastisMatrixIntensities):
+    '''-- DEPRECATED !! -- This class is deprecated, use the class MatrixIntensity instead.'''
     instrument = 'RST'
+    general = False  # temp attribut to not break legacy
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __int__(self, initial_path='', savepsfs=True, saveopds=True):
@@ -897,7 +957,43 @@ class MatrixIntensityRST(PastisMatrixIntensities):
                                                                                                                outpath=self.overall_dir)
 
 
-if __name__ == '__main__':
+class MatrixIntensity(PastisMatrixIntensities):
+    """ Calculate a PASTIS matrix for telescope class, using intensity images. """
 
-        MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
-        #MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+    instrument = CONFIG_PASTIS.get('telescope', 'name')
+    general = True  # temp attribut to not break legacy
+
+    def __int__(self, initial_path='', param=None):
+        super().__init__(design=None, param=param)
+
+    def setup_one_pair_function(self):
+        """ Create the partial function that returns the PSF of a single aberrated mode pair. """
+
+        self.calculate_matrix_pair = functools.partial(general_matrix_one_pair, self.telescope, self.telescope.norm, self.telescope.wfe_aber, self.resDir,
+                                                       self.param.savepsfs, self.param.saveopds)
+
+    def setup_deformable_mirror(self):
+        """DM setup if requiered for some telescopes (LUVOIR-A)"""
+        self.telescope.setup_deformable_mirror()
+
+    def calculate_ref_image(self):
+        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+        telescope = self.telescope
+        telescope.normalization_and_dark_hole()
+        telescope.calculate_unaberrated_contrast()
+        outpath = self.overall_dir
+
+        log.info(f'contrast floor: {telescope.contrast_floor}')
+
+        if self.param.save_coro_floor:
+            # Save contrast floor to text file
+            with open(os.path.join(outpath, 'coronagraph_floor.txt'), 'w') as file:
+                file.write(f'Coronagraph floor: {telescope.contrast_floor}')
+
+        if self.param.savepsfs:
+            ppl.plot_direct_coro_dh(telescope.direct_psf, telescope.unaberrated, telescope.dh_mask.astype(bool), outpath)
+
+        if self.param.return_coro_simulator:
+            return telescope.contrast_floor, telescope.norm, telescope.coro_simulator
+        else:
+            return telescope.contrast_floor, telescope.norm
