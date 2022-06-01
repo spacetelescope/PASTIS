@@ -9,14 +9,11 @@ Sweet liquor from the south of France.
 
 In this repo though, PASTIS is an algorithm for analytical contrast predictions of coronagraphs on segmented telescopes,
 developed and published in [Leboulleux et al. (2018)](https://ui.adsabs.harvard.edu/abs/2018JATIS...4c5002L/abstract) 
-and [Laginja et al. (2021, accepted for publication in JATIS)](https://ui.adsabs.harvard.edu/abs/2021arXiv210306288L/abstract).
-
-This release brings significant updates especially in the PASTIS matrix calculations, which is now multiprocessed. We also
-take advantage of the fact that the PASTIS matrix is symmetrical, which allows us to calcualte only half of the contrast
-matrix, including the diagonal, before calculating the PASTIS matrix.
+and [Laginja et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021JATIS...7a5004L/abstract), and use for laboratory
+experiments in [Laginja et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...658A..84L/abstract).
 
 This readme provides quick instructions to get PASTIS results for the LUVOIR-A telescope, as well as more detailed info
-about the code and other telescopes it supports. For further info, contact the author under `iva.laginja@lam.fr`.
+about the code and other telescopes it supports. For further info, contact the author under `iva.laginja@obspm.fr`.
 
 ## Table of Contents
 
@@ -257,7 +254,7 @@ valid_range_upper = 4
 nb_subapertures = 120
 diameter = 15.
 gaps = 0.02
-optics_path_in_repo = LUVOIR_delivery_May2019/
+optics_path_in_repo = data/LUVOIR_delivery_May2019/
 aperture_path_in_optics = inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000.fits
 indexed_aperture_path_in_optics = inputs/TelAp_LUVOIR_gap_pad01_bw_ovsamp04_N1000_indexed.fits
 lyot_stop_path_in_optics = inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N1000.fits
@@ -268,6 +265,7 @@ lyot_stop_path_in_optics = inputs/LS_LUVOIR_ID0120_OD0982_no_struts_gy_ovsamp4_N
 ; the coro size is not used automatically in the functions, it is always defined (or read from here) manually
 coronagraph_size = small
 lambda = 500.
+sampling = 4.
 ```
 The number of subapertures will not change, the diameter and gaps are in units of meters. The key `optics_path_in_repo`  specifies
 the data location (within the repository) of the files that define the LUVOIR telescope: aperture, Lyot stop and APLC
@@ -277,23 +275,7 @@ are paths within the optics path that point to different files needed by the LUV
 
 The `calibration_aberration` is the local aberration coefficient that will be used when calculating the PASTIS matrix, and
 the two parameters below set the upper and lower log limits of the total pupil WFE rms value for which the hockey stick curve
-will be calcualted.
-
-The following section sets some image parameters:
-```ini
-[numerical]
-...
-sampling = 4.
-...
-im_size_lamD_hcipy = 30
-
-; this is not used automatically in the functions, it is always defined (or read from here) manually
-current_analysis = 2020-01-13T21-34-29_luvoir-small
-```
-The key `sampling` defines the image sampling in units of pixels per lambda/D, `im_size_lamD_hcipy` is the total image size of 
-the dark hole images in units of lambda/D. The key `current_analysis` is *not* used in the main launcher scripts (e.g. `run_luvoir.py`),
-but lets you define a matrix directory for repeating an analysis with the main function in the modules `hockeystick_contrast_curve.py`, 
-`pastis_analysis.py` and `single_mode_error_budget.py`.
+will be calculated.
 
 Finally, there is a section defining how we count our Zernikes, and the calibration section defines the local aberration 
 used on each segment, by the numbering defined in the `[zernikes]` section (not shown in README).
@@ -357,14 +339,20 @@ within your output destination:
 If you now run `run_luvoir.py`, it will only rerun the analysis.
 
 ## Supported Simulators
-`pastis` currently supports E2E simulators for three telescopes: LUVOIR-A, JWST and HiCAT. Only LUVOIR comes with a built-in
-E2E simulator within `pastis`. The simulator for JWST is `webbpsf` and can be installed additionally, while the HiCAT simulator
+`pastis` currently supports E2E simulators for several telescopes: LUVOIR-A, LUVOIR-B, Habex, JWST, RST and HiCAT. Only LUVOIR-A, LUVOIR-B and Habex come with a built-in
+E2E simulator within `pastis`. The simulator for JWST and RST is `webbpsf` and can be installed additionally, while the HiCAT simulator
 is currently private. The analysis for each of them can be started with the respective launcher in `pastis/launchers`.
 
 ### LUVOIR-A
 There is a built-in LUVOIR-A simulator readily usable within the pastis package, and it supports the three baseline APLC designs
 for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
+
+### LUVOIR-A
+The LUVOIR-B simulator runs with a Vortex coronagraph and is otherwise set up with the same deformable mirrors like LUVOIR-A.
+
+### Habex
+The Habex simulator is monolithic, has a Vortex coronagraph and uses the same global deformable mirrors like LUVOIR.
 
 ### JWST
 The coronagraphs currently supported on JWST are the NIRCam coronagraphs. You will need to install `webbpsf`
@@ -385,6 +373,9 @@ webbpsf_data_path = ...
 
 The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_jwst.py`.
 
+### RST
+The simulator for the Roman Space Telescope is connected form `webbpsf`.
+
 ### HiCAT
 The HiCAT simulator is private and its support is only provided for internal use.
 
@@ -404,8 +395,7 @@ HiCAT-PASTIS compatible conda env:
 ## Jupyter notebooks
 
 The directory "Jupyter Notebooks" contains a suite of notebooks that were used to develop the code on the repository.
-Their numbering refers to the order they were generated in and exist mostly for easier identification. The most 
-up-to-date ones are in the subdirectory "LUVOIR", although there is no guarantee the notebooks are correct, as the main 
+Their numbering refers to the order they were generated in and exist mostly for easier identification. There is no guarantee the notebooks are correct, as the main 
 code is in the scripts within `pastis`.
 
 
@@ -427,7 +417,8 @@ This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](L
 ### Acknowledgments
 
 Big thanks to Robel Geda ([@robelgeda](https://github.com/robelgeda)) for testing, checking and providing suggestions for the 
-repo setup, quickstart and README.
+repo setup, quickstart and README.  
+We acknowledge Garreth Ruane for providing the Habex and LUVOIR-B coronagraph data.
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
