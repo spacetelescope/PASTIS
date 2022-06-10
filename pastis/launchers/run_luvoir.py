@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     APLC_DESIGN = 'small'
 
-    # First generate a couple of matrices
+    # First generate a matrix
     run_matrix = MatrixIntensityLuvoirA(design=APLC_DESIGN, initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
