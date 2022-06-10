@@ -140,8 +140,7 @@ is marked as not recommended. Otherwise Git Bash can't access it.
 
 ### Conda environment
 We provide an `environment.yml` file that can be taken advantage of with the conda package management system. By creating 
-a conda environment from this file, you will be set up to run all the code in this package. This includes the 
- installation of the `hcipy` package from a specific commit of the repository, see below.
+a conda environment from this file, you will be set up to run all the code in this package.
 
 If you don't know how to start with conda, you can [download miniconda here](https://docs.conda.io/en/latest/miniconda.html). 
 After a successful installation, you can create the `pastis` conda environment by navigating with the terminal into the 
@@ -170,7 +169,7 @@ conda remove --name pastis --all
 ### Plotting
 There are certain things that the code is not controlling that are connected to plotting settings with `matplotlib`. Initially,
 the plotting should work as expected but the results might be slightly different from what is presented in the paper 
-Laginja et al. (2020, submitted), for example where `matplotlib` puts the image origin. If you want to use the lower left
+by Laginja et al. (2021), for example where `matplotlib` puts the image origin. If you want to use the lower left
 as your origin, this is adjustable in the plots directly by setting `origin=lower`, although I recommend adjusting your global
 plotting parameters in the `matplotlibrc` file so that you don't have to edit each plot manually.
 
@@ -211,7 +210,7 @@ matplotlib.rc('pdf', fonttype=42)
 ```
 
 #### On MacOS Mojave 10.14.6 - backend
-The `tkagg` backend makes the machine crash and restart, so don't use that one. The default should run fine, but if you
+Using the `tkagg` backend on MacOS Mojave 10.14.6 makes the machine crash and restart, so don't use that one. The default should run fine, but if you
 encounter this issue you can change the default backend in the `matplotlibrc` file under `backend` at almost the very top of the file.
 
 
@@ -328,7 +327,7 @@ Calculating the PASTIS matrix takes some time, but once this is over the PASTIS 
 having to regenerate the matrix. To do this, open the script `run_luvoir.py` and comment out the line that calls 
 the matrix calculation function:
 ```py
-    #dir_small = num_matrix_luvoir(design='small')
+    #run_matrix.calc()
 ```
 and instead uncomment the line where you can pre-define the data directory, and drop in the correct folder directory 
 within your output destination:
@@ -359,7 +358,7 @@ The coronagraphs currently supported on JWST are the NIRCam coronagraphs. You wi
 ([installation instructions here](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-with-conda-but-not-astroconda))
 in order to be able to use it with `pastis`, and don't forget that you also need to install the [required data files](https://webbpsf.readthedocs.io/en/latest/installation.html#installing-the-required-data-files).
 Once you are done with the installation, you will also need to drop in your local path to your new webbpsf data files to the
-PASTIS configfile. you can figure out the path to your webbpsf by running the following in a python session:
+PASTIS configfile. You can figure out the path to your `webbpsf` data by running the following in a python session:
 ```py
 import webbpsf
 webbpsf.utils.get_webbpsf_data_path()
@@ -374,7 +373,7 @@ webbpsf_data_path = ...
 The launcher for a JWST analysis is also located in `pastis/launchers`, as `run_jwst.py`.
 
 ### RST
-The simulator for the Roman Space Telescope is connected form `webbpsf`.
+The simulator for the Roman Space Telescope is connected from `webbpsf`.
 
 ### HiCAT
 The HiCAT simulator is private and its support is only provided for internal use.
@@ -394,9 +393,9 @@ HiCAT-PASTIS compatible conda env:
 
 ## Jupyter notebooks
 
-The directory "Jupyter Notebooks" contains a suite of notebooks that were used to develop the code on the repository.
-Their numbering refers to the order they were generated in and exist mostly for easier identification. There is no guarantee the notebooks are correct, as the main 
-code is in the scripts within `pastis`.
+The directory "notebooks" contains a suite of notebooks that were used to develop the code on the repository.
+Their numbering refers to the order they were generated in and exist mostly for easier identification. The notebooks are
+not necessarily kept up to date with the main code in the `pastis` package.
 
 
 ## About this repository
