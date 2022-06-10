@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def req_closedloop_calc_recursive(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, t_exp, flux, Q, Niter,dh_mask,norm):
     """
     Parameters:
@@ -64,6 +65,7 @@ def req_closedloop_calc_recursive(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsens
                    'averaged_hist': averaged_hist,
                    'contrasts': contrasts}
     return outputs
+
 
 def req_closedloop_calc_batch(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, t_exp, flux, Q, Niter, dh_mask, norm):
 
