@@ -3,20 +3,39 @@ import numpy as np
 
 def req_closedloop_calc_recursive(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, t_exp, flux, Q, Niter,dh_mask,norm):
     """
-    Parameters:
+    Parameters
     ----------
-    Gcoro: numpy ndarray
+    Gcoro : numpy ndarray
         sensitivity matrix calculated at the coronagraphic plane: list of electric fields gathered by
         poking one segment with one mode at a time and subtracting the un-aberrated coronagraphic field.
-    Gsensor: numpy ndarray
+    Gsensor : numpy ndarray
         sensitivity matrix calculated at the wavefront sensor plane: list of electric field at the wfs plane
         gathered by poking one segment with one mode at a time ans subtracting the unaberrated electric field
         at the wfs plane
-    E0coro: numpy ndarray
+    E0coro : numpy ndarray
         unaberrated coronagraphic electric field
-    E0sensor: numpy ndarray
+    E0sensor : numpy ndarray
         reference un-aberrated electric field seen by wavefront sensor
-    Dcoro:
+    Dcoro : scalar
+        Detector noise at the coronagraphic plane
+    Dsesnor : scalar
+        Dectector noise at the wavefront sensor plane
+    t_exp : scalar
+        exposure time of the wavefront sensor in secs
+    flux : scalar
+        star magnitude in units number of photons
+    Q : ndarray
+        diagonal matrix, where is diagonal element is mu coefficient
+    Niter : int
+        number of iterations
+    dh_mask : ndarray
+        dark hole mask made up of 1 and 0
+    norm : float
+        peak value of the ideal direct psf
+
+    Returns
+    -------
+    dict of intensity_WFS_hist, cal_I_hist, eps_hist, averaged_hist, contrasts
     """
 
     P = np.zeros(Q.shape)  # WFE modes covariance estimate
@@ -39,7 +58,7 @@ def req_closedloop_calc_recursive(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsens
         G_eps_G_scaled = G_eps_G / np.sqrt(G_eps_squared + Dsensor / flux / t_exp)  # trick to save RAM
         cal_I = 4 * flux * t_exp * np.einsum("ijk,ijl->kl", G_eps_G_scaled, G_eps_G_scaled)  # information matrix
         P = np.linalg.inv(np.linalg.inv(P + Q * t_exp / 2) + cal_I)
-        #         P = np.linalg.inv(cal_I)
+        #P = np.linalg.inv(cal_I) #TODO: explore what the output is with ths expression.
 
         # Coronagraph
         G_eps_coron = np.sum(Gcoro * eps, axis=2).reshape((N_img, 1, 2 * c)) + E0coro
@@ -68,7 +87,41 @@ def req_closedloop_calc_recursive(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsens
 
 
 def req_closedloop_calc_batch(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, t_exp, flux, Q, Niter, dh_mask, norm):
+    """
+        Parameters
+        ----------
+        Gcoro : numpy ndarray
+            sensitivity matrix calculated at the coronagraphic plane: list of electric fields gathered by
+            poking one segment with one mode at a time and subtracting the un-aberrated coronagraphic field.
+        Gsensor : numpy ndarray
+            sensitivity matrix calculated at the wavefront sensor plane: list of electric field at the wfs plane
+            gathered by poking one segment with one mode at a time ans subtracting the unaberrated electric field
+            at the wfs plane
+        E0coro : numpy ndarray
+            unaberrated coronagraphic electric field
+        E0sensor : numpy ndarray
+            reference un-aberrated electric field seen by wavefront sensor
+        Dcoro : scalar
+            Detector noise at the coronagraphic plane
+        Dsesnor : scalar
+            Dectector noise at the wavefront sensor plane
+        t_exp : scalar
+            exposure time of the wavefront sensor in secs
+        flux : scalar
+            star magnitude in units number of photons
+        Q : ndarray
+            diagonal matrix, where is diagonal element is mu coefficient
+        Niter : int
+            number of iterations
+        dh_mask : ndarray
+            dark hole mask made up of 1 and 0
+        norm : float
+            peak value of the ideal direct psf
 
+        Returns
+        -------
+        dict of intensity_WFS_hist, cal_I_hist, eps_hist, averaged_hist, contrasts
+        """
 
     P = np.zeros(Q.shape)  # WFE modes covariance estimate
     r = Gsensor.shape[2]
@@ -89,7 +142,7 @@ def req_closedloop_calc_batch(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, 
         G_eps_G = np.matmul(G_eps, Gsensor)
         G_eps_G_scaled = G_eps_G / np.sqrt(G_eps_squared + Dsensor / flux / t_exp)  # trick to save RAM
         cal_I = 4 * flux * t_exp * np.einsum("ijk,ijl->kl", G_eps_G_scaled, G_eps_G_scaled)  # information matrix
-        #         P = np.linalg.inv(np.linalg.inv(P+Q*t_exp/2) + cal_I)
+        #P = np.linalg.inv(np.linalg.inv(P+Q*t_exp/2) + cal_I) #TODO: explore what the output is with ths expression.
         P = np.linalg.pinv(cal_I)
 
         # Coronagraph
@@ -108,8 +161,8 @@ def req_closedloop_calc_batch(Gcoro, Gsensor, E0coro, E0sensor, Dcoro, Dsensor, 
         cal_I_hist[pp] = np.mean(cal_I) / flux
         eps_hist[pp] = eps
         averaged_hist[pp] = np.mean(contrasts)
-    #         print("est. contrast", np.mean(contrasts))
-    #         print("est. contrast", np.mean(contrasts))
+    #   print("est. contrast", np.mean(contrasts))
+    #   print("est. contrast", np.mean(contrasts))
 
     outputs = {'intensity_WFS_hist': intensity_WFS_hist,
                'cal_I_hist': cal_I_hist,
