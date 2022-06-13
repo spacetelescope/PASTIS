@@ -630,22 +630,17 @@ class SegmentedTelescope(Telescope):
                                                                   starting_mode=1)
         # For all Zernikes, adjust their transformation matrix (by doing what?)
         for zernike_num in range(0, n_zernikes):
-            local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[
-                                                                             first_seg] * local_zernike_basis._transformation_matrix[
-                                                                                          :, zernike_num]
+            local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[first_seg] * local_zernike_basis._transformation_matrix[:, zernike_num]
 
         # Expand the basis of influence functions from one segment to all segments
         for seg_num in range(1, self.nseg):
             local_zernike_basis_tmp = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                           self.segment_circumscribed_diameter,
-                                                                          self.pupil_grid.shifted(
-                                                                              -self.seg_pos[seg_num]),
+                                                                          self.pupil_grid.shifted(-self.seg_pos[seg_num]),
                                                                           starting_mode=1)
             # Adjust each transformation matrix again for some reason
             for zernike_num in range(0, n_zernikes):
-                local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[
-                                                                                     seg_num] * local_zernike_basis_tmp._transformation_matrix[
-                                                                                                :, zernike_num]
+                local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[seg_num] * local_zernike_basis_tmp._transformation_matrix[:, zernike_num]
             local_zernike_basis.extend(local_zernike_basis_tmp)  # extend our basis with this new segment
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
