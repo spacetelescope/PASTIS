@@ -695,8 +695,7 @@ class SegmentedTelescope(Telescope):
         new_command[self.seg_n_zernikes * segid + zernike_number] = amplitude
         self.sm.actuators = new_command
 
-    def create_segmented_harris_mirror(self, filepath, pad_orientation, thermal=True, mechanical=True,
-                                       other=True, return_mode=False):
+    def create_segmented_harris_mirror(self, filepath, pad_orientation, thermal=True, mechanical=True, other=True):
         """ Create an actuated segmented mirror with a modal basis made of the thermal modes provided by Harris.
 
         Thermal modes: a, h, i, j, k
@@ -788,6 +787,7 @@ class SegmentedTelescope(Telescope):
                 mode_set_per_segment.extend([ZB, ZC, ZD])
 
             harris_base.append(mode_set_per_segment)
+
         # Create full mode basis of selected Harris modes on all segments
         harris_base = np.asarray(harris_base)
         self.n_harris_modes = harris_base.shape[1]
@@ -795,8 +795,6 @@ class SegmentedTelescope(Telescope):
         harris_mode_basis = hcipy.ModeBasis(np.transpose(harris_base), grid=self.pupil_grid)
 
         self.harris_sm = hcipy.optics.DeformableMirror(harris_mode_basis)
-        if return_mode:
-            return mode_set_per_segment
 
     def set_harris_segment(self, segid, mode_number, amplitude, override=False):
         """ Set an individual segment of the Harris segmented mirror to a single Harris mode.
