@@ -42,6 +42,7 @@ class ScdaAPLC(SegmentedAPLC):
         apod_read = hcipy.read_fits(os.path.join(input_dir, apod_fname))
         apodizer = hcipy.Field(apod_read.ravel(), pupil_grid)
 
+        # Load Lyot stop
         ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
         lyot_stop = hcipy.Field(ls_read.ravel(), pupil_grid)
 
@@ -85,7 +86,7 @@ class HexRingAPLC(ScdaAPLC):
         owa = 12
         imlamD = 1.2 * owa
 
-        num_seg = #TODO from num_rings
+        num_seg = None   #TODO from num_rings
         if num_seg in [1,2]:
             aper_fname = f'TelAp_LUVex_{num_seg:02d}-Hex_gy_ovsamp04__N{pxsize:04d}.fits'
         else:
