@@ -116,7 +116,7 @@ class HexRingAPLC(ScdaAPLC):
             aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_clipped_ovsamp04__N{pxsize:04d}.fits'
         aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
         apod_fname = f'solutions/{robust}_SCDA_N1024_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam3_LS_IDex_ID_OD0_OD_ls_982_no_strut.fits'
-        ls_fname = f'masks/LS_LUVex_{num_rings:02d}-Hex_ID0000_OD0982_no_struts_gy_ovsamp04_N{pxsize:04d}.fits'
+        ls_fname = f'masks/LS_LUVex_{num_rings:02d}-Hex_ID0000_OD0982_no_struts_gy_ovsamp4_N{pxsize:04d}.fits'
 
         aplc_params = {'num_seg': num_seg,
                        'aper_fname': aper_fname,
