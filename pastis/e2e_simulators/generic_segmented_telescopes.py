@@ -521,10 +521,7 @@ class SegmentedTelescope(Telescope):
     You can command each DM by passing it an array of length "num_actuators", e.g.
         self.sm.actuators = dm_command
 
-    The segments are numbered in such a way that the center segment is *always* indexed with 0, no matter if it actually
-    exists or not. This means that e.g. for Luvoir A, the first segment in the innermost ring is still indexed with 1,
-    even if there is no active segment in the center of the pupil. For LUVOIR B or JWST, it is the same: the now present
-    center segment is indexed with 0, and all consecutive segments are indexed with 1, 2, 3, ...
+    The segments are numbered following their respective index in the indexed aperture input file.
 
     Parameters:
     ----------
