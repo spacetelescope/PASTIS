@@ -190,9 +190,9 @@ class Telescope:
     """ A simple telescope with active components in the pupil plane (DMs), but without actively controlled segments.
 
     This class can take an arbitrary telescope aperture as input and will create a telescope object out of it. This can
-    be monolithinc or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
+    be monolithic or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
     global pupil.
-    By default it instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
+    By default, it instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
         self.zernike_mirror
         self.ripple_mirror
         self.dm
@@ -512,7 +512,7 @@ class Telescope:
 class SegmentedTelescope(Telescope):
     """ A segmented telescope with active components in the pupil plane (DMs).
 
-    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
+    By default, instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
     Use the deformable mirror methods to create more flexible DMs as class attributes, on top of DMs inherited from "Telescope":
         self.sm
         self.harris_sm
