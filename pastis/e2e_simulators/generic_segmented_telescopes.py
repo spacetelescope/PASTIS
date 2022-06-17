@@ -190,9 +190,9 @@ class Telescope:
     """ A simple telescope with active components in the pupil plane (DMs), but without actively controlled segments.
 
     This class can take an arbitrary telescope aperture as input and will create a telescope object out of it. This can
-    be monolithinc or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
+    be monolithic or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
     global pupil.
-    By default it instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
+    By default, it instantiates with none of these DMs, they can each be created with their respective "create_...()" functions:
         self.zernike_mirror
         self.ripple_mirror
         self.dm
@@ -512,7 +512,7 @@ class Telescope:
 class SegmentedTelescope(Telescope):
     """ A segmented telescope with active components in the pupil plane (DMs).
 
-    By default instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
+    By default, instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
     Use the deformable mirror methods to create more flexible DMs as class attributes, on top of DMs inherited from "Telescope":
         self.sm
         self.harris_sm
@@ -521,10 +521,7 @@ class SegmentedTelescope(Telescope):
     You can command each DM by passing it an array of length "num_actuators", e.g.
         self.sm.actuators = dm_command
 
-    The segments are numbered in such a way that the center segment is *always* indexed with 0, no matter if it actually
-    exists or not. This means that e.g. for Luvoir A, the first segment in the innermost ring is still indexed with 1,
-    even if there is no active segment in the center of the pupil. For LUVOIR B or JWST, it is the same: the now present
-    center segment is indexed with 0, and all consecutive segments are indexed with 1, 2, 3, ...
+    The segments are numbered following their respective index in the indexed aperture input file.
 
     Parameters:
     ----------
@@ -630,22 +627,17 @@ class SegmentedTelescope(Telescope):
                                                                   starting_mode=1)
         # For all Zernikes, adjust their transformation matrix (by doing what?)
         for zernike_num in range(0, n_zernikes):
-            local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[
-                                                                             first_seg] * local_zernike_basis._transformation_matrix[
-                                                                                          :, zernike_num]
+            local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[first_seg] * local_zernike_basis._transformation_matrix[:, zernike_num]
 
         # Expand the basis of influence functions from one segment to all segments
         for seg_num in range(1, self.nseg):
             local_zernike_basis_tmp = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                           self.segment_circumscribed_diameter,
-                                                                          self.pupil_grid.shifted(
-                                                                              -self.seg_pos[seg_num]),
+                                                                          self.pupil_grid.shifted(-self.seg_pos[seg_num]),
                                                                           starting_mode=1)
             # Adjust each transformation matrix again for some reason
             for zernike_num in range(0, n_zernikes):
-                local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[
-                                                                                     seg_num] * local_zernike_basis_tmp._transformation_matrix[
-                                                                                                :, zernike_num]
+                local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[seg_num] * local_zernike_basis_tmp._transformation_matrix[:, zernike_num]
             local_zernike_basis.extend(local_zernike_basis_tmp)  # extend our basis with this new segment
 
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
