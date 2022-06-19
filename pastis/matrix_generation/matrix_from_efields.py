@@ -23,10 +23,12 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, nb_seg, initial_path='', saveefields=True, saveopds=True):
         """
         Parameters:
         ----------
+        nb_seg : int
+            Number of segments in the segmented aperture.
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         saveefields: bool
@@ -34,7 +36,7 @@ class PastisMatrixEfields(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(save_path=initial_path)
+        super().__init__(nb_seg=nb_seg, save_path=initial_path)
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -156,7 +158,8 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
         self.design = design
@@ -220,7 +223,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
     instrument = 'RST'
 
     def __init__(self, initial_path='', saveefields=True, saveopds=True):
-        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
 
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')

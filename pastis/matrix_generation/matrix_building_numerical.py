@@ -46,16 +46,18 @@ class PastisMatrix:
 
     instrument = None
 
-    def __init__(self, save_path=''):
+    def __init__(self, nb_seg, save_path=''):
         """
         Parameters:
         ----------
+        nb_seg : int
+            Number of segments in the segmented aperture.
         save_path : string
             Path to top-level directory where result folder should be saved to.
         """
 
         # General telescope parameters
-        self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        self.nb_seg = nb_seg
         self.seglist = util.get_segment_list(self.instrument)
         self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
         self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
@@ -95,10 +97,12 @@ class PastisMatrixIntensities(PastisMatrix):
     """
     instrument = None
 
-    def __init__(self, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, nb_seg, initial_path='', savepsfs=True, saveopds=True):
         """
         Parameters:
         ----------
+        nb_seg : int
+            Number of segments in the segmented aperture.
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         savepsfs: bool
@@ -106,8 +110,7 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(save_path=initial_path)
-
+        super().__init__(nb_seg=nb_seg, save_path=initial_path)
         self.savepsfs = savepsfs
         self.saveopds = saveopds
         self.calculate_matrix_pair = None
@@ -795,7 +798,8 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
         self.design = design
 
     def setup_one_pair_function(self):
@@ -820,7 +824,8 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -846,7 +851,8 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -869,7 +875,8 @@ class MatrixIntensityRST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
+        nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
