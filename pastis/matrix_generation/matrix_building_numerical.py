@@ -4,11 +4,12 @@ and saves it.
 
  Currently supported:
  JWST
- LUVOIR
+ LUVOIR A
  HiCAT
+ RST
+ HexRingTelescope
 """
 
-from abc import ABC, abstractmethod
 import os
 import time
 import functools
@@ -36,7 +37,7 @@ matplotlib.rc('image', origin='lower')
 matplotlib.rc('pdf', fonttype=42)
 
 
-class PastisMatrix(ABC):
+class PastisMatrix:
     """ Main class for PASTIS matrix generation.
 
     This is an abstract class that is used for *all* PASTIS matrix calculations, both in intensities and E-fields. It is
@@ -45,18 +46,15 @@ class PastisMatrix(ABC):
 
     instrument = None
 
-    def __init__(self, design=None, initial_path=''):
+    def __init__(self, save_path=''):
         """
         Parameters:
         ----------
-        design : string
-            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
-        initial_path : string
+        save_path : string
             Path to top-level directory where result folder should be saved to.
         """
 
         # General telescope parameters
-        self.design = design
         self.nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         self.seglist = util.get_segment_list(self.instrument)
         self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
@@ -64,11 +62,7 @@ class PastisMatrix(ABC):
 
         # Create directory names
         tel_suffix = f'{self.instrument.lower()}'
-        if self.instrument == 'LUVOIR':
-            if design is None:
-                design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
-            tel_suffix += f'-{design}'
-        self.overall_dir = util.create_data_path(initial_path, telescope=tel_suffix)
+        self.overall_dir = util.create_data_path(save_path, telescope=tel_suffix)
         os.makedirs(self.overall_dir, exist_ok=True)
         self.resDir = os.path.join(self.overall_dir, 'matrix_numerical')
 
@@ -90,7 +84,6 @@ class PastisMatrix(ABC):
         # Copy configfile to resulting matrix directory
         util.copy_config(self.resDir)
 
-    @abstractmethod
     def calc(self):
         """ This is the main method that should be called to calculate a PASTIS matrix. """
 
@@ -102,12 +95,10 @@ class PastisMatrixIntensities(PastisMatrix):
     """
     instrument = None
 
-    def __init__(self, design=None, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         """
         Parameters:
         ----------
-        design: string
-            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         savepsfs: bool
@@ -115,7 +106,7 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        super().__init__(save_path=initial_path)
 
         self.savepsfs = savepsfs
         self.saveopds = saveopds
@@ -207,11 +198,9 @@ class PastisMatrixIntensities(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
-    @abstractmethod
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
 
-    @abstractmethod
     def setup_one_pair_function(self):
         """ Create an attribute that is the partial function that can calculate the contrast from one aberrated
         segment/actuator pair. This needs to create self.calculate_matrix_pair. """
@@ -806,7 +795,8 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=design, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
+        self.design = design
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -830,7 +820,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -856,7 +846,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -879,7 +869,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """

@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import os
 import time
 import functools
@@ -24,12 +23,10 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, design=None, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, initial_path='', saveefields=True, saveopds=True):
         """
         Parameters:
         ----------
-        design: string
-            Default None; if instrument=='LUVOIR', need to pass "small", "medium" or "large"
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         saveefields: bool
@@ -37,7 +34,7 @@ class PastisMatrixEfields(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path)
+        super().__init__(save_path=initial_path)
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -80,17 +77,14 @@ class PastisMatrixEfields(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
-    @abstractmethod
     def calculate_ref_efield(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         pass
 
-    @abstractmethod
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
         pass
 
-    @abstractmethod
     def setup_single_mode_function(self):
         """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
         aberrated mode. This needs to create self.calculate_one_mode. """
@@ -162,9 +156,10 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design=design, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        super().__init__(initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
+        self.design = design
 
     def calculate_ref_efield(self):
         """Instantiate the simulator object and calculate the reference E-field, DH mask, and direct PSF norm factor."""
