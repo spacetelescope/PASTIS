@@ -799,7 +799,7 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
         self.design = design
 
     def setup_one_pair_function(self):
@@ -825,7 +825,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -852,7 +852,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -876,7 +876,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
