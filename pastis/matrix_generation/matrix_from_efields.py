@@ -9,6 +9,7 @@ import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.e2e_simulators.luvoir_imaging import LuvoirA_APLC
+from pastis.e2e_simulators.scda_telescopes import HexRingAPLC
 import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_generation.matrix_building_numerical import PastisMatrix
 import pastis.plotting as ppl
@@ -216,6 +217,79 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
                                                     self.saveopds)
 
 
+class MatrixEfieldHex(PastisMatrixEfields):
+    instrument = 'HexAperture'
+    """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 semgent rings, using E-fields. """
+
+    def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True):
+        """
+        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        :param dm_spec: tuple or int, specification for the used DM -
+                        for seg_mirror: int, number of local Zernike modes on each segment
+                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+                        for zernike_mirror: int, number of global Zernikes
+        :param num_rings: int, number of hexagonal segment rings
+        :param initial_path: string, path to top-level directory where result folder should be saved to.
+        :param saveefields: bool, whether to save E-fields as fits file to disk or not
+        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        """
+        super().__init__(design='None', initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        self.which_dm = which_dm
+        self.dm_spec = dm_spec
+        self.num_rings = num_rings
+
+    def calculate_ref_efield(self):
+        """Instantiate the simulator object and calculate the reference E-field, DH mask, and direct PSF norm factor."""
+
+        optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
+        sampling = CONFIG_PASTIS.getfloat('HexRingTelescope', 'sampling')
+        self.hex_telescope = HexRingAPLC(optics_input, self.num_rings, sampling)
+        self.dh_mask = self.hex_telescope.dh_mask
+
+        # Calculate contrast normalization factor from direct PSF (intensity)
+        _unaberrated_coro_psf, direct = self.hex_telescope.calc_psf(ref=True)
+        self.norm = np.max(direct)
+
+        # Calculate reference E-field in science focal plane, without any aberrations applied
+        unaberrated_ref_efield, _inter = self.hex_telescope.calc_psf(return_intermediate='efield')
+        self.efield_ref = unaberrated_ref_efield.electric_field
+
+    def setup_deformable_mirror(self):
+        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
+
+        log.info('Setting up deformable mirror...')
+        if self.which_dm == 'seg_mirror':
+            n_modes_segs = self.dm_spec
+            log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
+            self.hex_telescope.create_segmented_mirror(n_modes_segs)
+            self.number_all_modes = self.hex_telescope.sm.num_actuators
+
+        elif self.which_dm == 'harris_seg_mirror':
+            fpath, pad_orientations, therm, mech, other = self.dm_spec
+            log.info(f'Reading Harris spreadsheet from {fpath}')
+            log.info(f'Using pad orientations: {pad_orientations}')
+            self.hex_telescope.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
+            self.number_all_modes = self.hex_telescope.harris_sm.num_actuators
+
+        elif self.which_dm == 'zernike_mirror':
+            n_modes_zernikes = self.dm_spec
+            log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
+            self.hex_telescope.create_global_zernike_mirror(n_modes_zernikes)
+            self.number_all_modes = self.hex_telescope.zernike_mirror.num_actuators
+
+        else:
+            raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
+
+        log.info(f'Total number of modes: {self.number_all_modes}')
+
+    def setup_single_mode_function(self):
+        """ Create the partial function that returns the E-field of a single aberrated mode. """
+
+        self.calculate_one_mode = functools.partial(_hex_tel_matrix_single_mode, self.which_dm, self.number_all_modes,
+                                                    self.wfe_aber, self.hex_telescope, self.resDir, self.save_efields,
+                                                    self.saveopds)
+
+
 class MatrixEfieldRST(PastisMatrixEfields):
     """
     Class to calculate the PASTIS matrix from E-fields of RST CGI.
@@ -296,6 +370,53 @@ def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim,
         opd_name = f'opd_mode_{mode_no}'
         plt.clf()
         hcipy.imshow_field(opd_map, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
+        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
+
+    return efield_focal_plane.electric_field
+
+
+def _hex_tel_matrix_single_mode(which_dm, number_all_modes, wfe_aber, hex_sim, resDir, saveefields, saveopds, mode_no):
+    """
+    Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
+    :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    :param number_all_modes: int, total number of all modes
+    :param wfe_aber: float, calibration aberration in meters
+    :param hex_sim: instance of segmented telescope simulator
+    :param resDir: str, directory for matrix calculation results
+    :param saveefields: bool, Whether to save E-fields as fits file to disk or not
+    :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
+    :param mode_no: int, which mode index to calculate the E-field for
+    :return: complex array, resulting focal plane E-field
+    """
+
+    log.info(f'MODE NUMBER: {mode_no}')
+
+    # Apply calibration aberration to used mode
+    all_modes = np.zeros(number_all_modes)
+    all_modes[mode_no] = wfe_aber / 2    # simulator takes aberrations in surface  #TODO: check that this is true for all the DMs
+    if which_dm == 'seg_mirror':
+        hex_sim.sm.actuators = all_modes
+    elif which_dm == 'harris_seg_mirror':
+        hex_sim.harris_sm.actuators = all_modes
+    elif which_dm == 'zernike_mirror':
+        hex_sim.zernike_mirror.actuators = all_modes
+    else:
+        raise ValueError(f'DM with name "{which_dm}" not recognized.')
+
+    # Calculate coronagraphic E-field
+    efield_focal_plane, inter = hex_sim.calc_psf(return_intermediate='efield')
+
+    if saveefields:
+        fname_real = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
+        fname_imag = f'efield_imag_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+
+    if saveopds:
+        opd_map = inter[which_dm].phase
+        opd_name = f'opd_mode_{mode_no}'
+        plt.clf()
+        hcipy.imshow_field(opd_map, grid=hex_sim.aperture.grid, mask=hex_sim.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane.electric_field
