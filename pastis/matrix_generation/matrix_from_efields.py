@@ -58,7 +58,7 @@ class PastisMatrixEfields(PastisMatrix):
 
         end_time = time.time()
         log.info(
-            f'Runtime for PastisMatrixEfields().calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
+            f'Runtime for {self.__class__.__name__}.calc(): {end_time - start_time}sec = {(end_time - start_time) / 60}min')
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_efields(self):
