@@ -63,8 +63,8 @@ class PastisMatrix:
         self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
 
         # Create directory names
-        tel_suffix = f'{self.instrument.lower()}'
-        self.overall_dir = util.create_data_path(save_path, telescope=tel_suffix)
+        tel_name = f'{self.instrument.lower()}'
+        self.overall_dir = util.create_data_path(save_path, telescope=tel_name)
         os.makedirs(self.overall_dir, exist_ok=True)
         self.resDir = os.path.join(self.overall_dir, 'matrix_numerical')
 
@@ -73,11 +73,11 @@ class PastisMatrix:
         os.makedirs(os.path.join(self.resDir, 'OTE_images'), exist_ok=True)
 
         # Set up logger
-        util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_suffix}')
-        log.info(f'Building numerical matrix for {tel_suffix}\n')
+        util.setup_pastis_logging(self.resDir, f'pastis_matrix_{tel_name}')
+        log.info(f'Building numerical matrix for {tel_name}\n')
 
         # Record some of the defined parameters
-        log.info(f'Instrument: {tel_suffix}')
+        log.info(f'Instrument: {tel_name}')
         log.info(f'Wavelength: {self.wvln} m')
         log.info(f'Number of segments: {self.nb_seg}')
         log.info(f'Segment list: {self.seglist}')
