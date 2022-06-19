@@ -806,7 +806,7 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(design=design, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -830,7 +830,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -856,7 +856,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -879,7 +879,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
-        super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
+        super().__init__(design=None, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
