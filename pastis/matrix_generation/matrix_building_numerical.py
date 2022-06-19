@@ -805,7 +805,7 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
     instrument = 'LUVOIR'
     """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
-    def __int__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=design, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
@@ -829,7 +829,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
     instrument = 'HiCAT'
     """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
-    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
@@ -855,7 +855,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
     instrument = 'JWST'
     """ Calculate a PASTIS matrix for JWST, using intensity images. """
 
-    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
@@ -878,7 +878,7 @@ class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
     """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
 
-    def __int__(self, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         super().__init__(design=None, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
