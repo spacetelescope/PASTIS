@@ -233,7 +233,8 @@ class MatrixEfieldHex(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(design='None', initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        nb_seg = 3 * num_rings * (num_rings + 1) + 1
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
         self.num_rings = num_rings
