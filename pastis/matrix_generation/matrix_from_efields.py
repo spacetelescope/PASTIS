@@ -82,16 +82,16 @@ class PastisMatrixEfields(PastisMatrix):
 
     def calculate_ref_efield(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
-        pass
+        raise NotImplementedError()
 
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
-        pass
+        raise NotImplementedError()
 
     def setup_single_mode_function(self):
         """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
         aberrated mode. This needs to create self.calculate_one_mode. """
-        pass
+        raise NotImplementedError()
 
 
 def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):

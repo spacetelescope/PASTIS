@@ -88,6 +88,7 @@ class PastisMatrix:
 
     def calc(self):
         """ This is the main method that should be called to calculate a PASTIS matrix. """
+        raise NotImplementedError()
 
 
 class PastisMatrixIntensities(PastisMatrix):
@@ -203,10 +204,12 @@ class PastisMatrixIntensities(PastisMatrix):
 
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
+        raise NotImplementedError()
 
     def setup_one_pair_function(self):
         """ Create an attribute that is the partial function that can calculate the contrast from one aberrated
         segment/actuator pair. This needs to create self.calculate_matrix_pair. """
+        raise NotImplementedError()
 
 
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
