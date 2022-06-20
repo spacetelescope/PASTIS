@@ -212,7 +212,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
     def setup_single_mode_function(self):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
 
-        self.calculate_one_mode = functools.partial(_luvoir_matrix_single_mode, self.which_dm, self.number_all_modes,
+        self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.luvoir, self.resDir, self.save_efields,
                                                     self.saveopds)
 
@@ -285,7 +285,7 @@ class MatrixEfieldHex(PastisMatrixEfields):
     def setup_single_mode_function(self):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
 
-        self.calculate_one_mode = functools.partial(_hex_tel_matrix_single_mode, self.which_dm, self.number_all_modes,
+        self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.hex_telescope, self.resDir, self.save_efields,
                                                     self.saveopds)
 
@@ -328,60 +328,13 @@ class MatrixEfieldRST(PastisMatrixEfields):
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 
-def _luvoir_matrix_single_mode(which_dm, number_all_modes, wfe_aber, luvoir_sim, resDir, saveefields, saveopds, mode_no):
+def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, resDir, saveefields, saveopds, mode_no):
     """
-    Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
+    Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
     :param number_all_modes: int, total number of all modes
     :param wfe_aber: float, calibration aberration in meters
-    :param luvoir_sim: instance of LUVOIR simulator
-    :param resDir: str, directory for matrix calculation results
-    :param saveefields: bool, Whether to save E-fields as fits file to disk or not
-    :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
-    :param mode_no: int, which mode index to calculate the E-field for
-    :return: complex array, resulting focal plane E-field
-    """
-
-    log.info(f'MODE NUMBER: {mode_no}')
-
-    # Apply calibration aberration to used mode
-    all_modes = np.zeros(number_all_modes)
-    all_modes[mode_no] = wfe_aber / 2    # LUVOIR simulator takes aberrations in surface  #TODO: check that this is true for all the DMs
-    if which_dm == 'seg_mirror':
-        luvoir_sim.sm.actuators = all_modes
-    elif which_dm == 'harris_seg_mirror':
-        luvoir_sim.harris_sm.actuators = all_modes
-    elif which_dm == 'zernike_mirror':
-        luvoir_sim.zernike_mirror.actuators = all_modes
-    else:
-        raise ValueError(f'DM with name "{which_dm}" not recognized.')
-
-    # Calculate coronagraphic E-field
-    efield_focal_plane, inter = luvoir_sim.calc_psf(return_intermediate='efield')
-
-    if saveefields:
-        fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
-        fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
-
-    if saveopds:
-        opd_map = inter[which_dm].phase
-        opd_name = f'opd_mode_{mode_no}'
-        plt.clf()
-        hcipy.imshow_field(opd_map, grid=luvoir_sim.aperture.grid, mask=luvoir_sim.aperture, cmap='RdBu')
-        plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
-
-    return efield_focal_plane.electric_field
-
-
-def _hex_tel_matrix_single_mode(which_dm, number_all_modes, wfe_aber, hex_sim, resDir, saveefields, saveopds, mode_no):
-    """
-    Calculate the LUVOIR-A mean E-field of one aberrated mode; for PastisMatrixEfields().
-    :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    :param number_all_modes: int, total number of all modes
-    :param wfe_aber: float, calibration aberration in meters
-    :param hex_sim: instance of segmented telescope simulator
+    :param simulator: instance of segmented telescope simulator
     :param resDir: str, directory for matrix calculation results
     :param saveefields: bool, Whether to save E-fields as fits file to disk or not
     :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
@@ -395,16 +348,16 @@ def _hex_tel_matrix_single_mode(which_dm, number_all_modes, wfe_aber, hex_sim, r
     all_modes = np.zeros(number_all_modes)
     all_modes[mode_no] = wfe_aber / 2    # simulator takes aberrations in surface  #TODO: check that this is true for all the DMs
     if which_dm == 'seg_mirror':
-        hex_sim.sm.actuators = all_modes
+        simulator.sm.actuators = all_modes
     elif which_dm == 'harris_seg_mirror':
-        hex_sim.harris_sm.actuators = all_modes
+        simulator.harris_sm.actuators = all_modes
     elif which_dm == 'zernike_mirror':
-        hex_sim.zernike_mirror.actuators = all_modes
+        simulator.zernike_mirror.actuators = all_modes
     else:
         raise ValueError(f'DM with name "{which_dm}" not recognized.')
 
     # Calculate coronagraphic E-field
-    efield_focal_plane, inter = hex_sim.calc_psf(return_intermediate='efield')
+    efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield')
 
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
@@ -416,7 +369,7 @@ def _hex_tel_matrix_single_mode(which_dm, number_all_modes, wfe_aber, hex_sim, r
         opd_map = inter[which_dm].phase
         opd_name = f'opd_mode_{mode_no}'
         plt.clf()
-        hcipy.imshow_field(opd_map, grid=hex_sim.aperture.grid, mask=hex_sim.aperture, cmap='RdBu')
+        hcipy.imshow_field(opd_map, grid=simulator.aperture.grid, mask=simulator.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane.electric_field
