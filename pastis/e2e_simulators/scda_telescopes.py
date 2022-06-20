@@ -4,6 +4,7 @@ of the SCDA working group.
 """
 import logging
 import os
+from astropy.io import fits
 import hcipy
 import numpy as np
 
@@ -74,25 +75,29 @@ class HexRingAPLC(ScdaAPLC):
         Robustness to Lyot stop misalignments in pixels. None, 2 or 4.
     """
     def __init__(self, input_dir, num_rings, sampling, robustness_px=None):
+        if num_rings not in [1, 2, 3, 4, 5]:
+            raise ValueError(f"No telescope/coronagraph solution provided for {num_rings} number of rings.")
         self.num_rings = num_rings
+        num_seg = 3 * num_rings * (num_rings + 1) + 1
         data_in_repo = os.path.join(input_dir, f'{num_rings}-Hex')
 
-        # Diameter for each hex ring solution in meters as provided by GSFC
-        # Taken from https://github.com/spacetelescope/aplc_optimization/blob/6bd5a6ecf46a3cf758c23853367d5b18e6a5a1d7/optimization_launchers/SCDA/do_LUVex_survey.py#L67
-        pupil_diameter_circumscribed = {1: 7.9445, 2: 7.2617, 3: 7.7231, 4: 7.1522, 5: 5.9941}
-        pupil_diameter_inscribed = {1: 6.0023, 2: 5.9994, 3: 5.9899, 4: 5.9937, 5: 6.8526}
-        diameter_circumscribed = pupil_diameter_circumscribed[num_rings]
-        diameter_inscribed = pupil_diameter_inscribed[num_rings]
+        # The number of pixels is present in the fits headers of both the aperture as well as the apodizer file.
+        # But all the files on the repo have the same size, so we are leaving this hard-coded for now.
+        # Adjust later if needed.
+        pxsize = 1024
 
-        num_seg = 3 * num_rings * (num_rings + 1) + 1
-        gap_size = 0.06    # in meters
+        # Find correct aperture file and read parameters from its header
         if num_rings in [1, 2]:
-            seg_flat_to_flat = (diameter_inscribed - 2 * (num_rings - 1) * gap_size) / (2 * (num_rings - 1) + 1)
+            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_ovsamp04__N{pxsize:04d}.fits'
         elif num_rings in [3, 4, 5]:
-            seg_flat_to_flat = (diameter_circumscribed - 2 * num_rings * gap_size) / (2 * num_rings + 1)
-        else:
-            raise ValueError(f"No telescope/coronagraph solution provided for {num_rings} number of rings.")
+            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_clipped_ovsamp04__N{pxsize:04d}.fits'
+        aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
 
+        aper_hdr = fits.getheader(os.path.join(data_in_repo, aper_fname))
+        diameter_circumscribed = aper_hdr['D_CIRC']
+        seg_flat_to_flat = aper_hdr['SEG_F2F']
+
+        # Find correct apodizer file and read parameters from its header
         if robustness_px is None:
             robust = 0
         elif robustness_px == 2:
@@ -101,33 +106,24 @@ class HexRingAPLC(ScdaAPLC):
             robust = 2
         else:
             raise ValueError(f"An apodizer design with robustness to a LS misalignment of {robustness_px} pixels does not exist for this aperture.")
-
-        # These parameters are contained in the fits header of the apodizer
-        pxsize = 1024
-        fpm_rad = 3.5
-        fpm_px = 150
-        iwa = 3.4
-        owa = 12
-        imlamD = 1.2 * owa
-
-        if num_rings in [1, 2]:
-            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_ovsamp04__N{pxsize:04d}.fits'
-        elif num_rings in [3, 4, 5]:
-            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_clipped_ovsamp04__N{pxsize:04d}.fits'
-        aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
         apod_fname = f'solutions/{robust}_SCDA_N1024_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam3_LS_IDex_ID_OD0_OD_ls_982_no_strut.fits'
+        apod_hdr = fits.getheader(apod_fname)
+        imlamD = 1.2 * apod_hdr['OWA']
+
+        # Find correct Lyot stop file
         ls_fname = f'masks/LS_LUVex_{num_rings:02d}-Hex_ID0000_OD0982_no_struts_gy_ovsamp4_N{pxsize:04d}.fits'
 
+        # Bundle all parameters
         aplc_params = {'num_seg': num_seg,
                        'aper_fname': aper_fname,
                        'aper_ind_fname': aper_ind_fname,
                        'apod_fname': apod_fname,
                        'ls_fname': ls_fname,
                        'pxsize': pxsize,
-                       'fpm_rad': fpm_rad,
-                       'fpm_px': fpm_px,
-                       'iwa': iwa,
-                       'owa': owa}
+                       'fpm_rad': apod_hdr['FPM_RAD'],
+                       'fpm_px': apod_hdr['FPM_PIX'],
+                       'iwa': apod_hdr['IWA'],
+                       'owa': apod_hdr['OWA']}
 
         super().__init__(input_dir=data_in_repo, sampling=sampling, diameter=diameter_circumscribed,
                          seg_flat_to_flat=seg_flat_to_flat, wvln=1, imlamD=imlamD, aplc_params=aplc_params)
