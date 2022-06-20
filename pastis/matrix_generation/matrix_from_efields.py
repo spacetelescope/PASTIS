@@ -219,7 +219,7 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
 
 class MatrixEfieldHex(PastisMatrixEfields):
     instrument = 'HexRingTelescope'
-    """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 semgent rings, using E-fields. """
+    """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields. """
 
     def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True):
         """
