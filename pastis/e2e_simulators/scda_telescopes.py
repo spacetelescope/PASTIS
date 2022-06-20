@@ -107,7 +107,7 @@ class HexRingAPLC(ScdaAPLC):
         else:
             raise ValueError(f"An apodizer design with robustness to a LS misalignment of {robustness_px} pixels does not exist for this aperture.")
         apod_fname = f'solutions/{robust}_SCDA_N1024_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam3_LS_IDex_ID_OD0_OD_ls_982_no_strut.fits'
-        apod_hdr = fits.getheader(apod_fname)
+        apod_hdr = fits.getheader(os.path.join(data_in_repo, apod_fname))
         imlamD = 1.2 * apod_hdr['OWA']
 
         # Find correct Lyot stop file
