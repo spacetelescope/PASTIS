@@ -24,7 +24,7 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, nb_seg, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True):
         """
         Parameters:
         ----------
@@ -37,7 +37,7 @@ class PastisMatrixEfields(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(nb_seg=nb_seg, save_path=initial_path)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, save_path=initial_path)
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -145,7 +145,7 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
     """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
-    def __init__(self, which_dm, dm_spec, nb_seg, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, which_dm, dm_spec, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -156,7 +156,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
 
@@ -231,8 +231,9 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
+        seglist = util.get_segment_list(self.instrument)
         self.design = design
-        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, initial_path=initial_path,
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
                          saveefields=saveefields, saveopds=saveopds)
 
     def instantiate_simulator(self):
@@ -258,8 +259,9 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
         nb_seg = 3 * num_rings * (num_rings + 1) + 1
+        seglist = np.arange(nb_seg) + 1
         self.num_rings = num_rings
-        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, initial_path=initial_path,
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
                          saveefields=saveefields, saveopds=saveopds)
 
     def instantiate_simulator(self):
@@ -276,7 +278,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
 
     def __init__(self, initial_path='', saveefields=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        seglist = util.get_segment_list(self.instrument)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
 
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
