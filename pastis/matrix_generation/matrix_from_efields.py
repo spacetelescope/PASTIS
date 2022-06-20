@@ -143,9 +143,80 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     return matrix_pastis_half
 
 
-class MatrixEfieldLuvoirA(PastisMatrixEfields):
-    instrument = 'LUVOIR'
+class MatrixEfieldInternalSimulator(PastisMatrixEfields):
+    """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
+    def __init__(self, which_dm, dm_spec, nb_seg, initial_path='', saveefields=True, saveopds=True):
+        """
+        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        :param dm_spec: tuple or int, specification for the used DM -
+                        for seg_mirror: int, number of local Zernike modes on each segment
+                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+                        for zernike_mirror: int, number of global Zernikes
+        :param initial_path: string, path to top-level directory where result folder should be saved to.
+        :param saveefields: bool, whether to save E-fields as fits file to disk or not
+        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        """
+        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        self.which_dm = which_dm
+        self.dm_spec = dm_spec
+
+        self.instantiate_simulator()
+
+    def instantiate_simulator(self):
+        """ Create a simulator object and save to self.simulator """
+        raise NotImplementedError()
+
+    def calculate_ref_efield(self):
+        """Calculate the reference E-field, DH mask, and direct PSF norm factor."""
+        self.dh_mask = self.simulator.dh_mask
+
+        # Calculate contrast normalization factor from direct PSF (intensity)
+        _unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True)
+        self.norm = np.max(direct)
+
+        # Calculate reference E-field in focal plane, without any aberrations applied
+        unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield')
+        self.efield_ref = unaberrated_ref_efield.electric_field
+
+    def setup_deformable_mirror(self):
+        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
+
+        log.info('Setting up deformable mirror...')
+        if self.which_dm == 'seg_mirror':
+            n_modes_segs = self.dm_spec
+            log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
+            self.simulator.create_segmented_mirror(n_modes_segs)
+            self.number_all_modes = self.simulator.sm.num_actuators
+
+        elif self.which_dm == 'harris_seg_mirror':
+            fpath, pad_orientations, therm, mech, other = self.dm_spec
+            log.info(f'Reading Harris spreadsheet from {fpath}')
+            log.info(f'Using pad orientations: {pad_orientations}')
+            self.simulator.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
+            self.number_all_modes = self.simulator.harris_sm.num_actuators
+
+        elif self.which_dm == 'zernike_mirror':
+            n_modes_zernikes = self.dm_spec
+            log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
+            self.simulator.create_global_zernike_mirror(n_modes_zernikes)
+            self.number_all_modes = self.simulator.zernike_mirror.num_actuators
+
+        else:
+            raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
+
+        log.info(f'Total number of modes: {self.number_all_modes}')
+
+    def setup_single_mode_function(self):
+        """ Create the partial function that returns the E-field of a single aberrated mode. """
+
+        self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
+                                                    self.wfe_aber, self.simulator, self.resDir, self.save_efields,
+                                                    self.saveopds)
+
+
+class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
+    instrument = 'LUVOIR'
 
     def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True):
         """
@@ -160,66 +231,19 @@ class MatrixEfieldLuvoirA(PastisMatrixEfields):
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
-        self.which_dm = which_dm
-        self.dm_spec = dm_spec
         self.design = design
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, initial_path=initial_path,
+                         saveefields=saveefields, saveopds=saveopds)
 
-    def calculate_ref_efield(self):
-        """Instantiate the simulator object and calculate the reference E-field, DH mask, and direct PSF norm factor."""
-
+    def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
         sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
-        self.luvoir = LuvoirA_APLC(optics_input, self.design, sampling)
-        self.dh_mask = self.luvoir.dh_mask
-
-        # Calculate contrast normalization factor from direct PSF (intensity)
-        _unaberrated_coro_psf, direct = self.luvoir.calc_psf(ref=True)
-        self.norm = np.max(direct)
-
-        # Calculate reference E-field in focal plane, without any aberrations applied
-        unaberrated_ref_efield, _inter = self.luvoir.calc_psf(return_intermediate='efield')
-        self.efield_ref = unaberrated_ref_efield.electric_field
-
-    def setup_deformable_mirror(self):
-        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
-
-        log.info('Setting up deformable mirror...')
-        if self.which_dm == 'seg_mirror':
-            n_modes_segs = self.dm_spec
-            log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
-            self.luvoir.create_segmented_mirror(n_modes_segs)
-            self.number_all_modes = self.luvoir.sm.num_actuators
-
-        elif self.which_dm == 'harris_seg_mirror':
-            fpath, pad_orientations, therm, mech, other = self.dm_spec
-            log.info(f'Reading Harris spreadsheet from {fpath}')
-            log.info(f'Using pad orientations: {pad_orientations}')
-            self.luvoir.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
-            self.number_all_modes = self.luvoir.harris_sm.num_actuators
-
-        elif self.which_dm == 'zernike_mirror':
-            n_modes_zernikes = self.dm_spec
-            log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
-            self.luvoir.create_global_zernike_mirror(n_modes_zernikes)
-            self.number_all_modes = self.luvoir.zernike_mirror.num_actuators
-
-        else:
-            raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
-
-        log.info(f'Total number of modes: {self.number_all_modes}')
-
-    def setup_single_mode_function(self):
-        """ Create the partial function that returns the E-field of a single aberrated mode. """
-
-        self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
-                                                    self.wfe_aber, self.luvoir, self.resDir, self.save_efields,
-                                                    self.saveopds)
+        self.simulator = LuvoirA_APLC(optics_input, self.design, sampling)
 
 
-class MatrixEfieldHex(PastisMatrixEfields):
-    instrument = 'HexRingTelescope'
+class MatrixEfieldHex(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields. """
+    instrument = 'HexRingTelescope'
 
     def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True):
         """
@@ -234,61 +258,14 @@ class MatrixEfieldHex(PastisMatrixEfields):
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
         nb_seg = 3 * num_rings * (num_rings + 1) + 1
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
-        self.which_dm = which_dm
-        self.dm_spec = dm_spec
         self.num_rings = num_rings
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, initial_path=initial_path,
+                         saveefields=saveefields, saveopds=saveopds)
 
-    def calculate_ref_efield(self):
-        """Instantiate the simulator object and calculate the reference E-field, DH mask, and direct PSF norm factor."""
-
+    def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
         sampling = CONFIG_PASTIS.getfloat('HexRingTelescope', 'sampling')
-        self.hex_telescope = HexRingAPLC(optics_input, self.num_rings, sampling)
-        self.dh_mask = self.hex_telescope.dh_mask
-
-        # Calculate contrast normalization factor from direct PSF (intensity)
-        _unaberrated_coro_psf, direct = self.hex_telescope.calc_psf(ref=True)
-        self.norm = np.max(direct)
-
-        # Calculate reference E-field in science focal plane, without any aberrations applied
-        unaberrated_ref_efield, _inter = self.hex_telescope.calc_psf(return_intermediate='efield')
-        self.efield_ref = unaberrated_ref_efield.electric_field
-
-    def setup_deformable_mirror(self):
-        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
-
-        log.info('Setting up deformable mirror...')
-        if self.which_dm == 'seg_mirror':
-            n_modes_segs = self.dm_spec
-            log.info(f'Creating segmented mirror with {n_modes_segs} local modes on each segment...')
-            self.hex_telescope.create_segmented_mirror(n_modes_segs)
-            self.number_all_modes = self.hex_telescope.sm.num_actuators
-
-        elif self.which_dm == 'harris_seg_mirror':
-            fpath, pad_orientations, therm, mech, other = self.dm_spec
-            log.info(f'Reading Harris spreadsheet from {fpath}')
-            log.info(f'Using pad orientations: {pad_orientations}')
-            self.hex_telescope.create_segmented_harris_mirror(fpath, pad_orientations, therm, mech, other)
-            self.number_all_modes = self.hex_telescope.harris_sm.num_actuators
-
-        elif self.which_dm == 'zernike_mirror':
-            n_modes_zernikes = self.dm_spec
-            log.info(f'Creating global Zernike mirror with {n_modes_zernikes} global modes...')
-            self.hex_telescope.create_global_zernike_mirror(n_modes_zernikes)
-            self.number_all_modes = self.hex_telescope.zernike_mirror.num_actuators
-
-        else:
-            raise ValueError(f'DM with name "{self.which_dm}" not recognized.')
-
-        log.info(f'Total number of modes: {self.number_all_modes}')
-
-    def setup_single_mode_function(self):
-        """ Create the partial function that returns the E-field of a single aberrated mode. """
-
-        self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
-                                                    self.wfe_aber, self.hex_telescope, self.resDir, self.save_efields,
-                                                    self.saveopds)
+        self.simulator = HexRingAPLC(optics_input, self.num_rings, sampling)
 
 
 class MatrixEfieldRST(PastisMatrixEfields):
