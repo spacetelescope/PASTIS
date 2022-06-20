@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     # Needed for Harris mirror
     fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
-    pad_orientations = np.pi / 2 * np.ones(120)
+    #pad_orientations = np.pi / 2 * np.ones(120)    #TODO: replace 120 with actual number of segments
 
     DM_SPEC = 3
     # DM_SPEC = tuple or int, specification for the used DM -
