@@ -53,6 +53,7 @@ class PastisMatrixEfields(PastisMatrix):
         start_time = time.time()
 
         self.calculate_ref_efield()
+        self.calculate_ref_efield_wfs()
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
@@ -72,10 +73,7 @@ class PastisMatrixEfields(PastisMatrix):
 
     def calculate_efields_wfs(self):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
-
-        for i in range(self.number_all_modes):
-            self.efields_per_mode_wfs.append(self.calculate_one_mode(i)) #TODO: does this function needs to be changed?
-        self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
+        raise NotImplementedError()
 
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
@@ -204,13 +202,9 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield')
         self.efield_ref = unaberrated_ref_efield.electric_field
 
-    def calculate_ref_efield_wfs(self, norm_one_photon=False):
+    def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
-        if norm_one_photon:
-            unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=True)
-        else:
-            unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=False)
-
+        unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs()
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
 
     def setup_deformable_mirror(self):
