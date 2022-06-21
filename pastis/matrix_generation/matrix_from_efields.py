@@ -57,6 +57,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
+        self.calculate_efields_wfs()
         self.calculate_pastis_matrix_from_efields()
 
         end_time = time.time()
@@ -68,12 +69,14 @@ class PastisMatrixEfields(PastisMatrix):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
 
         for i in range(self.number_all_modes):
-            self.efields_per_mode.append(self.calculate_one_mode(i))
+            self.efields_per_mode.append(self.calculate_one_mode(i)[0])
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_efields_wfs(self):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
-        raise NotImplementedError()
+        for i in range(self.number_all_modes):
+            self.efields_per_mode_wfs.append(self.calculate_one_mode(i)[1])
+        self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
 
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
@@ -369,6 +372,9 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     # Calculate coronagraphic E-field
     efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield')
 
+    # Calculate WFS plane E-field
+    efield_wfs_plane = simulator.calc_out_of_band_wfs()
+
     if saveefields:
         fname_real = f'efield_real_mode{mode_no}'
         hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
@@ -382,7 +388,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
         hcipy.imshow_field(opd_map, grid=simulator.aperture.grid, mask=simulator.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane.electric_field
+    return efield_focal_plane.electric_field, efield_wfs_plane
 
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
