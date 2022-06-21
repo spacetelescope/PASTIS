@@ -84,6 +84,10 @@ class PastisMatrixEfields(PastisMatrix):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
 
+    def calculate_ref_efield_wfs(self):
+        """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
+        raise NotImplementedError()
+
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
         raise NotImplementedError()
