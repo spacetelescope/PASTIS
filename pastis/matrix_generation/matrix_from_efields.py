@@ -24,7 +24,7 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         Parameters:
         ----------
@@ -44,6 +44,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.calculate_one_mode = None
         self.efields_per_mode = []
         self.efields_per_mode_wfs = []
+        self.norm_one_photon = norm_one_photon
 
         os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
         os.makedirs(os.path.join(self.resDir, 'efields_wfs'), exist_ok=True)
@@ -53,8 +54,8 @@ class PastisMatrixEfields(PastisMatrix):
 
         start_time = time.time()
 
-        self.calculate_ref_efield()
-        self.calculate_ref_efield_wfs()
+        self.calculate_ref_efield(self.norm_one_photon)
+        self.calculate_ref_efield_wfs(self.norm_one_photon)
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
@@ -90,11 +91,11 @@ class PastisMatrixEfields(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
-    def calculate_ref_efield(self):
+    def calculate_ref_efield(self, norm_one_photon):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
 
-    def calculate_ref_efield_wfs(self):
+    def calculate_ref_efield_wfs(self, norm_one_photon):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
 
@@ -159,7 +160,7 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
     """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
-    def __init__(self, which_dm, dm_spec, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, which_dm, dm_spec, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -170,7 +171,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
 
@@ -180,12 +181,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         """ Create a simulator object and save to self.simulator """
         raise NotImplementedError()
 
-    def calculate_ref_efield(self):
+    def calculate_ref_efield(self, norm_one_photon):
         """Calculate the reference E-field, DH mask, and direct PSF norm factor."""
         self.dh_mask = self.simulator.dh_mask
 
         # Calculate contrast normalization factor from direct PSF (intensity)
-        unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True)
+        _unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon)
         self.norm = np.max(direct)
         hcipy.write_fits(unaberrated_coro_psf/self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
@@ -203,12 +204,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         plt.savefig(os.path.join(self.overall_dir, 'unaberrated_coro_psf.pdf'))
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield')
+        unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
         self.efield_ref = unaberrated_ref_efield.electric_field
 
-    def calculate_ref_efield_wfs(self):
+    def calculate_ref_efield_wfs(self, norm_one_photon):
         """Calculate the reference E-field at the wavefront sensor plane."""
-        unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs()
+        unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
 
     def setup_deformable_mirror(self):
@@ -243,7 +244,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
 
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
-                                                    self.wfe_aber, self.simulator, self.resDir, self.save_efields,
+                                                    self.wfe_aber, self.simulator, self.norm_one_photon, self.resDir, self.save_efields,
                                                     self.saveopds)
 
 
@@ -251,7 +252,7 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
     instrument = 'LUVOIR'
 
-    def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -267,7 +268,7 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
         seglist = util.get_segment_list(self.instrument)
         self.design = design
         super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
-                         saveefields=saveefields, saveopds=saveopds)
+                         saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
 
     def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
@@ -279,7 +280,7 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields. """
     instrument = 'HexRingTelescope'
 
-    def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True):
+    def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -295,14 +296,14 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
         seglist = np.arange(nb_seg) + 1
         self.num_rings = num_rings
         super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
-                         saveefields=saveefields, saveopds=saveopds)
+                         saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
 
     def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
         sampling = CONFIG_PASTIS.getfloat('HexRingTelescope', 'sampling')
         self.simulator = HexRingAPLC(optics_input, self.num_rings, sampling)
 
-
+#TODO: add norm_one_photon?
 class MatrixEfieldRST(PastisMatrixEfields):
     """
     Class to calculate the PASTIS matrix from E-fields of RST CGI.
@@ -342,7 +343,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 
-def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, resDir, saveefields, saveopds, mode_no):
+def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, norm_one_photon, resDir, saveefields, saveopds, mode_no):
     """
     Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
@@ -371,10 +372,10 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
         raise ValueError(f'DM with name "{which_dm}" not recognized.')
 
     # Calculate coronagraphic E-field
-    efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield')
+    efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield', norm_one_photon=norm_one_photon)
 
     # Calculate WFS plane E-field
-    efield_wfs_plane = simulator.calc_out_of_band_wfs()
+    efield_wfs_plane = simulator.calc_out_of_band_wfs(norm_one_photon=norm_one_photon)
 
     if saveefields:
         #Save focal plane Efields
@@ -398,7 +399,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
 
     return efield_focal_plane.electric_field, efield_wfs_plane
 
-
+#TODO: add norm_one_photon?
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
     """
     Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
