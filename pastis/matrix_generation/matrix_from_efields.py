@@ -171,8 +171,22 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.dh_mask = self.simulator.dh_mask
 
         # Calculate contrast normalization factor from direct PSF (intensity)
-        _unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True)
+        unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True)
         self.norm = np.max(direct)
+        hcipy.write_fits(unaberrated_coro_psf, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
+
+        npx = unaberrated_coro_psf.shaped.shape[0]
+        im_lamd = npx/2 /self.simulator.sampling
+        plt.figure(figsize=(10, 10))
+        plt.imshow(np.log10(unaberrated_coro_psf.shaped), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
+        plt.xlabel('$\lambda/D_{LS}$', size=30)
+        plt.ylabel('$\lambda/D_{LS}$', size=30)
+        plt.tick_params(axis='both', length=6, width=2, labelsize=30)
+        cbar = plt.colorbar(fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=30)
+        cbar.set_label('log contrast', fontsize=30, weight='bold', rotation=270, labelpad=20)
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.overall_dir, 'unaberrated_coro_psf.pdf'))
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield')
