@@ -33,7 +33,7 @@ class PastisMatrixEfields(PastisMatrix):
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         saveefields: bool
-            Whether to save E-fields as fits file to disk or not
+            Whether to save E-fields both at focal and wfs plane as fits file to disk or not
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
@@ -376,10 +376,17 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     efield_wfs_plane = simulator.calc_out_of_band_wfs()
 
     if saveefields:
-        fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
-        fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
+        #Save focal plane Efields
+        fname_real_focal = f'efield_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields_focal', fname_real_focal + '.fits'))
+        fname_imag_focal = f'efield_imag_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields_focal', fname_imag_focal + '.fits'))
+
+        #Save wfs plane Efields
+        fname_real_wfs = f'real_mode{mode_no}'
+        hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
+        fname_imag_wfs = f'imag_mode{mode_no}'
+        hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
 
     if saveopds:
         opd_map = inter[which_dm].phase
