@@ -46,6 +46,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode_wfs = []
 
         os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'efields_wfs'), exist_ok=True)
 
     def calc(self):
         """ Main method that calculates the PASTIS matrix """
@@ -377,15 +378,15 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
 
     if saveefields:
         #Save focal plane Efields
-        fname_real_focal = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields_focal', fname_real_focal + '.fits'))
-        fname_imag_focal = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields_focal', fname_imag_focal + '.fits'))
+        fname_real_focal = f'focal_real_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
+        fname_imag_focal = f'focal_imag_mode{mode_no}'
+        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
 
         #Save wfs plane Efields
-        fname_real_wfs = f'real_mode{mode_no}'
+        fname_real_wfs = f'wfs_real_mode{mode_no}'
         hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
-        fname_imag_wfs = f'imag_mode{mode_no}'
+        fname_imag_wfs = f'wfs_imag_mode{mode_no}'
         hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
 
     if saveopds:
