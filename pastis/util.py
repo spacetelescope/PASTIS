@@ -192,23 +192,29 @@ def calc_variance_of_mean_contrast(pastismatrix, cov_segments):
 
 def get_segment_list(instrument):
     """
-    Horribly hacky function to get correct segment number list for an instrument (LUVOIR, or HiCAT and JWST).
+    Horribly hacky function to get correct segment number list for an instrument.
+
+    In general, the numbering of all the telescope simulators implemented in `pastis` is given by the appropriate
+    indexed aperture file.
 
     We can assume that all implemented instruments start their numbering at 0, at the center segment.
     LUVOIR doesn't use the center segment though, so we start at 1 and go until 120, for a total of 120 segments.
     HiCAT does use it, so we start at 0 and go to 36 for a total of 37 segments.
+    The HexRingTelescope simulator does use the center segment, but its numbering starts at 1 because zeros are reserved
+    for non-transmissive parts of the pupil. This function does not return the segment list for these telescopes.
     JWST does not have a center segment, but it uses custom segment names anyway, so we start the numbering with zero,
     at the first segment that is actually controllable (A1).
 
-    :param instrument: string, "HiCAT", "LUVOIR" or "JWST"
+    :param instrument: string, "HiCAT", "LUVOIR", "JWST" or "RST"
     :return: seglist, array of segment numbers (names! at least in LUVOIR and HiCAT case. For JWST, it's the segment indices.)
     """
     if instrument not in ['LUVOIR', 'HiCAT', 'JWST', 'RST']:
-        raise ValueError('The instrument you requested is not implemented. Try with "LUVOIR", "HiCAT", "JWST"  or "RST" instead.')
+        raise ValueError(f'Requested "{instrument}" is not implemented in this function.'
+                         f'Try with "LUVOIR", "HiCAT", "JWST" or "RST" instead.')
 
     seglist = np.arange(CONFIG_PASTIS.getint(instrument, 'nb_subapertures'))
 
-    # Drop the center segment with label '0' when working with LUVOIR
+    # Drop the (center) segment with label '0' when working with LUVOIR
     if instrument == 'LUVOIR':
         seglist += 1
 

@@ -33,7 +33,11 @@ about the code and other telescopes it supports. For further info, contact the a
   * [Rerunning just the analysis](#rerunning-just-the-analysis)
 * [Supported Simulators](#supported-simulators)
   * [LUVOIR-A](#luvoir-a)
+  * [LUVOIR-B](#luvoir-b)
+  * [Habex](#habex)
+  * [Luvex/HexRing](#luvex--hexring)
   * [JWST](#jwst)
+  * [RST](#rst)
   * [HiCAT](#hicat)
 * [Jupyter notebooks](#jupyter-notebooks)
 * [About this repository](#about-this-repository)
@@ -347,11 +351,17 @@ There is a built-in LUVOIR-A simulator readily usable within the pastis package,
 for this observatory. The script `run_luvoir.py` is pre-set to easily run the medium and large design APLCs of LUVOIR-A as well. You just need
 to uncomment the according lines and it will generate the matrices, and run the PASTIS analysis for those cases as well.
 
-### LUVOIR-A
-The LUVOIR-B simulator runs with a Vortex coronagraph and is otherwise set up with the same deformable mirrors like LUVOIR-A.
+### LUVOIR-B
+The LUVOIR-B simulator runs with a Vortex coronagraph and is otherwise set up with the same deformable mirrors like LUVOIR-A,
+as it uses the built-in simulation infrastructure.
 
 ### Habex
 The Habex simulator is monolithic, has a Vortex coronagraph and uses the same global deformable mirrors like LUVOIR.
+It uses the built-in simulation infrastructure.
+
+### Luvex / HexRing
+This simulator produces an aperture with a varying number of hexagonal segment rings with appropriate APLC designs.
+It uses the built-in simulation infrastructure.
 
 ### JWST
 The coronagraphs currently supported on JWST are the NIRCam coronagraphs. You will need to install `webbpsf`

@@ -46,7 +46,7 @@ class PastisMatrix:
 
     instrument = None
 
-    def __init__(self, nb_seg, save_path=''):
+    def __init__(self, nb_seg, seglist, save_path=''):
         """
         Parameters:
         ----------
@@ -58,7 +58,7 @@ class PastisMatrix:
 
         # General telescope parameters
         self.nb_seg = nb_seg
-        self.seglist = util.get_segment_list(self.instrument)
+        self.seglist = seglist
         self.wvln = CONFIG_PASTIS.getfloat(self.instrument, 'lambda') * 1e-9  # m
         self.wfe_aber = CONFIG_PASTIS.getfloat(self.instrument, 'calibration_aberration') * 1e-9  # m
 
@@ -88,6 +88,7 @@ class PastisMatrix:
 
     def calc(self):
         """ This is the main method that should be called to calculate a PASTIS matrix. """
+        raise NotImplementedError()
 
 
 class PastisMatrixIntensities(PastisMatrix):
@@ -97,7 +98,7 @@ class PastisMatrixIntensities(PastisMatrix):
     """
     instrument = None
 
-    def __init__(self, nb_seg, initial_path='', savepsfs=True, saveopds=True):
+    def __init__(self, nb_seg, seglist, initial_path='', savepsfs=True, saveopds=True):
         """
         Parameters:
         ----------
@@ -110,7 +111,7 @@ class PastisMatrixIntensities(PastisMatrix):
         saveopds: bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(nb_seg=nb_seg, save_path=initial_path)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, save_path=initial_path)
         self.savepsfs = savepsfs
         self.saveopds = saveopds
         self.calculate_matrix_pair = None
@@ -203,10 +204,12 @@ class PastisMatrixIntensities(PastisMatrix):
 
     def calculate_ref_image(self):
         """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
+        raise NotImplementedError()
 
     def setup_one_pair_function(self):
         """ Create an attribute that is the partial function that can calculate the contrast from one aberrated
         segment/actuator pair. This needs to create self.calculate_matrix_pair. """
+        raise NotImplementedError()
 
 
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
@@ -799,7 +802,8 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        seglist = util.get_segment_list(self.instrument)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
         self.design = design
 
     def setup_one_pair_function(self):
@@ -825,7 +829,8 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        seglist = util.get_segment_list(self.instrument)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -852,7 +857,8 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        seglist = util.get_segment_list(self.instrument)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated segment pair. """
@@ -876,7 +882,8 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
-        super().__init__(nb_seg=nb_seg, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
+        seglist = util.get_segment_list(self.instrument)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
         """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
