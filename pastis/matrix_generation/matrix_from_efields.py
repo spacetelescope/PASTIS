@@ -75,7 +75,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_efields_wfs(self):
-        """ Poke each mode individually and calculate the resulting focal plane E-field. """
+        """ Poke each mode individually and calculate the resulting Wavefront Sensor plane E-field. """
         for i in range(self.number_all_modes):
             self.efields_per_mode_wfs.append(self.calculate_one_mode(i)[1])
         self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
