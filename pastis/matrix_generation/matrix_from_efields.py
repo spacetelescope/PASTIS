@@ -194,8 +194,8 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         im_lamd = npx/2 /self.simulator.sampling
         plt.figure(figsize=(10, 10))
         plt.imshow(np.log10(unaberrated_coro_psf.shaped/self.norm), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
-        plt.xlabel('$\lambda/D_{LS}$', size=30)
-        plt.ylabel('$\lambda/D_{LS}$', size=30)
+        plt.xlabel('$\lambda/D$', size=30)
+        plt.ylabel('$\lambda/D$', size=30)
         plt.tick_params(axis='both', length=6, width=2, labelsize=30)
         cbar = plt.colorbar(fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=30)
