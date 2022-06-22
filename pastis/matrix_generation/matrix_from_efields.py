@@ -377,13 +377,13 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     efield_wfs_plane = simulator.calc_out_of_band_wfs(norm_one_photon=norm_one_photon)
 
     if saveefields:
-        #Save focal plane Efields
+        # Save focal plane Efields
         fname_real_focal = f'focal_real_mode{mode_no}'
         hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
         fname_imag_focal = f'focal_imag_mode{mode_no}'
         hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
 
-        #Save wfs plane Efields
+        # Save wfs plane Efields
         fname_real_wfs = f'wfs_real_mode{mode_no}'
         hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
         fname_imag_wfs = f'wfs_imag_mode{mode_no}'
