@@ -173,12 +173,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         # Calculate contrast normalization factor from direct PSF (intensity)
         unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True)
         self.norm = np.max(direct)
-        hcipy.write_fits(unaberrated_coro_psf, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
+        hcipy.write_fits(unaberrated_coro_psf/self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
         npx = unaberrated_coro_psf.shaped.shape[0]
         im_lamd = npx/2 /self.simulator.sampling
         plt.figure(figsize=(10, 10))
-        plt.imshow(np.log10(unaberrated_coro_psf.shaped), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
+        plt.imshow(np.log10(unaberrated_coro_psf.shaped/self.norm), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
         plt.xlabel('$\lambda/D_{LS}$', size=30)
         plt.ylabel('$\lambda/D_{LS}$', size=30)
         plt.tick_params(axis='both', length=6, width=2, labelsize=30)
