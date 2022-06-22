@@ -54,8 +54,8 @@ class PastisMatrixEfields(PastisMatrix):
 
         start_time = time.time()
 
-        self.calculate_ref_efield(self.norm_one_photon)
-        self.calculate_ref_efield_wfs(self.norm_one_photon)
+        self.calculate_ref_efield()
+        self.calculate_ref_efield_wfs()
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
@@ -91,11 +91,11 @@ class PastisMatrixEfields(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
-    def calculate_ref_efield(self, norm_one_photon):
+    def calculate_ref_efield(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
 
-    def calculate_ref_efield_wfs(self, norm_one_photon):
+    def calculate_ref_efield_wfs(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
 
@@ -181,7 +181,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         """ Create a simulator object and save to self.simulator """
         raise NotImplementedError()
 
-    def calculate_ref_efield(self, norm_one_photon):
+    def calculate_ref_efield(self):
         """Calculate the reference E-field, DH mask, and direct PSF norm factor."""
         self.dh_mask = self.simulator.dh_mask
 
@@ -207,7 +207,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
         self.efield_ref = unaberrated_ref_efield.electric_field
 
-    def calculate_ref_efield_wfs(self, norm_one_photon):
+    def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
