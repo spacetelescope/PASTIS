@@ -186,7 +186,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.dh_mask = self.simulator.dh_mask
 
         # Calculate contrast normalization factor from direct PSF (intensity)
-        _unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon)
+        unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon)
         self.norm = np.max(direct)
         hcipy.write_fits(unaberrated_coro_psf/self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
