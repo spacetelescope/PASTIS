@@ -31,12 +31,20 @@ class PastisMatrixEfields(PastisMatrix):
         ----------
         nb_seg : int
             Number of segments in the segmented aperture.
+        seglist : list or array
+            List of all segment indices, as given in the indexed aperture file.
+        calc_science : bool
+            Whether to calculate the Efields in the science focal plane.
+        calc_wfs : bool
+            Whether to calculate the Efields in the out-of-band Zernike WFS plane.
         initial_path: string
             Path to top-level directory where result folder should be saved to.
         saveefields: bool
             Whether to save E-fields both at focal and wfs plane as fits file to disk or not
-        saveopds: bool
+        saveopds : bool
             Whether to save images of pair-wise aberrated pupils to disk or not
+        norm_one_photon : bool
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
         super().__init__(nb_seg=nb_seg, seglist=seglist, save_path=initial_path)
         self.calc_science = calc_science
@@ -173,9 +181,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
                         for seg_mirror: int, number of local Zernike modes on each segment
                         for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
                         for zernike_mirror: int, number of global Zernikes
+        :param nb_seg: int, Number of segments in the segmented aperture.
+        :param seglist: list or array, list of all segment indices, as given in the indexed aperture file.
+        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
+        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
         :param initial_path: string, path to top-level directory where result folder should be saved to.
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
         super().__init__(nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
                          initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
@@ -198,7 +211,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         hcipy.write_fits(unaberrated_coro_psf/self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
         npx = unaberrated_coro_psf.shaped.shape[0]
-        im_lamd = npx/2 /self.simulator.sampling
+        im_lamd = npx/2 / self.simulator.sampling
         plt.figure(figsize=(10, 10))
         plt.imshow(np.log10(unaberrated_coro_psf.shaped/self.norm), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
         plt.xlabel('$\lambda/D$', size=30)
@@ -268,9 +281,12 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
                         for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
                         for zernike_mirror: int, number of global Zernikes
         :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
+        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
+        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
         :param initial_path: string, path to top-level directory where result folder should be saved to.
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         seglist = util.get_segment_list(self.instrument)
@@ -297,9 +313,12 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
                         for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
                         for zernike_mirror: int, number of global Zernikes
         :param num_rings: int, number of hexagonal segment rings
+        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
+        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
         :param initial_path: string, path to top-level directory where result folder should be saved to.
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
+        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
         nb_seg = 3 * num_rings * (num_rings + 1) + 1
         seglist = np.arange(nb_seg) + 1
