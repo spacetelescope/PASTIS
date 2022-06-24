@@ -167,8 +167,25 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
     return matrix_pastis_half
 
-def calculate_sensitvity_matrix():
-    return
+
+def calculate_sensitvity_matrix(efields, efield_ref):
+    """
+    # This function should generate both G_coron and G_OBWFS
+    :param efields: list of electric fields
+    :param efield_ref: reference electric field when there is no wavefront aberration
+    """
+    # TODO: dimensional analysis of the matrices
+    nb_modes = efields.shape[0]
+    fields = []
+    efields_real = []
+    efields_imag = []
+    for i in range(0, nb_modes):
+        field = (efields[i, 0]-efield_ref[0]) + (1j*efields[i, 1] - efield_ref[1])
+        fields.append(field)
+        efields_real.append(field[0])
+        efields_imag.append(field[1])
+
+    return fields
 
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
