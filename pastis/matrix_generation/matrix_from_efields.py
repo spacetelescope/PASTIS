@@ -69,10 +69,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.calculate_ref_efield_wfs()
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
-        if self.calc_science:
-            self.calculate_efields()
-        if self.calc_wfs:
-            self.calculate_efields_wfs()
+        self.calculate_efields()
         self.calculate_pastis_matrix_from_efields()
 
         end_time = time.time()
@@ -84,13 +81,12 @@ class PastisMatrixEfields(PastisMatrix):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
 
         for i in range(self.number_all_modes):
-            self.efields_per_mode.append(self.calculate_one_mode(i)['efield_science_plane'])
+            efields = self.calculate_one_mode(i)
+            if self.calc_science:
+                self.efields_per_mode.append(efields['efield_science_plane'])
+            if self.calc_wfs:
+                self.efields_per_mode_wfs.append(efields['efield_wfs_plane'])
         self.efields_per_mode = np.array(self.efields_per_mode)
-
-    def calculate_efields_wfs(self):
-        """ Poke each mode individually and calculate the resulting Wavefront Sensor plane E-field. """
-        for i in range(self.number_all_modes):
-            self.efields_per_mode_wfs.append(self.calculate_one_mode(i)['efield_wfs_plane'])
         self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
 
     def calculate_pastis_matrix_from_efields(self):
