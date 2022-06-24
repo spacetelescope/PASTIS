@@ -375,7 +375,11 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield', norm_one_photon=norm_one_photon)
 
     # Calculate WFS plane E-field
-    efield_wfs_plane = simulator.calc_out_of_band_wfs(norm_one_photon=norm_one_photon)
+    # Purposefully do not use `simulator.calc_out_of_band_wfs()` because it would recalculate all intermediate planes,
+    # as is already done with `simulator.calc_psf()`, so we can use the output from there.
+    if simulator.zwfs is None:
+        simulator.create_zernike_wfs()
+    efield_wfs_plane = simulator.zwfs(inter['active_pupil'])
 
     if saveefields:
         # Save focal plane Efields
