@@ -303,6 +303,7 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
         sampling = CONFIG_PASTIS.getfloat('HexRingTelescope', 'sampling')
         self.simulator = HexRingAPLC(optics_input, self.num_rings, sampling)
 
+
 class MatrixEfieldRST(PastisMatrixEfields):
     """
     Class to calculate the PASTIS matrix from E-fields of RST CGI.
@@ -397,6 +398,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
     return efield_focal_plane.electric_field, efield_wfs_plane
+
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
     """
