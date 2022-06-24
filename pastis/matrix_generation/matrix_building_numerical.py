@@ -52,6 +52,8 @@ class PastisMatrix:
         ----------
         nb_seg : int
             Number of segments in the segmented aperture.
+        seglist : list or array
+            List of all segment indices, as given in the indexed aperture file.
         save_path : string
             Path to top-level directory where result folder should be saved to.
         """
