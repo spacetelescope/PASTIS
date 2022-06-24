@@ -260,8 +260,8 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
 
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
-                                                    self.wfe_aber, self.simulator, self.norm_one_photon, self.resDir, self.save_efields,
-                                                    self.saveopds)
+                                                    self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
+                                                    self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
 
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
@@ -368,21 +368,27 @@ class MatrixEfieldRST(PastisMatrixEfields):
                                                     self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
 
 
-def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, norm_one_photon, resDir, saveefields, saveopds, mode_no):
+def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, calc_science, calc_wfs,
+                                  norm_one_photon, resDir, saveefields, saveopds, mode_no):
     """
     Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
     :param number_all_modes: int, total number of all modes
     :param wfe_aber: float, calibration aberration in meters
     :param simulator: instance of segmented telescope simulator
+    :param calc_science: bool, whether to calculate the Efields in the science focal plane.
+    :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
+    :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
     :param resDir: str, directory for matrix calculation results
     :param saveefields: bool, Whether to save E-fields as fits file to disk or not
     :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
     :param mode_no: int, which mode index to calculate the E-field for
-    :return: complex array, resulting focal plane E-field
+    :return: dict, resulting E-fields
     """
 
     log.info(f'MODE NUMBER: {mode_no}')
+    efield_focal_plane = None
+    efield_wfs_plane = None
 
     # Apply calibration aberration to used mode
     all_modes = np.zeros(number_all_modes)
@@ -400,24 +406,27 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     efield_focal_plane, inter = simulator.calc_psf(return_intermediate='efield', norm_one_photon=norm_one_photon)
 
     # Calculate WFS plane E-field
-    # Purposefully do not use `simulator.calc_out_of_band_wfs()` because it would recalculate all intermediate planes,
-    # as is already done with `simulator.calc_psf()`, so we can use the output from there.
-    if simulator.zwfs is None:
-        simulator.create_zernike_wfs()
-    efield_wfs_plane = simulator.zwfs(inter['active_pupil'])
+    if calc_wfs:
+        # Purposefully do not use `simulator.calc_out_of_band_wfs()` because it would recalculate all intermediate planes,
+        # as is already done with `simulator.calc_psf()`, so we can use the output from there.
+        if simulator.zwfs is None:
+            simulator.create_zernike_wfs()
+        efield_wfs_plane = simulator.zwfs(inter['active_pupil'])
 
     if saveefields:
         # Save focal plane Efields
-        fname_real_focal = f'focal_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
-        fname_imag_focal = f'focal_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
+        if calc_science:
+            fname_real_focal = f'focal_real_mode{mode_no}'
+            hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
+            fname_imag_focal = f'focal_imag_mode{mode_no}'
+            hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
 
         # Save wfs plane Efields
-        fname_real_wfs = f'wfs_real_mode{mode_no}'
-        hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
-        fname_imag_wfs = f'wfs_imag_mode{mode_no}'
-        hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
+        if calc_wfs:
+            fname_real_wfs = f'wfs_real_mode{mode_no}'
+            hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
+            fname_imag_wfs = f'wfs_imag_mode{mode_no}'
+            hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
 
     if saveopds:
         opd_map = inter[which_dm].phase
@@ -442,6 +451,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     :param saveefields: bool, if True, all E_field will be saved to disk individually, as fits files
     :param savepods: bool, if True, all pupil surface maps of aberrated actuators pairs will be saved to disk as PDF
     :param mode_no: int, which aberrated actuator to calculate the E-field for
+    :return: dict, resulting E-fields
     """
 
     log.info(f'ACTUATOR NUMBER: {mode_no}')
