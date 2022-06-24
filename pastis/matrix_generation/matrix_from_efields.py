@@ -70,7 +70,8 @@ class PastisMatrixEfields(PastisMatrix):
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
         self.calculate_efields()
-        self.calculate_pastis_matrix_from_efields()
+        if self.calc_science:
+            self.calculate_pastis_matrix_from_efields()
 
         end_time = time.time()
         log.info(
