@@ -71,13 +71,13 @@ class PastisMatrixEfields(PastisMatrix):
         """ Poke each mode individually and calculate the resulting focal plane E-field. """
 
         for i in range(self.number_all_modes):
-            self.efields_per_mode.append(self.calculate_one_mode(i)[0])
+            self.efields_per_mode.append(self.calculate_one_mode(i)['efield_science_plane'])
         self.efields_per_mode = np.array(self.efields_per_mode)
 
     def calculate_efields_wfs(self):
         """ Poke each mode individually and calculate the resulting Wavefront Sensor plane E-field. """
         for i in range(self.number_all_modes):
-            self.efields_per_mode_wfs.append(self.calculate_one_mode(i)[1])
+            self.efields_per_mode_wfs.append(self.calculate_one_mode(i)['efield_wfs_plane'])
         self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
 
     def calculate_pastis_matrix_from_efields(self):
@@ -401,7 +401,11 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
         hcipy.imshow_field(opd_map, grid=simulator.aperture.grid, mask=simulator.aperture, cmap='RdBu')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane.electric_field, efield_wfs_plane
+    # Format returned Efields
+    efields = {'efield_science_plane': efield_focal_plane.electric_field,
+               'efield_wfs_plane': efield_wfs_plane}
+
+    return efields
 
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
@@ -444,4 +448,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
                             title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
 
-    return efield_focal_plane.wavefront
+    # Format returned Efields
+    efields = {'efield_science_plane': efield_focal_plane.wavefront}
+
+    return efields
