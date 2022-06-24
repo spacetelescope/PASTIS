@@ -24,7 +24,8 @@ class PastisMatrixEfields(PastisMatrix):
     instrument = None
     """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
 
-    def __init__(self, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
+    def __init__(self, nb_seg, seglist, calc_science, calc_wfs,
+                 initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         Parameters:
         ----------
@@ -38,6 +39,8 @@ class PastisMatrixEfields(PastisMatrix):
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
         super().__init__(nb_seg=nb_seg, seglist=seglist, save_path=initial_path)
+        self.calc_science = calc_science
+        self.calc_wfs = calc_wfs
 
         self.save_efields = saveefields
         self.saveopds = saveopds
@@ -58,8 +61,10 @@ class PastisMatrixEfields(PastisMatrix):
         self.calculate_ref_efield_wfs()
         self.setup_deformable_mirror()
         self.setup_single_mode_function()
-        self.calculate_efields()
-        self.calculate_efields_wfs()
+        if self.calc_science:
+            self.calculate_efields()
+        if self.calc_wfs:
+            self.calculate_efields_wfs()
         self.calculate_pastis_matrix_from_efields()
 
         end_time = time.time()
@@ -160,7 +165,8 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
     """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
-    def __init__(self, which_dm, dm_spec, nb_seg, seglist, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
+    def __init__(self, which_dm, dm_spec, nb_seg, seglist, calc_science, calc_wfs,
+                 initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -171,7 +177,8 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         :param saveefields: bool, whether to save E-fields as fits file to disk or not
         :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
         """
-        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
+                         initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
         self.which_dm = which_dm
         self.dm_spec = dm_spec
 
@@ -252,7 +259,8 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
     instrument = 'LUVOIR'
 
-    def __init__(self, which_dm, dm_spec, design='small', initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
+    def __init__(self, which_dm, dm_spec, design='small', calc_science=True, calc_wfs=False,
+                 initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -267,8 +275,8 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         seglist = util.get_segment_list(self.instrument)
         self.design = design
-        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
-                         saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
+                         initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
 
     def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
@@ -280,7 +288,8 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields. """
     instrument = 'HexRingTelescope'
 
-    def __init__(self, which_dm, dm_spec, num_rings=1, initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
+    def __init__(self, which_dm, dm_spec, num_rings=1, calc_science=True, calc_wfs=False,
+                 initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
         :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
         :param dm_spec: tuple or int, specification for the used DM -
@@ -295,8 +304,8 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
         nb_seg = 3 * num_rings * (num_rings + 1) + 1
         seglist = np.arange(nb_seg) + 1
         self.num_rings = num_rings
-        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, initial_path=initial_path,
-                         saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
+                         initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
 
     def instantiate_simulator(self):
         optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
@@ -313,7 +322,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
     def __init__(self, initial_path='', saveefields=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         seglist = util.get_segment_list(self.instrument)
-        super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
+        super().__init__(nb_seg=nb_seg, seglist=seglist, calc_science=True, calc_wfs=False,
+                         initial_path=initial_path, saveefields=saveefields, saveopds=saveopds)
 
     def calculate_ref_efield(self):
         iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
