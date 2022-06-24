@@ -167,6 +167,9 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
     return matrix_pastis_half
 
+def calculate_sensitvity_matrix():
+    return
+
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
     """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
