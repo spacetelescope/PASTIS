@@ -106,7 +106,7 @@ class PastisMatrixEfields(PastisMatrix):
         raise NotImplementedError()
 
     def calculate_ref_efield_wfs(self):
-        """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
+        """ Create the attributes self.norm, self.dh_mask, self.wfs_simulator and self.efield_ref_wfs. """
         raise NotImplementedError()
 
     def setup_deformable_mirror(self):
