@@ -177,13 +177,13 @@ def calculate_sensitvity_matrix(efields, efield_ref):
     """
     # This function should generate both G_coron and G_OBWFS
     G_coron = [nimg*nimg, 2, nb_modes], where nimg = int(np.sqrt(simulator.focal_det.x.shape[0]))
-    G_OBWFS = [N_pup_z*N_pup_z,2, nb_modes], where N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
+    G_OBWFS = [N_pup_z*N_pup_z, 2, nb_modes], where N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
     z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
 
     :param efields: list of electric fields
     :param efield_ref: reference electric field when there is no wavefront aberration
     """
-    # TODO: dimensional analysis of the matrices
+
     nb_modes = efields.shape[0]
     fields = []
     efields_real = []
