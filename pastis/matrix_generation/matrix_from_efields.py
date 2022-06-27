@@ -173,16 +173,30 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     return matrix_pastis_half
 
 
-def calculate_sensitvity_matrix(efields, efield_ref):
+def calculate_sensitvity_matrix(efields, efield_ref, nb_modes):
     """
     # This function should generate both G_coron and G_OBWFS
-    G_coron = [nimg*nimg, 2, nb_modes], where nimg = int(np.sqrt(simulator.focal_det.x.shape[0]))
-    G_OBWFS = [N_pup_z*N_pup_z, 2, nb_modes], where N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
-    z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
-
     :param efields: list of electric fields
     :param efield_ref: reference electric field when there is no wavefront aberration
     """
+    nimg = int(np.sqrt(self.simulator.focal_det.x.shape[0]))
+    z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
+    N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
+    G_OBWFS = [N_pup_z * N_pup_z, 2, nb_modes]
+    G_coron = np.zeros([nimg * nimg, 2, nb_modes])
+    E0_coron = np.zeros([nimg * nimg, 1, 2])
+    E0_coron[:, 0, 0] = efield_ref.real
+    E0_coron[:, 0, 1] = efield_ref.imag
+
+
+    for pp in range(0, nb_modes):
+        G_coron[:, 0, pp] = efields.real[pp] - efield_ref.real
+        G_coron[:, 1, pp] = efields.imag[pp] - efield_ref.imag
+
+    G_OBWFS = np.zeros([N_pup_z * N_pup_z, 2, num_actuators])
+    for pp in range(0, num_actuators):
+        G_OBWFS[:, 0, pp] = G_OBWFS_real[pp] * z_pup_downsample - Efield_ref_OBWFS.real
+        G_OBWFS[:, 1, pp] = G_OBWFS_imag[pp] * z_pup_downsample - Efield_ref_OBWFS.imag
 
     nb_modes = efields.shape[0]
     fields = []
