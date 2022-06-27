@@ -72,6 +72,8 @@ class PastisMatrixEfields(PastisMatrix):
         self.calculate_efields()
         if self.calc_science:
             self.calculate_pastis_matrix_from_efields()
+        if self.calc_wfs:
+            self.calculate_sensitvity_matrix_wfs()
 
         end_time = time.time()
         log.info(
@@ -116,6 +118,9 @@ class PastisMatrixEfields(PastisMatrix):
     def setup_single_mode_function(self):
         """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
         aberrated mode. This needs to create self.calculate_one_mode. """
+        raise NotImplementedError()
+
+    def calculate_sensitivity_matrix_wfs(self):
         raise NotImplementedError()
 
 
@@ -283,6 +288,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
                                                     self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
+        
+    def calculate_sensitivity_matrix_wfs(self):
+        raise NotImplementedError()
+
+    def calculate_sensitivty_matrix_coron(self):
+        raise NotImplementedError()
 
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
