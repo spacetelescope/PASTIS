@@ -72,9 +72,9 @@ class HexRingAPLC(ScdaAPLC):
     sampling : float
         Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
     robustness_px : int
-        Robustness to Lyot stop misalignments in pixels. None, 2 or 4.
+        Robustness to Lyot stop misalignments in pixels. 0, 2, 4 or 8.
     """
-    def __init__(self, input_dir, num_rings, sampling, robustness_px=None):
+    def __init__(self, input_dir, num_rings, sampling, robustness_px=0):
         if num_rings not in [1, 2, 3, 4, 5]:
             raise ValueError(f"No telescope/coronagraph solution provided for {num_rings} number of rings.")
         self.num_rings = num_rings
@@ -88,9 +88,10 @@ class HexRingAPLC(ScdaAPLC):
 
         # Find correct aperture file and read parameters from its header
         if num_rings in [1, 2]:
-            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_ovsamp04__N{pxsize:04d}.fits'
+            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_ovsamp04_N{pxsize:04d}.fits'
         elif num_rings in [3, 4, 5]:
-            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_clipped_ovsamp04__N{pxsize:04d}.fits'
+            num_seg -= 6    # No corner segments in these designs
+            aper_fname = f'masks/TelAp_LUVex_{num_rings:02d}-Hex_gy_clipped_ovsamp04_N{pxsize:04d}.fits'
         aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
 
         aper_hdr = fits.getheader(os.path.join(data_in_repo, aper_fname))
@@ -98,15 +99,9 @@ class HexRingAPLC(ScdaAPLC):
         seg_flat_to_flat = aper_hdr['SEG_F2F']
 
         # Find correct apodizer file and read parameters from its header
-        if robustness_px is None:
-            robust = 0
-        elif robustness_px == 2:
-            robust = 1
-        elif robustness_px == 4:
-            robust = 2
-        else:
+        if robustness_px not in [0, 2, 4, 8]:
             raise ValueError(f"An apodizer design with robustness to a LS misalignment of {robustness_px} pixels does not exist for this aperture.")
-        apod_fname = f'solutions/{robust}_SCDA_N1024_FPM350M0150_IWA0340_OWA01200_C10_BW10_Nlam3_LS_IDex_ID_OD0_OD_ls_982_no_strut.fits'
+        apod_fname = f'solutions/{num_rings:01d}-Hex_robust_{robustness_px}px_N{pxsize:04d}.fits'
         apod_hdr = fits.getheader(os.path.join(data_in_repo, apod_fname))
         imlamD = 1.2 * apod_hdr['OWA']
 
