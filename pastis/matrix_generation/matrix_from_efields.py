@@ -73,7 +73,7 @@ class PastisMatrixEfields(PastisMatrix):
         if self.calc_science:
             self.calculate_pastis_matrix_from_efields()
         if self.calc_wfs:
-            self.calculate_sensitvity_matrix_wfs()
+            self.calculate_sensitivity_matrix_from_efields()
 
         end_time = time.time()
         log.info(
@@ -271,44 +271,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
                                                     self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
 
     def calculate_sensitivity_matrix_from_efields(self):
-        # def calculate_sensitvity_matrix(efields, efield_ref, nb_modes):
-        #     """
-        #     # This function should generate both G_coron and G_OBWFS
-        #     :param efields: list of electric fields
-        #     :param efield_ref: reference electric field when there is no wavefront aberration
-        #     """
-        #     nimg = int(np.sqrt(self.simulator.focal_det.x.shape[0]))
-        #     z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
-        #     N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
-        #     G_OBWFS = [N_pup_z * N_pup_z, 2, nb_modes]
-        #     G_coron = np.zeros([nimg * nimg, 2, nb_modes])
-        #     E0_coron = np.zeros([nimg * nimg, 1, 2])
-        #     E0_coron[:, 0, 0] = efield_ref.real
-        #     E0_coron[:, 0, 1] = efield_ref.imag
-        #
-        #
-        #     for pp in range(0, nb_modes):
-        #         G_coron[:, 0, pp] = efields.real[pp] - efield_ref.real
-        #         G_coron[:, 1, pp] = efields.imag[pp] - efield_ref.imag
-        #
-        #     G_OBWFS = np.zeros([N_pup_z * N_pup_z, 2, num_actuators])
-        #     for pp in range(0, num_actuators):
-        #         G_OBWFS[:, 0, pp] = G_OBWFS_real[pp] * z_pup_downsample - Efield_ref_OBWFS.real
-        #         G_OBWFS[:, 1, pp] = G_OBWFS_imag[pp] * z_pup_downsample - Efield_ref_OBWFS.imag
-        #
-        #     nb_modes = efields.shape[0]
-        #     fields = []
-        #     efields_real = []
-        #     efields_imag = []
-        #     for i in range(0, nb_modes):
-        #         field = (efields[i, 0]-efield_ref[0]) + (1j*efields[i, 1] - efield_ref[1])
-        #         fields.append(field)
-        #         efields_real.append(field[0])
-        #         efields_imag.append(field[1])
-        #
-        #     return fields
-        raise NotImplementedError()
+        """This function calculates G_coron, G_owfs """
 
+        G_coron = self.efields_per_mode[0].real - self.efield_ref.real
+        G_obwfs = self.efields_per_mode_wfs[0].real - self.efield_ref_wfs.real
+        hcipy.write_fits(G_coron, os.path.join(self.overall_dir, 'G_coron.fits'))
+        hcipy.write_fits(G_obwfs, os.path.join(self.overall_dir, 'G_obwfs.fits'))
+
+        return G_obwfs, G_coron
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
