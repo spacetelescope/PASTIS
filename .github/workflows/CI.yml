@@ -16,7 +16,7 @@ jobs:
       # Let GitHub auto set this.
       # max-parallel: 2
       matrix:
-        python-version: [3.10]
+        python-version: ['3.10']
     env:
         # http://flake8.pycqa.org/en/latest/user/error-codes.html
         EXCLUDE_DIRS: ""
@@ -42,7 +42,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [3.10]
+        python-version: ['3.10']
     env:
       # http://flake8.pycqa.org/en/latest/user/error-codes.html
       EXCLUDE_DIRS: ""
@@ -69,7 +69,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        python-version: [3.10]
+        python-version: ['3.10']
         os: [ubuntu-latest]
         # if we ever need to enable this for Windows too, just replace with this line:
         # os: [ubuntu-latest, windows-latest]
