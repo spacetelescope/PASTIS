@@ -103,6 +103,10 @@ class PastisMatrixEfields(PastisMatrix):
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
+    def calculate_sensitivity_matrix_from_efields(self):
+        """Use individual-mode E-fields to calculate sensitvity matrix from it"""
+        raise NotImplementedError()
+
     def calculate_ref_efield(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
         raise NotImplementedError()
@@ -118,9 +122,6 @@ class PastisMatrixEfields(PastisMatrix):
     def setup_single_mode_function(self):
         """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
         aberrated mode. This needs to create self.calculate_one_mode. """
-        raise NotImplementedError()
-
-    def calculate_sensitivity_matrix_wfs(self):
         raise NotImplementedError()
 
 
@@ -171,44 +172,6 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
 
     return matrix_pastis_half
-
-
-def calculate_sensitvity_matrix(efields, efield_ref, nb_modes):
-    """
-    # This function should generate both G_coron and G_OBWFS
-    :param efields: list of electric fields
-    :param efield_ref: reference electric field when there is no wavefront aberration
-    """
-    nimg = int(np.sqrt(self.simulator.focal_det.x.shape[0]))
-    z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
-    N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
-    G_OBWFS = [N_pup_z * N_pup_z, 2, nb_modes]
-    G_coron = np.zeros([nimg * nimg, 2, nb_modes])
-    E0_coron = np.zeros([nimg * nimg, 1, 2])
-    E0_coron[:, 0, 0] = efield_ref.real
-    E0_coron[:, 0, 1] = efield_ref.imag
-
-
-    for pp in range(0, nb_modes):
-        G_coron[:, 0, pp] = efields.real[pp] - efield_ref.real
-        G_coron[:, 1, pp] = efields.imag[pp] - efield_ref.imag
-
-    G_OBWFS = np.zeros([N_pup_z * N_pup_z, 2, num_actuators])
-    for pp in range(0, num_actuators):
-        G_OBWFS[:, 0, pp] = G_OBWFS_real[pp] * z_pup_downsample - Efield_ref_OBWFS.real
-        G_OBWFS[:, 1, pp] = G_OBWFS_imag[pp] * z_pup_downsample - Efield_ref_OBWFS.imag
-
-    nb_modes = efields.shape[0]
-    fields = []
-    efields_real = []
-    efields_imag = []
-    for i in range(0, nb_modes):
-        field = (efields[i, 0]-efield_ref[0]) + (1j*efields[i, 1] - efield_ref[1])
-        fields.append(field)
-        efields_real.append(field[0])
-        efields_imag.append(field[1])
-
-    return fields
 
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
@@ -307,10 +270,43 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
                                                     self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
 
-    def calculate_sensitivity_matrix_wfs(self):
-        raise NotImplementedError()
-
-    def calculate_sensitivty_matrix_coron(self):
+    def calculate_sensitivity_matrix_from_efields(self):
+        # def calculate_sensitvity_matrix(efields, efield_ref, nb_modes):
+        #     """
+        #     # This function should generate both G_coron and G_OBWFS
+        #     :param efields: list of electric fields
+        #     :param efield_ref: reference electric field when there is no wavefront aberration
+        #     """
+        #     nimg = int(np.sqrt(self.simulator.focal_det.x.shape[0]))
+        #     z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
+        #     N_pup_z = int(simulator.pupil_grid.shape[0] / z_pup_downsample)
+        #     G_OBWFS = [N_pup_z * N_pup_z, 2, nb_modes]
+        #     G_coron = np.zeros([nimg * nimg, 2, nb_modes])
+        #     E0_coron = np.zeros([nimg * nimg, 1, 2])
+        #     E0_coron[:, 0, 0] = efield_ref.real
+        #     E0_coron[:, 0, 1] = efield_ref.imag
+        #
+        #
+        #     for pp in range(0, nb_modes):
+        #         G_coron[:, 0, pp] = efields.real[pp] - efield_ref.real
+        #         G_coron[:, 1, pp] = efields.imag[pp] - efield_ref.imag
+        #
+        #     G_OBWFS = np.zeros([N_pup_z * N_pup_z, 2, num_actuators])
+        #     for pp in range(0, num_actuators):
+        #         G_OBWFS[:, 0, pp] = G_OBWFS_real[pp] * z_pup_downsample - Efield_ref_OBWFS.real
+        #         G_OBWFS[:, 1, pp] = G_OBWFS_imag[pp] * z_pup_downsample - Efield_ref_OBWFS.imag
+        #
+        #     nb_modes = efields.shape[0]
+        #     fields = []
+        #     efields_real = []
+        #     efields_imag = []
+        #     for i in range(0, nb_modes):
+        #         field = (efields[i, 0]-efield_ref[0]) + (1j*efields[i, 1] - efield_ref[1])
+        #         fields.append(field)
+        #         efields_real.append(field[0])
+        #         efields_imag.append(field[1])
+        #
+        #     return fields
         raise NotImplementedError()
 
 
