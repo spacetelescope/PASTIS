@@ -12,7 +12,6 @@ dependencies:
   - openpyxl
   - pandas
   - pip
-  - progressbar2
   - conda-forge::pypdf2
   - pytest
   - python=3.10
@@ -21,3 +20,4 @@ dependencies:
     - fpdf
     - poppy
     - hcipy
+    - progressbar2
