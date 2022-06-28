@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.generic_segmented_telescopes import Telescope
+from pastis.simulators.generic_segmented_telescopes import Telescope
 
 log = logging.getLogger()
 

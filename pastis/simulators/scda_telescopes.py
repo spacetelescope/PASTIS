@@ -8,7 +8,7 @@ from astropy.io import fits
 import hcipy
 import numpy as np
 
-from pastis.e2e_simulators.generic_segmented_telescopes import SegmentedAPLC, load_segment_centers
+from pastis.simulators.generic_segmented_telescopes import SegmentedAPLC, load_segment_centers
 
 log = logging.getLogger()
 

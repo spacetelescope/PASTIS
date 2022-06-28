@@ -565,7 +565,7 @@ class SegmentedTelescope(Telescope):
     def set_segment(self, segid, piston, tip, tilt):
         """ Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
 
-        This method only works with a segmented DM of type pastis.e2e_simulators.generic_segmented_telescopes.SegmentedMirror
+        This method only works with a segmented DM of type pastis.simulators.generic_segmented_telescopes.SegmentedMirror
         and only exists for back-compatibility.
 
         Parameters:
@@ -581,7 +581,7 @@ class SegmentedTelescope(Telescope):
         """
         if not isinstance(self.sm, SegmentedMirror):
             raise TypeError("This function is only for usage with a segmented mirror of type "
-                            "'pastis.e2e_simulators.generic_segmented_telescopes.SegmentedMirror'. You are currently "
+                            "'pastis.simulators.generic_segmented_telescopes.SegmentedMirror'. You are currently "
                             "using a multi-mode Zernike mirror. Please use `set_sm_segment()` instead.")
         self.sm.set_segment(segid, piston, tip, tilt)
 
@@ -663,7 +663,7 @@ class SegmentedTelescope(Telescope):
         """
         if not isinstance(self.sm, hcipy.optics.DeformableMirror):
             raise TypeError("This function is only for usage with the multi-mode segmented DM. You are currently "
-                            "using a 'pastis.e2e_simulators.generic_segmented_telescopes.SegmentedMirror'.")
+                            "using a 'pastis.simulators.generic_segmented_telescopes.SegmentedMirror'.")
 
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")

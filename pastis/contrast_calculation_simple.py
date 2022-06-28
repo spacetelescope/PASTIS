@@ -18,9 +18,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.hicat_imaging import set_up_hicat
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
+from pastis.simulators.hicat_imaging import set_up_hicat
+from pastis.simulators.luvoir_imaging import LuvoirAPLC
+import pastis.simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.analytical_pastis.image_pastis as impastis
 import pastis.util as util
 
@@ -38,7 +38,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     :param plotting: default False, whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
     :return:
     """
-    from e2e_simulators import webbpsf_imaging as webbim
+    from simulators import webbpsf_imaging as webbim
 
     log.warning("THIS ONLY WORKS FOR PISTON FOR NOW")
 

@@ -19,8 +19,8 @@ import numpy as np
 from scipy.stats import norm
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
-import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
+from pastis.simulators.luvoir_imaging import LuvoirAPLC
+import pastis.simulators.webbpsf_imaging as webbpsf_imaging
 import pastis.util
 
 matplotlib.rc('image', origin='lower')    # Make sure image origin is always in lower left

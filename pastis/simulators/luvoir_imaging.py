@@ -10,8 +10,8 @@ from matplotlib.colors import LogNorm
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.generic_segmented_telescopes import SegmentedTelescope, SegmentedAPLC, load_segment_centers
-from pastis.e2e_simulators.scda_telescopes import ScdaAPLC
+from pastis.simulators.generic_segmented_telescopes import SegmentedTelescope, SegmentedAPLC, load_segment_centers
+from pastis.simulators.scda_telescopes import ScdaAPLC
 
 log = logging.getLogger()
 
