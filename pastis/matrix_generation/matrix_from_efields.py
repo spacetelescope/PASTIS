@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.luvoir_imaging import LuvoirA_APLC
-from pastis.e2e_simulators.scda_telescopes import HexRingAPLC
-import pastis.e2e_simulators.webbpsf_imaging as webbpsf_imaging
+from pastis.simulators.luvoir_imaging import LuvoirA_APLC
+from pastis.simulators.scda_telescopes import HexRingAPLC
+import pastis.simulators.webbpsf_imaging as webbpsf_imaging
 from pastis.matrix_generation.matrix_building_numerical import PastisMatrix
 import pastis.plotting as ppl
 import pastis.util as util

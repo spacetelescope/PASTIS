@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-from pastis.e2e_simulators.luvoir_imaging import LuvoirAPLC
+from pastis.simulators.luvoir_imaging import LuvoirAPLC
 from pastis.pastis_analysis import modes_from_file
 import pastis.util
 

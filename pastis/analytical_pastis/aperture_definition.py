@@ -72,11 +72,11 @@ def make_aperture_nrp():
     seg_position = np.zeros((nb_seg, 2))
 
     if telescope == 'JWST':
-        from e2e_simulators import webbpsf_imaging as webbim
+        from pastis.simulators import webbpsf_imaging as webbim
         seg_position = webbim.get_jwst_coords(outDir)
 
     elif telescope == 'ATLAST':
-        from e2e_simulators import atlast_imaging as atim
+        from pastis.simulators import atlast_imaging as atim
         _aper, seg_coords = atim.get_atlast_aperture(normalized=False, write_to_disk=True, outDir=outDir)
 
         seg_position[:,0] = seg_coords.x

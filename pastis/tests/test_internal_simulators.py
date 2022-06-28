@@ -2,7 +2,7 @@ import os
 import hcipy
 import numpy as np
 
-from pastis.e2e_simulators.scda_telescopes import HexRingAPLC
+from pastis.simulators.scda_telescopes import HexRingAPLC
 from pastis.util import find_repo_location
 
 
