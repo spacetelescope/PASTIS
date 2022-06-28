@@ -431,4 +431,4 @@ We acknowledge Garreth Ruane for providing the Habex and LUVOIR-B coronagraph da
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[python-version-url]: https://img.shields.io/badge/Python-3.7-green.svg?style=flat
+[python-version-url]: https://img.shields.io/badge/Python-3.10-green.svg?style=flat

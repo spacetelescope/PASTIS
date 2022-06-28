@@ -12,12 +12,12 @@ dependencies:
   - openpyxl
   - pandas
   - pip
-  - progressbar2
   - conda-forge::pypdf2
   - pytest
-  - python=3.7
+  - python=3.10
   - scipy
   - pip:
     - fpdf
     - poppy
     - hcipy
+    - progressbar2
