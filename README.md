@@ -427,8 +427,8 @@ This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](L
 
 Big thanks to Robel Geda ([@robelgeda](https://github.com/robelgeda)) for testing, checking and providing suggestions for the 
 repo setup, quickstart and README.  
-We acknowledge Garreth Ruane for providing the Habex and LUVOIR-B coronagraph data.
-
+We acknowledge Garreth Ruane for providing the Habex and LUVOIR-B coronagraph data.  
+We acknowledge the Segemented aperture coronagraph design and analysis (SCDA) team for the Luvex/SCDA simulator data (JPL/GSFC/STScI).
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [python-version-url]: https://img.shields.io/badge/Python-3.10-green.svg?style=flat
