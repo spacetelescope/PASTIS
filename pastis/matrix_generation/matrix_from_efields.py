@@ -272,9 +272,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def calculate_sensitivity_matrix_from_efields(self):
         """This function calculates G_coron, G_owfs """
+        G_coron = []
+        G_obwfs = []
+        for i in range(self.number_all_modes):
+            G_coron_per_mode = self.efields_per_mode[0].real - self.efield_ref.real
+            G_obwfs_per_mode = self.efields_per_mode_wfs[0].real - self.efield_ref_wfs.real
+            G_coron.append(G_coron_per_mode)
+            G_obwfs.append(G_obwfs_per_mode)
 
-        G_coron = self.efields_per_mode[0].real - self.efield_ref.real
-        G_obwfs = self.efields_per_mode_wfs[0].real - self.efield_ref_wfs.real
         hcipy.write_fits(G_coron, os.path.join(self.overall_dir, 'G_coron.fits'))
         hcipy.write_fits(G_obwfs, os.path.join(self.overall_dir, 'G_obwfs.fits'))
 
