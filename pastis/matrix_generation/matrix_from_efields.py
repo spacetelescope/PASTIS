@@ -272,20 +272,32 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def calculate_sensitivity_matrix_from_efields(self):
         """This function calculates G_coron, G_owfs """
-        G_coron = np.zeros[:, 2, self.number_all_modes]
-        G_obwfs = np.zeros[:, 2, self.number_all_modes]
+        G_coron_real = []
+        G_coron_imag = []
+
+        G_obwfs_real = []
+        G_obwfs_imag = []
 
         for i in range(self.number_all_modes):
-            G_coron[:, 0, i] = self.efields_per_mode[i].real - self.efield_ref.real
-            G_coron[:, 1, i] = self.efields_per_mode[i].imag - self.efield_ref.imag
+            G_coron_real_per_mode = self.efields_per_mode[i].real - self.efield_ref.real
+            G_coron_imag_per_mode = self.efields_per_mode[i].imag - self.efield_ref.imag
+            G_coron_real.append(G_coron_real_per_mode)
+            G_coron_imag.append(G_coron_imag_per_mode)
 
+        for i in range(self.number_all_modes):
+            G_obwfs_real_per_mode = self.efields_per_mode[i].real - self.efield_ref.real
+            G_obwfs_imag_per_mode = self.efields_per_mode[i].imag - self.efield_ref.imag
+            G_obwfs_real.append(G_obwfs_real_per_mode)
+            G_obwfs_imag.append(G_obwfs_imag_per_mode)
 
-        hcipy.write_fits(G_coron, os.path.join(self.overall_dir, 'G_coron.fits'))
-        hcipy.write_fits(G_obwfs, os.path.join(self.overall_dir, 'G_obwfs.fits'))
+        hcipy.write_fits(G_coron_real, os.path.join(self.overall_dir, 'G_coron_real.fits'))
+        hcipy.write_fits(G_coron_imag, os.path.join(self.overall_dir, 'G_coron_imag.fits'))
+        hcipy.write_fits(G_obwfs_real, os.path.join(self.overall_dir, 'G_obwfs_real.fits'))
+        hcipy.write_fits(G_obwfs_imag, os.path.join(self.overall_dir, 'G_obwfs_imag.fits'))
         hcipy.write_fits(self.efield_ref.real,  os.path.join(self.overall_dir, 'efield_ref_real.fits'))
         hcipy.write_fits(self.efield_ref_wfs.real, os.path.join(self.overall_dir, 'efield_ref_wfs_real.fits'))
 
-        return G_obwfs, G_coron
+        return G_coron_real,G_coron_imag, G_obwfs_real, G_obwfs_imag
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
