@@ -272,32 +272,35 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def calculate_sensitivity_matrix_from_efields(self):
         """This function calculates G_coron, G_owfs """
-        G_coron_real = []
-        G_coron_imag = []
 
-        G_obwfs_real = []
-        G_obwfs_imag = []
+        nimg = self.efield_ref.real.shape[0]
+        npup = self.efield_ref_wfs.real.shape[0]
+
+        E0_coron = np.zeros([nimg, 1, 2])
+        E0_coron[:, 0, 0] = self.efield_ref.real
+        E0_coron[:, 0, 1] = self.efield_ref.imag
+
+        E0_OBWFS = np.zeros([npup, 1, 2])
+        E0_OBWFS[:, 0, 0] = self.efield_ref_wfs.real
+        E0_OBWFS[:, 0, 1] = self.efield_ref_wfs.imag
+
+        G_coron = np.zeros([nimg, 2, self.number_all_modes])
 
         for i in range(self.number_all_modes):
-            G_coron_real_per_mode = self.efields_per_mode[i].real - self.efield_ref.real
-            G_coron_imag_per_mode = self.efields_per_mode[i].imag - self.efield_ref.imag
-            G_coron_real.append(G_coron_real_per_mode)
-            G_coron_imag.append(G_coron_imag_per_mode)
+            G_coron[:, 0, i] = self.efields_per_mode[i].real - self.efield_ref.real
+            G_coron[:, 1, i] = self.efields_per_mode[i].imag - self.efield_ref.imag
 
+        G_OBWFS = np.zeros([npup, 2, self.number_all_modes])
         for i in range(self.number_all_modes):
-            G_obwfs_real_per_mode = self.efields_per_mode[i].real - self.efield_ref.real
-            G_obwfs_imag_per_mode = self.efields_per_mode[i].imag - self.efield_ref.imag
-            G_obwfs_real.append(G_obwfs_real_per_mode)
-            G_obwfs_imag.append(G_obwfs_imag_per_mode)
+            G_OBWFS[:, 0, i] = self.efields_per_mode_wfs[i].real - self.efield_ref_wfs.real
+            G_OBWFS[:, 1, i] = self.efields_per_mode_wfs[i].imag - self.efield_ref_wfs.imag
 
-        hcipy.write_fits(G_coron_real, os.path.join(self.overall_dir, 'G_coron_real.fits'))
-        hcipy.write_fits(G_coron_imag, os.path.join(self.overall_dir, 'G_coron_imag.fits'))
-        hcipy.write_fits(G_obwfs_real, os.path.join(self.overall_dir, 'G_obwfs_real.fits'))
-        hcipy.write_fits(G_obwfs_imag, os.path.join(self.overall_dir, 'G_obwfs_imag.fits'))
-        hcipy.write_fits(self.efield_ref.real,  os.path.join(self.overall_dir, 'efield_ref_real.fits'))
-        hcipy.write_fits(self.efield_ref_wfs.real, os.path.join(self.overall_dir, 'efield_ref_wfs_real.fits'))
+        hcipy.write_fits(G_coron,  os.path.join(self.overall_dir, 'G_coron.fits'))
+        hcipy.write_fits(G_OBWFS, os.path.join(self.overall_dir, 'G_OBWFS.fits'))
+        hcipy.write_fits(E0_coron, os.path.join(self.overall_dir, 'E0_coron.fits'))
+        hcipy.write_fits(E0_OBWFS, os.path.join(self.overall_dir, 'E0_OBWFS.fits'))
 
-        return G_coron_real,G_coron_imag, G_obwfs_real, G_obwfs_imag
+        return E0_coron, E0_OBWFS, G_coron, G_OBWFS
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
