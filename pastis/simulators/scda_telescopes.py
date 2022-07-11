@@ -8,6 +8,7 @@ from astropy.io import fits
 import hcipy
 import numpy as np
 
+from pastis.config import CONFIG_PASTIS
 from pastis.simulators.generic_segmented_telescopes import SegmentedAPLC, load_segment_centers
 
 log = logging.getLogger()
@@ -97,6 +98,7 @@ class HexRingAPLC(ScdaAPLC):
         aper_hdr = fits.getheader(os.path.join(data_in_repo, aper_fname))
         diameter_circumscribed = aper_hdr['D_CIRC']
         seg_flat_to_flat = aper_hdr['SEG_F2F']
+        wvln = CONFIG_PASTIS.getfloat('HexRingTelescope', 'lambda') * 1e-9    # m
 
         # Find correct apodizer file and read parameters from its header
         if robustness_px not in [0, 2, 4, 8]:
@@ -121,4 +123,4 @@ class HexRingAPLC(ScdaAPLC):
                        'owa': apod_hdr['OWA']}
 
         super().__init__(input_dir=data_in_repo, sampling=sampling, diameter=diameter_circumscribed,
-                         seg_flat_to_flat=seg_flat_to_flat, wvln=1, imlamD=imlamD, aplc_params=aplc_params)
+                         seg_flat_to_flat=seg_flat_to_flat, wvln=wvln, imlamD=imlamD, aplc_params=aplc_params)
