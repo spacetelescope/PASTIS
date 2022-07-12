@@ -305,13 +305,11 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
             G_OBWFS[:, 1, i] = self.efields_per_mode_wfs[i].imag - self.efield_ref_wfs.imag
 
         G_OBWFS_downsampled = np.zeros([N_pup_z*N_pup_z, 2, self.number_all_modes])
-        efields_per_mode_wfs_real_sub = []
-        efields_per_mode_wfs_imag_sub = []
         for i in range(self.number_all_modes):
-            efields_per_mode_wfs_real_sub[i] = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].real, z_pup_downsample, grid_zernike, statistic='mean')
-            efields_per_mode_wfs_imag_sub[i] = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].imag, z_pup_downsample, grid_zernike, statistic='mean')
-            G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub[i] * z_pup_downsample - efield_ref_wfs_sub.real
-            G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub[i] * z_pup_downsample - efield_ref_wfs_sub.imag
+            efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].real, z_pup_downsample, grid_zernike, statistic='mean')
+            efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].imag, z_pup_downsample, grid_zernike, statistic='mean')
+            G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub * z_pup_downsample - efield_ref_wfs_sub.real
+            G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub * z_pup_downsample - efield_ref_wfs_sub.imag
 
         hcipy.write_fits(G_coron,  os.path.join(self.overall_dir, 'G_coron.fits'))
         hcipy.write_fits(G_OBWFS, os.path.join(self.overall_dir, 'G_OBWFS.fits'))
