@@ -323,7 +323,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         hcipy.write_fits(E0_coron, os.path.join(self.overall_dir, 'E0_coron.fits'))
         hcipy.write_fits(E0_OBWFS, os.path.join(self.overall_dir, 'E0_OBWFS.fits'))
         hcipy.write_fits(E0_OBWFS_downsampled, os.path.join(self.overall_dir, 'E0_OBWFS_downsampled.fits'))
-        hcipy.write_fits(G_OBWFS_downsampled, os.path.join(self.overall_dir, 'GO_OBWFS_downsampled.fits'))
+        hcipy.write_fits(G_OBWFS_downsampled, os.path.join(self.overall_dir, 'G_OBWFS_downsampled.fits'))
 
         return E0_coron, E0_OBWFS, G_coron, G_OBWFS
 
