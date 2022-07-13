@@ -271,7 +271,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
                                                     self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
 
     def calculate_sensitivity_matrix_from_efields(self):
-        """This function calculates G_coron, G_owfs """
+        """This function calculates G_coron, G_OBWFS, E0_OBWFS, E0_coron and downsampled E0_OBWFS, G_OBWFS
+        which are necessary for estimating the close loop.
+        Returns:
+            E0_coron: Reference coronagraphic electric field in presence of no pupil aberration.
+            E0_OBWFS: Reference electric field as seen by the wavefront sensor in presence of no pupil aberration.
+            G_coron: List of coronagraphic electric fields gathered by poking the DM with one modal_basis vector at a time.
+            G_OBWFS: List of electric fields at the wfs plane gathered by poking the DM with one modal_basis vector at a time.
+        """
 
         nimg = self.efield_ref.real.shape[0]
         npup = self.efield_ref_wfs.real.shape[0]
@@ -286,7 +293,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
         z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
         N_pup_z = int(np.sqrt(self.efield_ref_wfs.real.shape[0]) / z_pup_downsample)
-        grid_zernike = hcipy.field.make_pupil_grid(N_pup_z, diameter= self.simulator.diam)
+        grid_zernike = hcipy.field.make_pupil_grid(N_pup_z, diameter=self.simulator.diam)
         e0_wfs_sub_real = hcipy.field.subsample_field(self.efield_ref_wfs.real, z_pup_downsample, grid_zernike, statistic='mean')
         e0_wfs_sub_imag = hcipy.field.subsample_field(self.efield_ref_wfs.imag, z_pup_downsample, grid_zernike, statistic='mean')
         efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
