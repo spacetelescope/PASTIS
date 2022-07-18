@@ -48,6 +48,12 @@ class ScdaAPLC(SegmentedAPLC):
         ls_read = hcipy.read_fits(os.path.join(input_dir, ls_fname))
         lyot_stop = hcipy.Field(ls_read.ravel(), pupil_grid)
 
+        # For the 3-Hex, 4-Hex and 5-Hex Luvex designs, actually create the LS #TODO: get to the bottom of this problem
+        if hasattr(self, 'num_rings') and self.num_rings in [3, 4, 5]:
+            all_ls_diams = [5.417565656565657, 5.4495959595959595, 5.4981407035175875]
+            ls_diam = all_ls_diams[self.num_rings-3]
+            lyot_stop = hcipy.evaluate_supersampled(hcipy.circular_aperture(diameter=ls_diam), pupil_grid, 4)
+
         # Create a focal plane mask
         samp_foc = fpm_px / (fpm_rad * 2)
         focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
