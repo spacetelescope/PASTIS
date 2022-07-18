@@ -96,7 +96,9 @@ class HexRingAPLC(ScdaAPLC):
         aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
 
         aper_hdr = fits.getheader(os.path.join(data_in_repo, aper_fname))
-        diameter_circumscribed = aper_hdr['D_CIRC']
+        #diameter_circumscribed = aper_hdr['D_CIRC']
+        all_diameters_outer = [7.952780833, 7.258823341, 7.72593506, 7.136856303, 6.844452477]
+        diameter_circumscribed = all_diameters_outer[num_rings-1]
         seg_flat_to_flat = aper_hdr['SEG_F2F']
         wvln = CONFIG_PASTIS.getfloat('HexRingTelescope', 'lambda') * 1e-9    # m
 
