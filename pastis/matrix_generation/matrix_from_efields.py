@@ -293,9 +293,9 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
         z_pup_downsample = CONFIG_PASTIS.getfloat('numerical', 'z_pup_downsample')
         N_pup_z = int(np.sqrt(self.efield_ref_wfs.real.shape[0]) / z_pup_downsample)
-        grid_zernike = hcipy.field.make_pupil_grid(N_pup_z, diameter=self.simulator.diam)
-        e0_wfs_sub_real = hcipy.field.subsample_field(self.efield_ref_wfs.real, z_pup_downsample, grid_zernike, statistic='mean')
-        e0_wfs_sub_imag = hcipy.field.subsample_field(self.efield_ref_wfs.imag, z_pup_downsample, grid_zernike, statistic='mean')
+        #grid_zernike = hcipy.field.make_pupil_grid(N_pup_z, diameter=self.simulator.diam)
+        e0_wfs_sub_real = hcipy.field.subsample_field(self.efield_ref_wfs.real, z_pup_downsample, statistic='mean')
+        e0_wfs_sub_imag = hcipy.field.subsample_field(self.efield_ref_wfs.imag, z_pup_downsample, statistic='mean')
         efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
         E0_OBWFS_downsampled = np.zeros([N_pup_z * N_pup_z, 1, 2])
         E0_OBWFS_downsampled[:, 0, 0] = efield_ref_wfs_sub.real
@@ -313,8 +313,8 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
         G_OBWFS_downsampled = np.zeros([N_pup_z*N_pup_z, 2, self.number_all_modes])
         for i in range(self.number_all_modes):
-            efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].real, z_pup_downsample, grid_zernike, statistic='mean')
-            efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].imag, z_pup_downsample, grid_zernike, statistic='mean')
+            efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].real, z_pup_downsample, statistic='mean')
+            efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].imag, z_pup_downsample, statistic='mean')
             G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub * z_pup_downsample - efield_ref_wfs_sub.real
             G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub * z_pup_downsample - efield_ref_wfs_sub.imag
 
