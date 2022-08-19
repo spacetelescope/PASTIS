@@ -270,63 +270,6 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
                                                     self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
 
-    def calculate_sensitivity_matrix_from_efields(self):
-        """This function calculates G_coron, G_OBWFS, E0_OBWFS, E0_coron and downsampled E0_OBWFS, G_OBWFS
-        which are necessary for estimating the close loop.
-        Returns:
-            E0_coron: Reference coronagraphic electric field in presence of no pupil aberration.
-            E0_OBWFS: Reference electric field as seen by the wavefront sensor in presence of no pupil aberration.
-            G_coron: List of coronagraphic electric fields gathered by poking the DM with one modal_basis vector at a time.
-            G_OBWFS: List of electric fields at the wfs plane gathered by poking the DM with one modal_basis vector at a time.
-        """
-
-        nimg = self.efield_ref.real.shape[0]
-        npup = self.efield_ref_wfs.real.shape[0]
-
-        E0_coron = np.zeros([nimg, 1, 2])
-        E0_coron[:, 0, 0] = self.efield_ref.real
-        E0_coron[:, 0, 1] = self.efield_ref.imag
-
-        E0_OBWFS = np.zeros([npup, 1, 2])
-        E0_OBWFS[:, 0, 0] = self.efield_ref_wfs.real
-        E0_OBWFS[:, 0, 1] = self.efield_ref_wfs.imag
-
-        z_pup_downsample = CONFIG_PASTIS.getint('numerical', 'z_pup_downsample')
-
-        e0_wfs_sub_real = hcipy.field.subsample_field(self.efield_ref_wfs.real, z_pup_downsample, statistic='mean')
-        e0_wfs_sub_imag = hcipy.field.subsample_field(self.efield_ref_wfs.imag, z_pup_downsample, statistic='mean')
-        efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
-
-        N_pup_z = efield_ref_wfs_sub.real.shape[0]
-        E0_OBWFS_downsampled = np.zeros([int(N_pup_z), 1, 2])
-        E0_OBWFS_downsampled[:, 0, 0] = efield_ref_wfs_sub.real
-        E0_OBWFS_downsampled[:, 0, 1] = efield_ref_wfs_sub.imag
-
-        G_coron = np.zeros([nimg, 2, self.number_all_modes])
-        for i in range(self.number_all_modes):
-            G_coron[:, 0, i] = self.efields_per_mode[i].real - self.efield_ref.real
-            G_coron[:, 1, i] = self.efields_per_mode[i].imag - self.efield_ref.imag
-
-        G_OBWFS = np.zeros([npup, 2, self.number_all_modes])
-        for i in range(self.number_all_modes):
-            G_OBWFS[:, 0, i] = self.efields_per_mode_wfs[i].real - self.efield_ref_wfs.real
-            G_OBWFS[:, 1, i] = self.efields_per_mode_wfs[i].imag - self.efield_ref_wfs.imag
-
-        G_OBWFS_downsampled = np.zeros([int(N_pup_z), 2, self.number_all_modes])
-        for i in range(self.number_all_modes):
-            efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].real, z_pup_downsample, statistic='mean')
-            efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(self.efields_per_mode_wfs[i].imag, z_pup_downsample, statistic='mean')
-            G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub * z_pup_downsample - efield_ref_wfs_sub.real
-            G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub * z_pup_downsample - efield_ref_wfs_sub.imag
-
-        hcipy.write_fits(G_coron,  os.path.join(self.overall_dir, 'G_coron.fits'))
-        hcipy.write_fits(G_OBWFS, os.path.join(self.overall_dir, 'G_OBWFS.fits'))
-        hcipy.write_fits(E0_coron, os.path.join(self.overall_dir, 'E0_coron.fits'))
-        hcipy.write_fits(E0_OBWFS, os.path.join(self.overall_dir, 'E0_OBWFS.fits'))
-        hcipy.write_fits(E0_OBWFS_downsampled, os.path.join(self.overall_dir, 'E0_OBWFS_downsampled.fits'))
-        hcipy.write_fits(G_OBWFS_downsampled, os.path.join(self.overall_dir, 'G_OBWFS_downsampled.fits'))
-
-        return E0_coron, E0_OBWFS, G_coron, G_OBWFS
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
     """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
