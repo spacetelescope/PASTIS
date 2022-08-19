@@ -223,7 +223,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         # Calculate reference E-field in focal plane, without any aberrations applied
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
         self.efield_ref = unaberrated_ref_efield.electric_field
-        print("npx defined in function:", npx)
+
+        # Save unaberrated electric field at the science plane
+        n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+        e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
+        e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+        e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+        hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'e0_coron.fits'))
+
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
