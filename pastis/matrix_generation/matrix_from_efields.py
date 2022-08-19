@@ -236,6 +236,13 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
 
+        # Save unaberrated electric field at the wfs plane
+        n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
+        e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
+        e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
+        e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
+        hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'e0_wfs.fits'))
+
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
 
