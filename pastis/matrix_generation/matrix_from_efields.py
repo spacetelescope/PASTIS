@@ -72,8 +72,6 @@ class PastisMatrixEfields(PastisMatrix):
         self.calculate_efields()
         if self.calc_science:
             self.calculate_pastis_matrix_from_efields()
-        if self.calc_wfs:
-            self.calculate_sensitivity_matrix_from_efields()
 
         end_time = time.time()
         log.info(
@@ -102,10 +100,6 @@ class PastisMatrixEfields(PastisMatrix):
         hcipy.write_fits(self.matrix_pastis, os.path.join(self.resDir, filename_matrix + '.fits'))
         ppl.plot_pastis_matrix(self.matrix_pastis, self.wvln * 1e9, out_dir=self.resDir, save=True)  # convert wavelength to nm
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
-
-    def calculate_sensitivity_matrix_from_efields(self):
-        """Use individual-mode E-fields to calculate sensitvity matrix from it"""
-        raise NotImplementedError()
 
     def calculate_ref_efield(self):
         """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
@@ -229,7 +223,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         # Calculate reference E-field in focal plane, without any aberrations applied
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
         self.efield_ref = unaberrated_ref_efield.electric_field
-
+        print("npx defined in function:", npx)
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
