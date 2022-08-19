@@ -57,7 +57,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode_wfs = []
         self.norm_one_photon = norm_one_photon
 
-        os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
+        os.makedirs(os.path.join(self.resDir, 'efields_sci'), exist_ok=True)
         os.makedirs(os.path.join(self.resDir, 'efields_wfs'), exist_ok=True)
 
     def calc(self):
@@ -418,9 +418,9 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
         # Save focal plane Efields
         if calc_science:
             fname_real_focal = f'focal_real_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
+            hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields_sci', fname_real_focal + '.fits'))
             fname_imag_focal = f'focal_imag_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
+            hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields_sci', fname_imag_focal + '.fits'))
 
         # Save wfs plane Efields
         if calc_wfs:
