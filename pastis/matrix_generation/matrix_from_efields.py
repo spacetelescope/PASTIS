@@ -90,6 +90,33 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode = np.array(self.efields_per_mode)
         self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
 
+        if self.save_efields:
+            n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+            g_coron_real = np.zeros([self.number_all_modes, n_sci_pix, n_sci_pix])
+            g_coron_imag = np.zeros([self.number_all_modes, n_sci_pix, n_sci_pix])
+
+            for i in range(self.number_all_modes):
+                g_coron_real[i, :, :] = np.reshape(self.efields_per_mode[i].real, (n_sci_pix, n_sci_pix)) - \
+                                        np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+                g_coron_imag[i, :, :] = np.reshape(self.efields_per_mode[i].imag, (n_sci_pix, n_sci_pix)) - \
+                                        np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+
+            hcipy.write_fits(g_coron_real, os.path.join(self.overall_dir, 'g_coron_real.fits'))
+            hcipy.write_fits(g_coron_imag, os.path.join(self.overall_dir, 'g_coron_imag.fits'))
+
+            if self.calc_wfs:
+                n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
+                g_obwfs_real = np.zeros([self.number_all_modes, n_wfs_pix, n_wfs_pix])
+                g_obwfs_imag = np.zeros([self.number_all_modes, n_wfs_pix, n_wfs_pix])
+                for i in range(self.number_all_modes):
+                    g_obwfs_real[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].real, (n_wfs_pix, n_wfs_pix)) - \
+                                            np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
+                    g_obwfs_imag[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].imag, (n_wfs_pix, n_wfs_pix)) - \
+                                            np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
+
+                    hcipy.write_fits(g_obwfs_real, os.path.join(self.overall_dir, 'g_obwfs_real.fits'))
+                    hcipy.write_fits(g_obwfs_imag, os.path.join(self.overall_dir, 'g_obwfs_imag.fits'))
+
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
 
