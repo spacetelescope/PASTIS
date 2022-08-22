@@ -225,11 +225,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.efield_ref = unaberrated_ref_efield.electric_field
 
         # Save unaberrated electric field at the science plane
-        n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
-        e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
-        e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
-        e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
-        hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'e0_coron.fits'))
+        if self.save_efields:
+            n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+            e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
+            e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+            e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'e0_coron.fits'))
 
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
@@ -237,11 +238,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
 
         # Save unaberrated electric field at the wfs plane
-        n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
-        e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
-        e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
-        e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
-        hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'e0_wfs.fits'))
+        if self.save_efields:
+            n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
+            e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
+            e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
+            e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
+            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'e0_wfs.fits'))
 
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
