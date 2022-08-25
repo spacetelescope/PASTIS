@@ -57,9 +57,6 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode_wfs = []
         self.norm_one_photon = norm_one_photon
 
-        os.makedirs(os.path.join(self.resDir, 'efields_sci'), exist_ok=True)
-        os.makedirs(os.path.join(self.resDir, 'efields_wfs'), exist_ok=True)
-
     def calc(self):
         """ Main method that calculates the PASTIS matrix """
 
@@ -453,21 +450,6 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
             simulator.create_zernike_wfs()
         efield_wfs_plane = simulator.zwfs(inter['active_pupil'])
 
-    if saveefields:
-        # Save focal plane Efields
-        if calc_science:
-            fname_real_focal = f'focal_real_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields_sci', fname_real_focal + '.fits'))
-            fname_imag_focal = f'focal_imag_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields_sci', fname_imag_focal + '.fits'))
-
-        # Save wfs plane Efields
-        if calc_wfs:
-            fname_real_wfs = f'wfs_real_mode{mode_no}'
-            hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
-            fname_imag_wfs = f'wfs_imag_mode{mode_no}'
-            hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
-
     if saveopds:
         opd_map = inter[which_dm].phase
         opd_name = f'opd_mode_{mode_no}'
@@ -506,13 +488,6 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     # Calculate coronagraphic E-field
     _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
     efield_focal_plane = inter[6]    # [6] is the last optic = detector
-
-    # Save E field image to disk
-    if saveefields:
-        fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.wavefront.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
-        fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.wavefront.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
 
     # Plot deformable mirror WFE and save to disk
     if saveopds:
