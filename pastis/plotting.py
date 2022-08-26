@@ -356,6 +356,32 @@ def plot_cumulative_contrast_compare_accuracy(cumulative_c_pastis, cumulative_c_
     if save:
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
+    fname2 = f'cumulative_contrast_accuracy_dif_{c_target}'
+    if fname_suffix != '':
+        fname2 += f'_{fname_suffix}'
+
+    plt.figure(figsize=(12, 8))
+    ax = plt.gca()
+    plt.plot(np.array(cumulative_c_e2e) - np.array(cumulative_c_pastis), label='difference', linewidth=4)
+    plt.title('Cumulative contrast difference', size=25)
+    plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
+    plt.xlabel('Mode index', size=30)
+    plt.ylabel('Cumulative contrast', size=30)
+    plt.legend(prop={'size': 30}, loc=(0.02, 0.52))
+    ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))  # set y-axis formatter to x10^{-10}
+    ax.yaxis.offsetText.set_fontsize(30)  # fontsize for y-axis formatter
+    plt.tight_layout()
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join([fname2, 'pdf'])))
+
+    plt.figure(figsize=(12, 8))
+    correction = np.array(cumulative_c_pastis) / np.array(cumulative_c_e2e)
+    plt.plot(correction)
+
+    if save:
+        plt.savefig(os.path.join(out_dir, '.'.join(['correction', 'pdf'])))
+
 
 def plot_cumulative_contrast_compare_allocation(segment_based_cumulative_c, uniform_cumulative_c_e2e, out_dir, c_target, fname_suffix='', save=False):
     """
@@ -512,6 +538,19 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
 
         jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)  # /1e9 converts to meters
         map_small = (wf_sm / jwst_wavenumber) * 1e12  # in picometers
+
+    if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
+        sim_instance.dm1.flatten()
+        for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):
+            actu_x, actu_y = pastis.util.seg_to_dm_xy(nb_actu, segnum)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, mus[segnum])
+
+        psf, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
+        wf_sm = inter[4].phase
+
+        rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)  # /1e9 converts to meters
+        map_small = (wf_sm / rst_wavenumber) * 1e12  # in picometers
 
     map_small = np.ma.masked_where(map_small == 0, map_small)
 

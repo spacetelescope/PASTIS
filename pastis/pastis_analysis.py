@@ -31,7 +31,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
     this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
     modes and singular values in reverse order compared to an eigendecomposition.
 
-    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
+    :param instrument: string, "LUVOIR", "HiCAT" "JWST" or "RST"
     :param datadir: string, path to overall data directory containing matrix and results folder
     :param saving: string, whether to save singular values, modes and their plots or not; default=True
     :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
@@ -41,7 +41,7 @@ def modes_from_matrix(instrument, datadir, saving=True):
     matrix = fits.getdata(os.path.join(datadir, 'matrix_numerical', 'pastis_matrix.fits'))
 
     # Get singular modes and values from SVD
-    pmodes, svals, vh = np.linalg.svd(matrix, full_matrices=True)
+    pmodes, svals, _vh = np.linalg.svd(matrix, full_matrices=True)
 
     # Check for results directory and create if it doesn't exits
     if not os.path.isdir(os.path.join(datadir, 'results')):
@@ -132,6 +132,32 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             jwst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('JWST', 'lambda') / 1e9)   # /1e9 converts to meters
             all_modes.append(phase_ote / jwst_wavenumber)    # phase_sm is in rad, so this converts it to meters
 
+        if instrument == 'RST':
+            nb_actu = sim_instance.nbactuator
+            log.info(f'Working on mode {thismode}/{nseg - 1}.')
+            sim_instance.dm1.flatten()
+
+            for segnum in range(nseg):
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, segnum)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, pmodes[segnum, i]/ 1e9)
+
+            psf_detector_data, inter = sim_instance.calc_psf(nlambda=1, return_intermediates=True, fov_arcsec=1.6)
+            psf = psf_detector_data[0].data
+
+            iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+            owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+            sim_instance.working_area(im=psf, inner_rad=iwa, outer_rad=owa)
+            dh_mask = sim_instance.WA
+            psf_detector = psf * dh_mask
+            all_modes_focal_plane.append(psf_detector)
+
+            #phase_ote = inter[4].phase # [4] is the last optic inside pupil
+            dm_opd = sim_instance.dm1.to_fits(what='opd')
+            dm_ote = dm_opd[0].data
+
+            rst_wavenumber = 2 * np.pi / (CONFIG_PASTIS.getfloat('RST', 'lambda') / 1e9)   # /1e9 converts to meters
+            all_modes.append(dm_ote / rst_wavenumber)    # phase_sm is in rad, so this converts it to meters
+
     ### Check for results directory structure and create if it doesn't exist
     log.info('Creating data directories')
     subdirs = [os.path.join(datadir, 'results'),
@@ -155,6 +181,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
+        if instrument == 'RST':
+            plt.subplot(nb_actu, nb_actu, i + 1)
         plt.imshow(all_modes[i], cmap='RdBu')
         plt.axis('off')
         plt.title(f'Mode {thismode}')
@@ -187,6 +215,8 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             plt.subplot(8, 5, i + 1)
         if instrument == 'JWST':
             plt.subplot(6, 3, i + 1)
+        if instrument == 'RST':
+            plt.subplot(nb_actu, nb_actu, i + 1)
         plt.imshow(all_modes_focal_plane[i], cmap='inferno', norm=LogNorm())
         plt.axis('off')
         plt.title(f'Mode {thismode}')
@@ -238,12 +268,22 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     return del_sigma
 
 
-def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
+def truncate_modes(instrument, svals):
+    if instrument == 'RST':
+        modes_max = len(svals) #45
+    else:
+        modes_max = len(svals)
+
+    return modes_max
+
+
+def cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
     :param instrument: string, 'LUVOIR' or 'HiCAT'
     :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :paraam modes_max :
     :param sigmas: array, weights per PASTIS mode
     :param sim_instance: class instance of the simulator for "instrument"
     :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
@@ -253,8 +293,8 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     """
 
     cont_cum_e2e = []
-    for maxmode in range(pmodes.shape[0]):
-        log.info(f'Working on mode {maxmode+1}/{pmodes.shape[0]}.')
+    for maxmode in range(modes_max):
+        log.info(f'Working on mode {maxmode+1}/{modes_max}.')
 
         if individual:
             opd = pmodes[:, maxmode] * sigmas[maxmode]
@@ -285,6 +325,15 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
 
+        if instrument == 'RST':
+            nb_actu = sim_instance.nbactuator
+            sim_instance.dm1.flatten()
+            for seg, val in enumerate(opd):
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, val.to(u.m).value)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
+            psf = im_data[0].data
+
         # Calculate the contrast from that PSF
         contrast = util.dh_mean(psf/norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
@@ -292,11 +341,12 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
     return cont_cum_e2e
 
 
-def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False):
+def cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, c_floor, individual=False):
     """
     Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using PASTIS propagation.
     :param pmodes: array, PASTIS modes [nseg, nmodes]
+    :param mode_max:
     :param sigmas: array, weights per PASTIS mode
     :param matrix: array, PASTIS matrix [nseg, nseg]
     :param c_floor: float, coronagraph contrast floor
@@ -304,7 +354,7 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False
     :return: cont_cum_pastis, list of cumulative or individual contrasts
     """
     cont_cum_pastis = []
-    for maxmode in range(pmodes.shape[0]):
+    for maxmode in range(modes_max):
 
         if individual:
             aber = pmodes[:, maxmode] * sigmas[maxmode]
@@ -372,6 +422,15 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
+    if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
+        sim_instance.dm1.flatten()
+        for seg in range(mus.shape[0]):
+            actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, random_weights[seg].to(u.m).value)
+        im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
+        psf = im_data[0].data
+
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights.value, rand_contrast
@@ -422,12 +481,21 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
+    if instrument == 'RST':
+        nb_actu = sim_instance.nbactuator
+        sim_instance.dm1.flatten()
+        for seg, aber in enumerate(opd):
+            actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
+            sim_instance.dm1.set_actuator(actu_x, actu_y, aber.to(u.m).value)
+        im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
+        psf = im_data[0].data
+
     rand_contrast = util.dh_mean(psf / norm_direct, dh_mask)
 
     return random_weights, rand_contrast
 
 
-def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
+def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-8, n_repeat=100):
     """
     Run a full PASTIS analysis on a given PASTIS matrix.
 
@@ -451,15 +519,15 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     """
 
     # Which parts are we running?
-    calculate_modes = True
-    calculate_sigmas = True
-    run_monte_carlo_modes = True
+    calculate_modes = False
+    calculate_sigmas = False
     calc_cumulative_contrast = True
-    calculate_mus = True
-    run_monte_carlo_segments = True
-    calculate_covariance_matrices = True
-    analytical_statistics = True
-    calculate_segment_based = True
+    calculate_covariance_matrices = False
+    calculate_mus = False
+    analytical_statistics = False
+    calculate_segment_based = False
+    run_monte_carlo_modes = False
+    run_monte_carlo_segments = False
 
     # Data directory
     workdir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), run_choice)
@@ -533,6 +601,26 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         sim_instance = jwst_sim
 
+    if instrument == 'RST':
+        rst_sim = webbpsf_imaging.set_up_cgi()  # this returns a tuple of two: cig_sim is the cgi object
+        sim_instance = rst_sim
+
+        #Intermediate steps but generate with webbpsf
+        # Generate reference PSF and unaberrated coronagraphic image
+        direct = rst_sim.raw_coronagraph()
+        direct_fit = direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        direct_psf = direct_fit[0].data
+        norm = direct_psf.max()
+
+        coro_image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
+        psf_unaber = coro_image[0].data / norm
+
+        # Create DH mask
+        iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
+        owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
+        rst_sim.working_area(im=direct_psf, inner_rad=iwa, outer_rad=owa)
+        dh_mask = rst_sim.WA
+
     # TODO: this would also be part of the refactor mentioned above
     # Calculate coronagraph contrast floor
     coro_floor = util.dh_mean(psf_unaber, dh_mask)
@@ -547,16 +635,18 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         pmodes, svals = modes_from_matrix(instrument, workdir)
 
         ### Get full 2D modes and save them
-        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
+        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=False)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
         pmodes, svals = modes_from_file(workdir)
 
+    modes_max = truncate_modes(instrument, svals)
+
     ### Calculate mode-based static constraints
     if calculate_sigmas:
         log.info('Calculating static sigmas')
-        sigmas = calculate_sigma(c_target, nseg, svals, coro_floor)
+        sigmas = calculate_sigma(c_target, modes_max, svals, coro_floor)
         np.savetxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'), sigmas)
 
         # Plot static mode constraints
@@ -571,46 +661,29 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         log.info(f'Reading sigmas from {workdir}')
         sigmas = np.loadtxt(os.path.join(workdir, 'results', f'mode_requirements_{c_target}_uniform.txt'))
 
-    ### Calculate Monte Carlo simulation for sigmas, with E2E
-    if run_monte_carlo_modes:
-        log.info('\nRunning Monte Carlo simulation for modes')
-        # Keep track of time
-        start_monte_carlo_modes = time.time()
-
-        all_contr_rand_modes = []
-        all_random_weight_sets = []
-        for rep in range(n_repeat):
-            log.info(f'Mode realization {rep + 1}/{n_repeat}')
-            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
-            all_random_weight_sets.append(random_weights)
-            all_contr_rand_modes.append(one_contrast_mode)
-
-        # Empirical mean and standard deviation of the distribution
-        mean_modes = np.mean(all_contr_rand_modes)
-        stddev_modes = np.std(all_contr_rand_modes)
-        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
-        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
-        end_monte_carlo_modes = time.time()
-
-        # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
-        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
-
-        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
-                                        c_target=c_target, segments=False, stddev=stddev_modes,
-                                        save=True)
-
     ###  Calculate cumulative contrast plot with E2E simulator and matrix product
     if calc_cumulative_contrast:
         log.info('Calculating cumulative contrast plot, uniform contrast across all modes')
-        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm)
-        cumulative_pastis = cumulative_contrast_matrix(pmodes, sigmas, matrix, coro_floor)
+        cumulative_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm)
+        cumulative_pastis = cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, coro_floor)
 
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_e2e_{c_target}.txt'), cumulative_e2e)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_pastis_{c_target}.txt'), cumulative_pastis)
 
+        cumulative_diff = np.array(cumulative_e2e) - np.array(cumulative_pastis)
+        np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_accuracy_dif_{c_target}.txt'), cumulative_diff)
+        '''
+        correction = np.array(cumulative_e2e) / np.array(cumulative_pastis)
+        for i in range(modes_max):
+            pmodes[i] = np.array(pmodes[i]) * correction[i]
+
+
+        cumulative_e2e_new = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas, sim_instance, dh_mask, norm)
+        cumulative_pastis_new = cumulative_contrast_matrix(pmodes, modes_max, sigmas, matrix, coro_floor)
+        '''
+
         # Plot the cumulative contrast from E2E simulator and matrix
-        ppl.plot_cumulative_contrast_compare_accuracy(cumulative_pastis, cumulative_e2e,
+        ppl.plot_cumulative_contrast_compare_accuracy(cumulative_e2e, cumulative_pastis,
                                                       out_dir=os.path.join(workdir, 'results'),
                                                       coro_floor=coro_floor,
                                                       c_target=c_target,
@@ -655,6 +728,15 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
 
+        if instrument == 'RST':
+            nb_actu = sim_instance.nbactuator
+            sim_instance.dm1.flatten()
+            for seg, mu in enumerate(mus):
+                actu_x, actu_y = util.seg_to_dm_xy(nb_actu, seg)
+                sim_instance.dm1.set_actuator(actu_x, actu_y, mu / 1e9)
+            im_data = sim_instance.calc_psf(nlambda=1, fov_arcsec=1.6)
+            psf_pure_mu_map = im_data[0].data
+
         contrast_mu = util.dh_mean(psf_pure_mu_map / norm, dh_mask)
         log.info(f'Contrast with pure mu-map: {contrast_mu}')
 
@@ -662,43 +744,6 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         log.info(f'Reading mus from {workdir}')
         mus = np.loadtxt(os.path.join(workdir, 'results', f'segment_requirements_{c_target}.txt'))
         mus *= u.nm
-
-    ### Calculate Monte Carlo confirmation for segments, with E2E
-    if run_monte_carlo_segments:
-        log.info('\nRunning Monte Carlo simulation for segments')
-        # Keep track of time
-        start_monte_carlo_seg = time.time()
-
-        all_contr_rand_seg = []
-        all_random_maps = []
-        for rep in range(n_repeat):
-            log.info(f'Segment realization {rep + 1}/{n_repeat}')
-            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm)
-            all_random_maps.append(random_map)
-            all_contr_rand_seg.append(one_contrast_seg)
-
-        # Empirical mean and standard deviation of the distribution
-        mean_segments = np.mean(all_contr_rand_seg)
-        stddev_segments = np.std(all_contr_rand_seg)
-        log.info(f'Mean of the Monte Carlo result segments: {mean_segments}')
-        log.info(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
-        with open(os.path.join(workdir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'w') as file:
-            file.write(f'Empirical, statistical mean: {mean_segments}')
-            file.write(f'\nEmpirical variance: {stddev_segments**2}')
-        end_monte_carlo_seg = time.time()
-
-        log.info('\nRuntimes:')
-        log.info('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
-                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
-                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
-
-        # Save Monte Carlo simulation
-        np.savetxt(os.path.join(workdir, 'results', f'mc_segment_req_maps_{c_target}.txt'), all_random_maps)   # in m
-        np.savetxt(os.path.join(workdir, 'results', f'mc_segments_contrasts_{c_target}.txt'), all_contr_rand_seg)
-
-        ppl.plot_monte_carlo_simulation(all_contr_rand_seg, out_dir=os.path.join(workdir, 'results'),
-                                        c_target=c_target, segments=True, stddev=stddev_segments,
-                                        save=True)
 
     ### Calculate covariance matrices
     if calculate_covariance_matrices:
@@ -748,7 +793,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         # Calculate contrast per mode
         log.info('Calculating contrast per mode')
-        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
+        per_mode_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas_opt, sim_instance, dh_mask, norm, individual=True)
         np.savetxt(os.path.join(workdir, 'results', f'contrast_per_mode_{c_target}_e2e_segment-based.txt'),
                    per_mode_opt_e2e)
         ppl.plot_contrast_per_mode(per_mode_opt_e2e, coro_floor, c_target, pmodes.shape[0],
@@ -756,13 +801,79 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         # Calculate segment-based cumulative contrast
         log.info('Calculating segment-based cumulative contrast')
-        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, sigmas_opt, sim_instance, dh_mask, norm)
+        cumulative_opt_e2e = cumulative_contrast_e2e(instrument, pmodes, modes_max, sigmas_opt, sim_instance, dh_mask, norm)
         np.savetxt(os.path.join(workdir, 'results', f'cumul_contrast_allocation_e2e_{c_target}_segment-based.txt'),
                    cumulative_opt_e2e)
 
         # Plot cumulative contrast from E2E simulator, segment-based vs. uniform error budget
         ppl.plot_cumulative_contrast_compare_allocation(cumulative_opt_e2e, cumulative_e2e, os.path.join(workdir, 'results'),
                                                         c_target, fname_suffix='segment-based-vs-uniform', save=True)
+
+    ### Calculate Monte Carlo simulation for sigmas, with E2E
+    if run_monte_carlo_modes:
+        log.info('\nRunning Monte Carlo simulation for modes')
+        # Keep track of time
+        start_monte_carlo_modes = time.time()
+
+        all_contr_rand_modes = []
+        all_random_weight_sets = []
+        for rep in range(n_repeat):
+            log.info(f'Mode realization {rep + 1}/{n_repeat}')
+            random_weights, one_contrast_mode = calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm)
+            all_random_weight_sets.append(random_weights)
+            all_contr_rand_modes.append(one_contrast_mode)
+
+        # Empirical mean and standard deviation of the distribution
+        mean_modes = np.mean(all_contr_rand_modes)
+        stddev_modes = np.std(all_contr_rand_modes)
+        log.info(f'Mean of the Monte Carlo result modes: {mean_modes}')
+        log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
+        end_monte_carlo_modes = time.time()
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
+        np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
+
+        ppl.plot_monte_carlo_simulation(all_contr_rand_modes, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=False, stddev=stddev_modes,
+                                        save=True)
+
+    ### Calculate Monte Carlo confirmation for segments, with E2E
+    if run_monte_carlo_segments:
+        log.info('\nRunning Monte Carlo simulation for segments')
+        # Keep track of time
+        start_monte_carlo_seg = time.time()
+
+        all_contr_rand_seg = []
+        all_random_maps = []
+        for rep in range(n_repeat):
+            log.info(f'Segment realization {rep + 1}/{n_repeat}')
+            random_map, one_contrast_seg = calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm)
+            all_random_maps.append(random_map)
+            all_contr_rand_seg.append(one_contrast_seg)
+
+        # Empirical mean and standard deviation of the distribution
+        mean_segments = np.mean(all_contr_rand_seg)
+        stddev_segments = np.std(all_contr_rand_seg)
+        log.info(f'Mean of the Monte Carlo result segments: {mean_segments}')
+        log.info(f'Standard deviation of the Monte Carlo result segments: {stddev_segments}')
+        with open(os.path.join(workdir, 'results', f'statistical_contrast_empirical_{c_target}.txt'), 'w') as file:
+            file.write(f'Empirical, statistical mean: {mean_segments}')
+            file.write(f'\nEmpirical variance: {stddev_segments**2}')
+        end_monte_carlo_seg = time.time()
+
+        log.info('\nRuntimes:')
+        log.info('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
+                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
+                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
+
+        # Save Monte Carlo simulation
+        np.savetxt(os.path.join(workdir, 'results', f'mc_segment_req_maps_{c_target}.txt'), all_random_maps)   # in m
+        np.savetxt(os.path.join(workdir, 'results', f'mc_segments_contrasts_{c_target}.txt'), all_contr_rand_seg)
+
+        ppl.plot_monte_carlo_simulation(all_contr_rand_seg, out_dir=os.path.join(workdir, 'results'),
+                                        c_target=c_target, segments=True, stddev=stddev_segments,
+                                        save=True)
 
     ### Write full PDF report
     title_page_list = util.collect_title_page(workdir, c_target)
@@ -778,7 +889,7 @@ if __name__ == '__main__':
 
     instrument = CONFIG_PASTIS.get('telescope', 'name')
     run = CONFIG_PASTIS.get('numerical', 'current_analysis')
-    c_target = 1e-10
+    c_target = 1e-8
     mc_repeat = 100
 
     run_full_pastis_analysis(instrument, run_choice=run, c_target=c_target, n_repeat=mc_repeat)

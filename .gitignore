@@ -1,5 +1,6 @@
 *.pyc
 *.iml
+*.sh
 .ipynb_checkpoints/
 config_local.ini
 .idea/

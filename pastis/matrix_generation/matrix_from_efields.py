@@ -160,7 +160,7 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
     matrix_pastis_half = np.zeros([nb_modes, nb_modes])
 
     for pair in util.segment_pairs_non_repeating(nb_modes):
-        intensity_im = np.real((efields[pair[0]] - efield_ref) * np.conj(efields[pair[1]] - efield_ref))
+        intensity_im = np.real((efields[pair[0]] - efield_ref) * np.conj(efields[pair[1]] - efield_ref)) #TODO investigate about math issue
         contrast = util.dh_mean(intensity_im / direct_norm, dh_mask)
         matrix_pastis_half[pair[0], pair[1]] = contrast
         log.info(f'Calculated contrast for pair {pair[0]}-{pair[1]}: {contrast}')
@@ -347,8 +347,8 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.rst_cgi = webbpsf_imaging.set_up_cgi()
 
         # Calculate direct reference images for contrast normalization
-        rst_direct = self.rst_cgi.raw_PSF()
-        direct = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6)
+        rst_direct = self.rst_cgi.raw_coronagraph()
+        direct, inter = rst_direct.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         direct_psf = direct[0].data
         self.norm = direct_psf.max()
 
@@ -357,8 +357,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.dh_mask = self.rst_cgi.WA
 
         # Calculate reference E-field in focal plane, without any aberrations applied
-        _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-        self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
+        self.efield_ref = inter[-1].wavefront    # [-1] is the last optic = detector
 
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
@@ -466,7 +465,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
 
     # Calculate coronagraphic E-field
     _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
-    efield_focal_plane = inter[6]    # [6] is the last optic = detector
+    efield_focal_plane = inter[-1]    # [-1] is the last optic = detector
 
     # Save E field image to disk
     if saveefields:
@@ -479,7 +478,7 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     if saveopds:
         opd_name = f'opd_actuator_{mode_no}'
         plt.clf()
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(nb_actu, nb_actu))
         rst_sim.dm1.display(what='opd', opd_vmax=wfe_aber, colorbar_orientation='horizontal',
                             title='Aberrated actuator pair')
         plt.savefig(os.path.join(resDir, 'OTE_images', opd_name + '.pdf'))
