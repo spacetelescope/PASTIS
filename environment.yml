@@ -16,8 +16,8 @@ dependencies:
   - pytest
   - python=3.10
   - scipy
+  - conda-forge::hcipy<=0.4
+  - conda-forge::progressbar2
   - pip:
     - fpdf
     - poppy
-    - hcipy
-    - progressbar2
