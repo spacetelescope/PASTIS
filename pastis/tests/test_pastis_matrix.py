@@ -89,11 +89,11 @@ def test_pastis_forward_model():
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
 
 
-def test_luvoir_intensity_matrix_regression():
+def test_luvoir_intensity_matrix_regression(tmpdir):
     """ Check multiprocessed matrix calculation against previously calculated matrix """
 
     # Calculate new LUVOIR small PASTIS matrix
-    new_matrix_calc = matrix_calc.MatrixIntensityLuvoirA(design='small', savepsfs=False, saveopds=False)
+    new_matrix_calc = matrix_calc.MatrixIntensityLuvoirA(design='small', savepsfs=False, saveopds=False, initial_path=tmpdir)
     new_matrix_calc.calc()
     new_matrix = new_matrix_calc.matrix_pastis
 
