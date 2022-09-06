@@ -53,130 +53,57 @@ def plot_single_thermal_mode_all_hex(mu1, mu2, mu3, mu4, mu5, c0, mode, out_dir,
         for kk in range(85):
             mus5_table[qq, kk] = mu5[qq + kk * 5]
 
-    if mode == "Faceplates Silvered":
-        plt.figure(figsize=(10, 10))
-        plt.title("Faceplates Silvered Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
-        plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-        plt.xlabel("Segment Number", fontsize=20)
-        plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-        plt.plot(mus1_table[0] * 1e3, label="1-HexRingTelescope")
-        plt.plot(mus2_table[0] * 1e3, label="2-HexRingTelescope")
-        plt.plot(mus3_table[0] * 1e3, label="3-HexRingTelescope")
-        plt.plot(mus4_table[0] * 1e3, label="4-HexRingTelescope")
-        plt.plot(mus5_table[0] * 1e3, label="5-HexRingTelescope")
-        plt.yticks(np.arange(np.min(mus5_table[0]*1e3), np.max(mus5_table[0]*1e3), 0.1))
-        if inner_segments:
-            plt.xlabel("Inner Segment Number", fontsize=20)
-            plt.ylim(0, 2)
-            plt.xlim(0, 15)
-        plt.grid()
-        plt.legend(fontsize=15)
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(out_dir, 'mus_faceplate_%s.png' % c0))
+    if mode == "Faceplates Silvered" or mode =="Piston":
+        num = 0
+    elif mode == "Bulk" or mode == "Tip":
+        num = 1
+    elif mode == "Gradiant Radial" or mode == "Tilt":
+        num = 2
+    elif mode == "Gradiant X lateral" or mode == "Defocus":
+        num = 3
+    elif mode == "Gradiant Z axial" or mode == "Astig":
+        num = 4
 
-    if mode == "Bulk":
-        plt.figure(figsize=(10, 10))
-        plt.title("Bulk Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
-        plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-        plt.xlabel("Segment Number", fontsize=20)
-        plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-        plt.plot(mus1_table[1] * 1e3, label="1-HexRingTelescope")
-        plt.plot(mus2_table[1] * 1e3, label="2-HexRingTelescope")
-        plt.plot(mus3_table[1] * 1e3, label="3-HexRingTelescope")
-        plt.plot(mus4_table[1] * 1e3, label="4-HexRingTelescope")
-        plt.plot(mus5_table[1] * 1e3, label="5-HexRingTelescope")
-        plt.yticks(np.arange(np.min(mus2_table[1] * 1e3), np.max(mus5_table[1] * 1e3), 2))
-        if inner_segments:
-            plt.xlabel("Inner Segment Number", fontsize=20)
-            plt.yticks(np.arange(np.min(mus2_table[1] * 1e3), np.max(mus5_table[1] * 1e3), 0.5))
-            plt.ylim(1, 10)
-            plt.xlim(0, 15)
-        plt.grid()
-        plt.legend(fontsize=15)
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(out_dir, 'mus_bulk_%s.png' % c0))
-
-    if mode == "Gradiant Radial":
-        plt.figure(figsize=(10, 10))
-        plt.title("Gradiant Radial constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
-        plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-        plt.xlabel("Segment Number", fontsize=20)
-        plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-        plt.plot(mus1_table[2] * 1e3, label="1-HexRingTelescope")
-        plt.plot(mus2_table[2] * 1e3, label="2-HexRingTelescope")
-        plt.plot(mus3_table[2] * 1e3, label="3-HexRingTelescope")
-        plt.plot(mus4_table[2] * 1e3, label="4-HexRingTelescope")
-        plt.plot(mus5_table[2] * 1e3, label="5-HexRingTelescope")
-        plt.yticks(np.arange(np.min(mus2_table[2] * 1e3), np.max(mus5_table[2] * 1e3), 5))
-        if inner_segments:
-            plt.xlabel("Inner Segment Number", fontsize=20)
-            plt.yticks(np.arange(np.min(mus2_table[1] * 1e3), np.max(mus5_table[1] * 1e3), 0.5))
-            plt.ylim(1, 13.5)
-            plt.xlim(0, 15)
-        plt.grid()
-        plt.legend(fontsize=15)
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(out_dir, 'mus_gradient_radial_%s.png' % c0))
-
-    if mode == "Gradiant X lateral":
-        plt.figure(figsize=(10, 10))
-        plt.title("Gradiant X lateral constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
-        plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-        plt.xlabel("Segment Number", fontsize=20)
-        plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-        plt.plot(mus1_table[3] * 1e3, label="1-HexRingTelescope")
-        plt.plot(mus2_table[3] * 1e3, label="2-HexRingTelescope")
-        plt.plot(mus3_table[3] * 1e3, label="3-HexRingTelescope")
-        plt.plot(mus4_table[3] * 1e3, label="4-HexRingTelescope")
-        plt.plot(mus5_table[3] * 1e3, label="5-HexRingTelescope")
-        plt.yticks(np.arange(np.min(mus3_table[3] * 1e3), np.max(mus5_table[3] * 1e3), 0.5))
-        if inner_segments:
-            plt.xlabel("Inner Segment Number", fontsize=20)
-            plt.yticks(np.arange(np.min(mus3_table[3] * 1e3), np.max(mus5_table[3] * 1e3), 0.1))
-            plt.ylim(0.8, 2.5)
-            plt.xlim(0, 15)
-        plt.grid()
-        plt.legend(fontsize=15)
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(out_dir, 'mus_gradient_xlateral_%s.png' % c0))
-
-    if mode == "Gradiant Y lateral":
-        plt.figure(figsize=(10, 10))
-        plt.title("Gradiant Y lateral constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
-        plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-        plt.xlabel("Segment Number", fontsize=20)
-        plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-        plt.plot(mus1_table[4] * 1e3, label="1-HexRingTelescope")
-        plt.plot(mus2_table[4] * 1e3, label="2-HexRingTelescope")
-        plt.plot(mus3_table[4] * 1e3, label="3-HexRingTelescope")
-        plt.plot(mus4_table[4] * 1e3, label="4-HexRingTelescope")
-        plt.plot(mus5_table[4] * 1e3, label="5-HexRingTelescope")
-        plt.yticks(np.arange(np.min(mus3_table[4] * 1e3), np.max(mus5_table[4] * 1e3), 1))
-        if inner_segments:
-            plt.xlabel("Inner Segment Number", fontsize=20)
-            plt.yticks(np.arange(np.min(mus3_table[4] * 1e3), np.max(mus5_table[4] * 1e3), 0.1))
-            plt.ylim(0.7, 3.0)
-            plt.xlim(0, 15)
-        plt.grid()
-        plt.legend(fontsize=15)
-        plt.tight_layout()
-        if save:
-            plt.savefig(os.path.join(out_dir, 'mus_gradient_inner_%s.png' % c0))
+    plt.figure(figsize=(10, 10))
+    plt.title(str(mode)+" modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=10)
+    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
+    plt.xlabel("Segment Number", fontsize=20)
+    plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
+    plt.plot(mus1_table[num] * 1e3, label="1-HexRingTelescope", marker="o")
+    plt.plot(mus2_table[num] * 1e3, label="2-HexRingTelescope", marker="s")
+    plt.plot(mus3_table[num] * 1e3, label="3-HexRingTelescope", marker="p")
+    plt.plot(mus4_table[num] * 1e3, label="4-HexRingTelescope", marker="P")
+    plt.plot(mus5_table[num] * 1e3, label="5-HexRingTelescope", marker="H")
+    #plt.yticks(np.arange(np.min(mus2_table[1] * 1e3), np.max(mus5_table[1] * 1e3), 0.5))
+    if inner_segments:
+        plt.xlabel("Inner Segment Number", fontsize=20)
+        plt.yticks(np.arange(np.min(mus5_table[0] * 1e3), np.max(mus5_table[0] * 1e3), 0.1))
+        plt.ylim(0, 2)
+        plt.xlim(0, 15)
+    plt.grid()
+    plt.legend(fontsize=15)
+    plt.tight_layout()
+    if save:
+        plt.savefig(os.path.join(out_dir, str(mode) + '_mus_%s.png' % c0))
 
 
 if __name__ == '__main__':
 
-    mus5 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots/mus_1e-11_5.csv', delimiter=',')
-    mus4 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots/mus_1e-11_4.csv', delimiter=',')
-    mus3 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots/mus_1e-11_3.csv', delimiter=',')
-    mus2 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots/mus_1e-11_2.csv', delimiter=',')
-    mus1 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots/mus_1e-11_1.csv', delimiter=',')
+    # Thermal tolerance coefficients
+    mus5 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_thermal/mus_1e-11_5.csv', delimiter=',')
+    mus4 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_thermal/mus_1e-11_4.csv', delimiter=',')
+    mus3 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_thermal/mus_1e-11_3.csv', delimiter=',')
+    mus2 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_thermal/mus_1e-11_2.csv', delimiter=',')
+    mus1 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_thermal/mus_1e-11_1.csv', delimiter=',')
 
-    resdir = '/Users/asahoo/Desktop/data_repos/plots'
-    plot_mus_all_hexrings(mus1, mus2, mus3, mus4, mus5, 1e-11, resdir, save=False)
+    # Segment level zernike coefficients
+    z5 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_mid_zernike/mus_1e-11_5.csv', delimiter=',')
+    z4 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_mid_zernike/mus_1e-11_4.csv', delimiter=',')
+    z3 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_mid_zernike/mus_1e-11_3.csv', delimiter=',')
+    z2 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_mid_zernike/mus_1e-11_2.csv', delimiter=',')
+    z1 = np.genfromtxt('/Users/asahoo/Desktop/data_repos/plots_mid_zernike/mus_1e-11_1.csv', delimiter=',')
+
+    resdir = '/Users/asahoo/Desktop/data_repos/plots_mid_zernike'
+    # plot_mus_all_hexrings(mus1, mus2, mus3, mus4, mus5, 1e-11, resdir, save=False)
     plot_single_thermal_mode_all_hex(mus1, mus2, mus3, mus4, mus5, 1e-11,
-                                     mode="Gradiant Y lateral", out_dir=resdir, save=False, inner_segments=False)
+                                     mode="Gradiant Z axial", out_dir=resdir, save=True, inner_segments=False)
