@@ -108,5 +108,5 @@ if __name__ == '__main__':
     np.savetxt(os.path.join(data_dir, 'mus_%s_%d.csv' % (c_target, num_rings)), mus_1d, delimiter=',')
 
     # plot_thermal_mus(mus_1d, num_modes, tel.nseg, c_target, data_dir, save=True)
-    plot_zernike_mus(mus_1d, num_modes, tel.nseg, c_target, data_dir, save=True)
+    # plot_zernike_mus(mus_1d, num_modes, tel.nseg, c_target, data_dir, save=True)
 
