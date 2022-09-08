@@ -4,6 +4,31 @@ import matplotlib.pyplot as plt
 
 
 def plot_mus_all_hexrings(mu1, mu2, mu3, mu4, mu5, c0, out_dir, save=False):
+    """
+    Parameters
+    ----------
+    mu1 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 1-HexRingTelescope.
+    mu2 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 2-HexRingTelescope.
+    mu3 : numpy.ndarray
+        Each element  represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 3-HexRingTelescope.
+    mu4 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 4-HexRingTelescope.
+    mu5 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 5-HexRingTelescope.
+    c0 : float
+        The set-target contrast for which the above tolerances were calculated.
+    out_dir : str
+        path where the plot will be saved
+    save : bool
+        whether to save the plot
+    """
     plt.figure(figsize=(10, 10))
     plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=20)
     plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
@@ -22,6 +47,37 @@ def plot_mus_all_hexrings(mu1, mu2, mu3, mu4, mu5, c0, out_dir, save=False):
 
 
 def plot_single_thermal_mode_all_hex(mu1, mu2, mu3, mu4, mu5, c0, mode, out_dir, save=False, inner_segments=False):
+    """
+    Parameters
+    ----------
+    mu1 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 1-HexRingTelescope.
+    mu2 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 2-HexRingTelescope.
+    mu3 : numpy.ndarray
+        Each element  represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 3-HexRingTelescope.
+    mu4 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 4-HexRingTelescope.
+    mu5 : numpy.ndarray
+        Each element represents tolerance (in units of nm) for segment per a segment level aberration mode
+        for the 5-HexRingTelescope.
+    c0 : float
+        The set-target contrast for which the above tolerances were calculated.
+    mode : str
+        name of the segment level zernike/harris thermal aberration
+        "Faceplates Silvered" or "Piston", "Bulk" or "Tip", "Gradiant Radial" or "Tilt",
+        "Gradiant X lateral" or "Defocus", or "Gradiant Z axial" or "Astig"
+    out_dir : str
+        path where the plot will be saved
+    save : bool
+        whether to save the plot
+    inner_segments : bool
+        whether to plot tolerances for the inner segments only
+    """
 
     # for 1-HexRingTelescope
     mus1_table = np.zeros([5, 7])
@@ -53,7 +109,7 @@ def plot_single_thermal_mode_all_hex(mu1, mu2, mu3, mu4, mu5, c0, mode, out_dir,
         for kk in range(85):
             mus5_table[qq, kk] = mu5[qq + kk * 5]
 
-    if mode == "Faceplates Silvered" or mode =="Piston":
+    if mode == "Faceplates Silvered" or mode == "Piston":
         num = 0
     elif mode == "Bulk" or mode == "Tip":
         num = 1
@@ -74,11 +130,10 @@ def plot_single_thermal_mode_all_hex(mu1, mu2, mu3, mu4, mu5, c0, mode, out_dir,
     plt.plot(mus3_table[num] * 1e3, label="3-HexRingTelescope", marker="p")
     plt.plot(mus4_table[num] * 1e3, label="4-HexRingTelescope", marker="P")
     plt.plot(mus5_table[num] * 1e3, label="5-HexRingTelescope", marker="H")
-    #plt.yticks(np.arange(np.min(mus2_table[1] * 1e3), np.max(mus5_table[1] * 1e3), 0.5))
     if inner_segments:
         plt.xlabel("Inner Segment Number", fontsize=20)
-        plt.yticks(np.arange(np.min(mus5_table[0] * 1e3), np.max(mus5_table[0] * 1e3), 0.1))
-        plt.ylim(0, 2)
+        plt.yticks(np.arange(np.min(mus3_table[num] * 1e3), np.max(mus4_table[num] * 1e3), 0.5))
+        plt.ylim(1, 5)
         plt.xlim(0, 15)
     plt.grid()
     plt.legend(fontsize=15)
@@ -105,5 +160,5 @@ if __name__ == '__main__':
 
     resdir = '/Users/asahoo/Desktop/data_repos/plots_mid_zernike'
     # plot_mus_all_hexrings(mus1, mus2, mus3, mus4, mus5, 1e-11, resdir, save=False)
-    plot_single_thermal_mode_all_hex(mus1, mus2, mus3, mus4, mus5, 1e-11,
-                                     mode="Gradiant Z axial", out_dir=resdir, save=True, inner_segments=False)
+    plot_single_thermal_mode_all_hex(z1, z2, z3, z4, z5, 1e-11,
+                                     mode="Astig", out_dir=resdir, save=True, inner_segments=True)
