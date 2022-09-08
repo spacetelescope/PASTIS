@@ -1,4 +1,5 @@
 import os
+import hcipy
 from astropy.io import fits
 import numpy as np
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldLuvoirA
@@ -64,3 +65,26 @@ efield_obwfs_imag = fits.getdata(os.path.join(data_dir, 'efield_obwfs_imag.fits'
 e0_coron = fits.getdata(os.path.join(data_dir, 'e0_coron.fits'))
 e0_obwfs = fits.getdata(os.path.join(data_dir, 'e0_wfs.fits'))
 
+total_sci_pix = np.square(e0_coron.shape[1])
+total_pupil_pix = np.square(e0_obwfs.shape[1])
+e0_coron_real = np.reshape(e0_coron[0], total_sci_pix)
+e0_coron_imag = np.reshape(e0_coron[1], total_sci_pix)
+
+e0_obwfs_real = np.reshape(e0_obwfs[0], total_pupil_pix)
+e0_obwfs_imag = np.reshape(e0_obwfs[1], total_pupil_pix)
+
+E0_coron = np.zeros([total_sci_pix, 1, 2])
+E0_coron[:, 0, 0] = e0_coron_real
+E0_coron[:, 0, 1] = e0_coron_imag
+
+z_pup_downsample = CONFIG_PASTIS.getint('numerical', 'z_pup_downsample')
+
+e0_wfs_sub_real = hcipy.field.subsample_field(e0_obwfs_real, z_pup_downsample, statistic='mean')
+e0_wfs_sub_imag = hcipy.field.subsample_field(e0_obwfs_imag, z_pup_downsample, statistic='mean')
+efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
+
+N_pup_z = efield_ref_wfs_sub.real.shape[0]
+
+E0_OBWFS_downsampled = np.zeros([int(N_pup_z), 1, 2])
+E0_OBWFS_downsampled[:, 0, 0] = efield_ref_wfs_sub.real
+E0_OBWFS_downsampled[:, 0, 1] = efield_ref_wfs_sub.imag
