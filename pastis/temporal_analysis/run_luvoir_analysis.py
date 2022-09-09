@@ -8,6 +8,18 @@ from pastis.simulators.luvoir_imaging import LuvoirA_APLC
 import pastis.util as util
 
 
+def matrix_subsample(matrix, n, m):
+    # return a matrix of shape (n,m)
+    arr_sum = []
+    l = matrix.shape[0]//n  # block length
+    b = matrix.shape[1]//m  # block breadth
+    for i in range(n):
+        for j in range(m):
+            sum_pixels = np.sum(matrix[i*l: (i+1)*l, j*b: (j+1)*b])
+            arr_sum.append(sum_pixels)
+    data_reduced = np.reshape(np.array(arr_sum), (n, m))
+    return data_reduced
+
 # Create necessary directories if they don't exist yet
 data_dir = CONFIG_PASTIS.get('local', 'local_data_path')
 
@@ -65,8 +77,10 @@ efield_obwfs_imag = fits.getdata(os.path.join(data_dir, 'efield_obwfs_imag.fits'
 e0_coron = fits.getdata(os.path.join(data_dir, 'e0_coron.fits'))
 e0_obwfs = fits.getdata(os.path.join(data_dir, 'e0_wfs.fits'))
 
+# Get the total pupil and imaging camera pixels
 total_sci_pix = np.square(e0_coron.shape[1])
 total_pupil_pix = np.square(e0_obwfs.shape[1])
+
 e0_coron_real = np.reshape(e0_coron[0], total_sci_pix)
 e0_coron_imag = np.reshape(e0_coron[1], total_sci_pix)
 
@@ -78,13 +92,32 @@ E0_coron[:, 0, 0] = e0_coron_real
 E0_coron[:, 0, 1] = e0_coron_imag
 
 z_pup_downsample = CONFIG_PASTIS.getint('numerical', 'z_pup_downsample')
-
 e0_wfs_sub_real = hcipy.field.subsample_field(e0_obwfs_real, z_pup_downsample, statistic='mean')
 e0_wfs_sub_imag = hcipy.field.subsample_field(e0_obwfs_imag, z_pup_downsample, statistic='mean')
 efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
 
 N_pup_z = efield_ref_wfs_sub.real.shape[0]
-
 E0_OBWFS_downsampled = np.zeros([int(N_pup_z), 1, 2])
 E0_OBWFS_downsampled[:, 0, 0] = efield_ref_wfs_sub.real
 E0_OBWFS_downsampled[:, 0, 1] = efield_ref_wfs_sub.imag
+
+num_all_modes = efield_coron_real.shape[0]
+G_coron = np.zeros([total_sci_pix, 2, num_all_modes])
+for i in range(num_all_modes):
+    G_coron[:, 0, i] = np.reshape(efield_coron_real[i], total_sci_pix) - e0_coron_real
+    G_coron[:, 1, i] = np.reshape(efield_coron_imag[i], total_sci_pix) - e0_obwfs_imag
+
+G_OBWFS = np.zeros([total_pupil_pix, 2, num_all_modes])
+for i in range(num_all_modes):
+    G_OBWFS[:, 0, i] = np.reshape(efield_coron_real[i], total_pupil_pix) - e0_obwfs_real
+    G_OBWFS[:, 1, i] = np.reshape(efield_coron_real[i], total_pupil_pix) - e0_obwfs_imag
+
+G_OBWFS_downsampled = np.zeros([int(N_pup_z), 2, num_all_modes])
+for i in range(num_all_modes):
+    efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(np.reshape(efield_coron_real[i], total_pupil_pix),
+                                                                z_pup_downsample, statistic='mean')
+    efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(np.reshape(efield_coron_imag[i], total_pupil_pix),
+                                                                z_pup_downsample, statistic='mean')
+    G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub * z_pup_downsample - e0_wfs_sub_real
+    G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub * z_pup_downsample - e0_wfs_sub_imag
+
