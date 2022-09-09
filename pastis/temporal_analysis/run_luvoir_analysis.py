@@ -20,6 +20,15 @@ def matrix_subsample(matrix, n, m):
     data_reduced = np.reshape(np.array(arr_sum), (n, m))
     return data_reduced
 
+
+def matrix_subsample_fast(matrix, n, m):
+    l = matrix.shape[0] // n  # block length
+    b = matrix.shape[1] // m  # block breadth
+    new_shape = (n, l, m, b)
+    reshaped_array = matrix.reshape(new_shape)
+    data_reduced = np.sum(reshaped_array, axis=(1, 3))
+    return data_reduced
+
 # Create necessary directories if they don't exist yet
 data_dir = CONFIG_PASTIS.get('local', 'local_data_path')
 
@@ -69,6 +78,8 @@ c_target = 10**(c_target_log)
 mu_map_harris = np.sqrt(((c_target) / (num_actuators)) / (np.diag(pastis_matrix)))
 np.savetxt(os.path.join(data_dir, 'mu_map_harris_%s.csv' % c_target), mu_map_harris, delimiter=',')
 
+
+
 # Temporal Analysis
 efield_coron_real = fits.getdata(os.path.join(data_dir, 'efield_coron_real.fits'))
 efield_coron_imag = fits.getdata(os.path.join(data_dir, 'efield_coron_imag.fits'))
@@ -92,9 +103,9 @@ E0_coron[:, 0, 0] = e0_coron_real
 E0_coron[:, 0, 1] = e0_coron_imag
 
 z_pup_downsample = CONFIG_PASTIS.getint('numerical', 'z_pup_downsample')
-e0_wfs_sub_real = hcipy.field.subsample_field(e0_obwfs_real, z_pup_downsample, statistic='mean')
-e0_wfs_sub_imag = hcipy.field.subsample_field(e0_obwfs_imag, z_pup_downsample, statistic='mean')
-efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag) * z_pup_downsample
+e0_wfs_sub_real = np.reshape(matrix_subsample(e0_obwfs[0], 125, 125), 125*125)
+e0_wfs_sub_imag = np.reshape(matrix_subsample(e0_obwfs[1], 125, 125), 125*125)
+efield_ref_wfs_sub = (e0_wfs_sub_real + 1j * e0_wfs_sub_imag)
 
 N_pup_z = efield_ref_wfs_sub.real.shape[0]
 E0_OBWFS_downsampled = np.zeros([int(N_pup_z), 1, 2])
@@ -105,19 +116,22 @@ num_all_modes = efield_coron_real.shape[0]
 G_coron = np.zeros([total_sci_pix, 2, num_all_modes])
 for i in range(num_all_modes):
     G_coron[:, 0, i] = np.reshape(efield_coron_real[i], total_sci_pix) - e0_coron_real
-    G_coron[:, 1, i] = np.reshape(efield_coron_imag[i], total_sci_pix) - e0_obwfs_imag
+    G_coron[:, 1, i] = np.reshape(efield_coron_imag[i], total_sci_pix) - e0_coron_imag
 
 G_OBWFS = np.zeros([total_pupil_pix, 2, num_all_modes])
 for i in range(num_all_modes):
-    G_OBWFS[:, 0, i] = np.reshape(efield_coron_real[i], total_pupil_pix) - e0_obwfs_real
-    G_OBWFS[:, 1, i] = np.reshape(efield_coron_real[i], total_pupil_pix) - e0_obwfs_imag
+    G_OBWFS[:, 0, i] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - e0_obwfs_real
+    G_OBWFS[:, 1, i] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - e0_obwfs_imag
 
-G_OBWFS_downsampled = np.zeros([int(N_pup_z), 2, num_all_modes])
+G_OBWFS = np.empty([2, num_all_modes, total_pupil_pix])
 for i in range(num_all_modes):
-    efields_per_mode_wfs_real_sub = hcipy.field.subsample_field(np.reshape(efield_coron_real[i], total_pupil_pix),
-                                                                z_pup_downsample, statistic='mean')
-    efields_per_mode_wfs_imag_sub = hcipy.field.subsample_field(np.reshape(efield_coron_imag[i], total_pupil_pix),
-                                                                z_pup_downsample, statistic='mean')
-    G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub * z_pup_downsample - e0_wfs_sub_real
-    G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub * z_pup_downsample - e0_wfs_sub_imag
+    G_OBWFS[0, i, :] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - e0_obwfs_real
+    G_OBWFS[1, i, :] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - e0_obwfs_imag
+G_OBWFS = np.transpose(G_OBWFS, axes=(2, 0, 1))
 
+G_OBWFS_downsampled = np.empty([int(N_pup_z), 2, num_all_modes])
+for i in range(num_all_modes):
+    efields_per_mode_wfs_real_sub = np.reshape(matrix_subsample(efield_obwfs_real[i], 125, 125), int(N_pup_z))
+    efields_per_mode_wfs_imag_sub = np.reshape(matrix_subsample(efield_obwfs_imag[i], 125, 125), int(N_pup_z))
+    G_OBWFS_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub - e0_wfs_sub_real
+    G_OBWFS_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub - e0_wfs_sub_imag
