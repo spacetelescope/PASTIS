@@ -395,6 +395,14 @@ class MatrixEfieldRST(PastisMatrixEfields):
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
 
+        # Save unaberrated electric field at the science plane
+        if self.save_efields:
+            n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+            e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
+            e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+            e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'ref_e0_coron.fits'))
+
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
         self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
