@@ -96,8 +96,8 @@ class PastisMatrixEfields(PastisMatrix):
                     efield_coron_real[i, :, :] = np.reshape(self.efields_per_mode[i].real, (n_sci_pix, n_sci_pix))
                     efield_coron_imag[i, :, :] = np.reshape(self.efields_per_mode[i].imag, (n_sci_pix, n_sci_pix))
 
-                hcipy.write_fits(efield_coron_real, os.path.join(self.overall_dir, 'efield_coron_real.fits'))
-                hcipy.write_fits(efield_coron_imag, os.path.join(self.overall_dir, 'efield_coron_imag.fits'))
+                hcipy.write_fits(efield_coron_real, os.path.join(self.resDir, 'efield_coron_real.fits'))
+                hcipy.write_fits(efield_coron_imag, os.path.join(self.resDir, 'efield_coron_imag.fits'))
 
             if self.calc_wfs:
                 n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
@@ -107,8 +107,8 @@ class PastisMatrixEfields(PastisMatrix):
                     efield_obwfs_real[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].real, (n_wfs_pix, n_wfs_pix))
                     efield_obwfs_imag[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].imag, (n_wfs_pix, n_wfs_pix))
 
-                hcipy.write_fits(efield_obwfs_real, os.path.join(self.overall_dir, 'efield_obwfs_real.fits'))
-                hcipy.write_fits(efield_obwfs_imag, os.path.join(self.overall_dir, 'efield_obwfs_imag.fits'))
+                hcipy.write_fits(efield_obwfs_real, os.path.join(self.resDir, 'efield_obwfs_real.fits'))
+                hcipy.write_fits(efield_obwfs_imag, os.path.join(self.resDir, 'efield_obwfs_imag.fits'))
 
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
@@ -250,7 +250,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
             e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
             e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
             e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
-            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'e0_coron.fits'))
+            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'ref_e0_coron.fits'))
 
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
@@ -263,7 +263,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
             e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
             e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
             e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
-            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'e0_wfs.fits'))
+            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'ref_e0_wfs.fits'))
 
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
