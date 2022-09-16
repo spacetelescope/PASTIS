@@ -52,9 +52,9 @@ def calculate_sensitivity_matrices(e0_coron, e0_obwfs, efield_coron_real,
     ref_coron[:, 0, 0] = ref_coron_real
     ref_coron[:, 0, 1] = ref_coron_imag
 
-    n_sub_pix = np.sqrt(total_pupil_pix) // subsample_factor
-    ref_wfs_real_sub = np.reshape(matrix_subsample(e0_obwfs[0], n_sub_pix, n_sub_pix), np.square(n_sub_pix))
-    ref_wfs_imag_sub = np.reshape(matrix_subsample(e0_obwfs[1], n_sub_pix, n_sub_pix), np.square(n_sub_pix))
+    n_sub_pix = int(np.sqrt(total_pupil_pix) // subsample_factor)
+    ref_wfs_real_sub = np.reshape(matrix_subsample(e0_obwfs[0], n_sub_pix, n_sub_pix), int(np.square(n_sub_pix)))
+    ref_wfs_imag_sub = np.reshape(matrix_subsample(e0_obwfs[1], n_sub_pix, n_sub_pix), int(np.square(n_sub_pix)))
     ref_wfs_sub = (ref_wfs_real_sub + 1j * ref_wfs_imag_sub)
 
     ref_obwfs_downsampled = np.zeros([int(np.square(n_sub_pix)), 1, 2])
@@ -72,12 +72,12 @@ def calculate_sensitivity_matrices(e0_coron, e0_obwfs, efield_coron_real,
         g_obwfs[:, 0, i] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - ref_obwfs_real
         g_obwfs[:, 1, i] = np.reshape(efield_obwfs_real[i], total_pupil_pix) - ref_obwfs_imag
 
-    g_obwfs_downsampled = np.empty([int(np.square(n_sub_pix)), 2, num_all_modes])
+    g_obwfs_downsampled = np.zeros([int(np.square(n_sub_pix)), 2, num_all_modes])
     for i in range(num_all_modes):
         efields_per_mode_wfs_real_sub = np.reshape(matrix_subsample(efield_obwfs_real[i],
-                                                                    n_sub_pix, n_sub_pix), np.square(n_sub_pix))
+                                                                    n_sub_pix, n_sub_pix), int(np.square(n_sub_pix)))
         efields_per_mode_wfs_imag_sub = np.reshape(matrix_subsample(efield_obwfs_imag[i],
-                                                                    n_sub_pix, n_sub_pix), np.square(n_sub_pix) )
+                                                                    n_sub_pix, n_sub_pix), int(np.square(n_sub_pix)))
         g_obwfs_downsampled[:, 0, i] = efields_per_mode_wfs_real_sub - ref_wfs_real_sub
         g_obwfs_downsampled[:, 1, i] = efields_per_mode_wfs_imag_sub - ref_wfs_imag_sub
 
@@ -134,7 +134,7 @@ pastis_matrix = fits.getdata(os.path.join(data_dir, 'matrix_numerical', 'pastis_
 
 # Define target contrast
 c_target_log = -11
-c_target = 10**(c_target_log)
+c_target = 4*10**(c_target_log)
 mu_map_harris = np.sqrt(((c_target) / (num_actuators)) / (np.diag(pastis_matrix)))
 np.savetxt(os.path.join(data_dir, 'mu_map_harris_%s.csv' % c_target), mu_map_harris, delimiter=',')
 
@@ -153,8 +153,7 @@ sensitivity_matrices = calculate_sensitivity_matrices(ref_coron, ref_obwfs, efie
 g_coron = sensitivity_matrices['senitivity_image_plane']
 g_wfs = sensitivity_matrices['sensitvity_wfs_plane']
 e0_coron = sensitivity_matrices['ref_image_plane']
-e0_wfs = sensitivity_matrices['sensitvity_wfs_plane']
-
+e0_wfs = sensitivity_matrices['ref_wfs_plane']
 
 npup = int(np.sqrt(tel.pupil_grid.x.shape[0]))
 sptype = 'A0V'
