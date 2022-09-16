@@ -295,10 +295,9 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def setup_single_mode_function(self):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
-
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
-                                                    self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
+                                                    self.norm_one_photon, self.resDir, self.saveopds)
 
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
@@ -401,12 +400,13 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
     def setup_single_mode_function(self):
+        """ Create the partial function that returns the E-field of a single aberrated mode. """
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
-                                                    self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
+                                                    self.rst_cgi, self.resDir, self.saveopds)
 
 
 def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, calc_science, calc_wfs,
-                                  norm_one_photon, resDir, saveefields, saveopds, mode_no):
+                                  norm_one_photon, resDir, saveopds, mode_no):
     """
     Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
@@ -464,7 +464,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     return efields
 
 
-def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
+def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveopds, mode_no):
     """
     Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
     :param wfe_aber: float, calibration aberration per actuator in m
