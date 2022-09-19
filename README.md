@@ -297,13 +297,19 @@ date and time of the start of the matrix generation, the telescope name, and for
 The code will copy the used configfile into this data folder, together with all results and log files. The data 
 directory structure is as follows:
 
+> Note: Not all outputs are generated at the same time and through the same scripts. The below list captures all potential outputs written to disk.
+
 ```bash
 |-- 2020-11-20T21-34-29_example
 |   |-- coronagraph_floor.txt                    # E2E DH average contrast for unaberrated pupil
-|   |-- full_report.pdf                          # a PDF file summarizing all results 
+|   |-- full_report.pdf                          # a PDF file summarizing all results after analysis is run
 |   |-- matrix_numerical
 |       |-- config_local.ini                     # copy of the configfile used for matrix generation
 |       |-- contrast_matrix.pdf                  # PDF image of the half-filled contrast matrix, before it is transformed into the PASTIS matrix
+|       |-- efield_coron_imag.fits               # fits cube of the imaginary part of all injected aberrations as recorded in E-field in the science plane, with "n_modes" number of 2D arrays
+|       |-- efield_coron_real.fits               # fits cube of the real part of all injected aberrations as recorded in E-field in the science plane, with "n_modes" number of 2D arrays
+|       |-- efield_obwfs_imag.fits               # fits cube of the imaginary part of all injected aberrations as recorded in E-field in the WFS plane, with "n_modes" number of 2D arrays
+|       |-- efield_obwfs_real.fits               # fits cube of the real part of all injected aberrations as recorded in E-field in the WFS plane, with "n_modes" number of 2D arrays
 |       |-- OTE_images
 |           |-- opd[...].pdf                     # PDF images of each segment pair aberration in the pupil
 |           |-- ...
@@ -315,12 +321,14 @@ directory structure is as follows:
 |      |-- psfs
 |          |-- psf_cube.fits                     # an image cube of the PSF from each segment pair aberration
 |   |-- pastis_analysis.log:                     # logging output of the PASTIS analysis; new runs get appended
+|   |-- ref_e0_coron.fits                        # unaberrated E-field in the science plane, real and imaginary parts as cube
+|   |-- ref_e0_wfs.fits                          # unaberrated E-field in the WFS plane, real and imaginary parts as cube
 |   |-- results
 |       |-- [...].pdf/.txt                       # all results from the PASTIS analysis, including the modes
 |       |-- ...
 |   |-- title_page.pdf                           # title page of the full_report PDF file 
-|   |-- unaberrated_dh.fits                      # image of unaberrated DH from E2E simulator
-|   |-- unaberrated_dh.pdf                       # PDF image of unaberrated DH from E2E simulator
+|   |-- unaberrated_coro_psf.fits                # image of unaberrated DH from E2E simulator
+|   |-- unaberrated_coro_psf.pdf                 # PDF image of unaberrated DH from E2E simulator
 ```
 
 
@@ -396,9 +404,11 @@ HiCAT-PASTIS compatible conda env:
 5. `$ cd ../PASTIS`
 6. `$ git checkout develop`
 7. `$ python setup.py develop`
-8. `$ conda install pypdf2`
-9. `$ conda install progressbar2`
-10. `$ pip install fpdf`
+8. `$ conda uninstall hcipy`
+9. `$ conda install -c conda-forge hcipy=0.4`
+10. `$ conda install -c conda-forge pypdf2`
+11. `$ conda install -c conda-forge progressbar2`
+12. `$ pip install fpdf`
 
 
 ## Jupyter notebooks
@@ -428,7 +438,8 @@ This project is licensed under the BSD-3-Clause-License - see the [LICENSE.md](L
 Big thanks to Robel Geda ([@robelgeda](https://github.com/robelgeda)) for testing, checking and providing suggestions for the 
 repo setup, quickstart and README.  
 We acknowledge Garreth Ruane for providing the Habex and LUVOIR-B coronagraph data.  
-We acknowledge the Segemented aperture coronagraph design and analysis (SCDA) team for the Luvex/SCDA simulator data (JPL/GSFC/STScI).
+We acknowledge the Segmented aperture coronagraph design and analysis (SCDA) team for the Luvex/SCDA simulator data (JPL/GSFC/STScI).
+Credits for the sensitivity analyses in the WFS plane and temporal analyses go to Laurent Pueyo and Ananya Sahoo.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [python-version-url]: https://img.shields.io/badge/Python-3.10-green.svg?style=flat
