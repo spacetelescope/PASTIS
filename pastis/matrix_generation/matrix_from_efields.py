@@ -57,9 +57,6 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode_wfs = []
         self.norm_one_photon = norm_one_photon
 
-        os.makedirs(os.path.join(self.resDir, 'efields'), exist_ok=True)
-        os.makedirs(os.path.join(self.resDir, 'efields_wfs'), exist_ok=True)
-
     def calc(self):
         """ Main method that calculates the PASTIS matrix """
 
@@ -90,6 +87,29 @@ class PastisMatrixEfields(PastisMatrix):
         self.efields_per_mode = np.array(self.efields_per_mode)
         self.efields_per_mode_wfs = np.array(self.efields_per_mode_wfs)
 
+        if self.save_efields:
+            if self.calc_science:
+                n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+                efield_coron_real = np.zeros([self.number_all_modes, n_sci_pix, n_sci_pix])
+                efield_coron_imag = np.zeros([self.number_all_modes, n_sci_pix, n_sci_pix])
+                for i in range(self.number_all_modes):
+                    efield_coron_real[i, :, :] = np.reshape(self.efields_per_mode[i].real, (n_sci_pix, n_sci_pix))
+                    efield_coron_imag[i, :, :] = np.reshape(self.efields_per_mode[i].imag, (n_sci_pix, n_sci_pix))
+
+                hcipy.write_fits(efield_coron_real, os.path.join(self.resDir, 'efield_coron_real.fits'))
+                hcipy.write_fits(efield_coron_imag, os.path.join(self.resDir, 'efield_coron_imag.fits'))
+
+            if self.calc_wfs:
+                n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
+                efield_obwfs_real = np.zeros([self.number_all_modes, n_wfs_pix, n_wfs_pix])
+                efield_obwfs_imag = np.zeros([self.number_all_modes, n_wfs_pix, n_wfs_pix])
+                for i in range(self.number_all_modes):
+                    efield_obwfs_real[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].real, (n_wfs_pix, n_wfs_pix))
+                    efield_obwfs_imag[i, :, :] = np.reshape(self.efields_per_mode_wfs[i].imag, (n_wfs_pix, n_wfs_pix))
+
+                hcipy.write_fits(efield_obwfs_real, os.path.join(self.resDir, 'efield_obwfs_real.fits'))
+                hcipy.write_fits(efield_obwfs_imag, os.path.join(self.resDir, 'efield_obwfs_imag.fits'))
+
     def calculate_pastis_matrix_from_efields(self):
         """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
 
@@ -106,7 +126,7 @@ class PastisMatrixEfields(PastisMatrix):
         raise NotImplementedError()
 
     def calculate_ref_efield_wfs(self):
-        """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
+        """ Create the attribute self.efield_ref_wfs. """
         raise NotImplementedError()
 
     def setup_deformable_mirror(self):
@@ -224,10 +244,26 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
         self.efield_ref = unaberrated_ref_efield.electric_field
 
+        # Save unaberrated electric field at the science plane
+        if self.save_efields:
+            n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+            e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
+            e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+            e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'ref_e0_coron.fits'))
+
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
+
+        # Save unaberrated electric field at the wfs plane
+        if self.save_efields:
+            n_wfs_pix = int(np.sqrt(self.efield_ref_wfs.real.shape[0]))
+            e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
+            e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
+            e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
+            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'ref_e0_wfs.fits'))
 
     def setup_deformable_mirror(self):
         """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
@@ -259,10 +295,9 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def setup_single_mode_function(self):
         """ Create the partial function that returns the E-field of a single aberrated mode. """
-
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
-                                                    self.norm_one_photon, self.resDir, self.save_efields, self.saveopds)
+                                                    self.norm_one_photon, self.resDir, self.saveopds)
 
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
@@ -360,17 +395,26 @@ class MatrixEfieldRST(PastisMatrixEfields):
         _trash, inter = self.rst_cgi.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
         self.efield_ref = inter[6].wavefront    # [6] is the last optic = detector
 
+        # Save unaberrated electric field at the science plane
+        if self.save_efields:
+            n_sci_pix = int(np.sqrt(self.efield_ref.real.shape[0]))
+            e0_coron = np.zeros([2, n_sci_pix, n_sci_pix])
+            e0_coron[0, :, :] = np.reshape(self.efield_ref.real, (n_sci_pix, n_sci_pix))
+            e0_coron[1, :, :] = np.reshape(self.efield_ref.imag, (n_sci_pix, n_sci_pix))
+            hcipy.write_fits(e0_coron, os.path.join(self.overall_dir, 'ref_e0_coron.fits'))
+
     def setup_deformable_mirror(self):
         """DM setup not needed for RST, just define number of total modes"""
         self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
     def setup_single_mode_function(self):
+        """ Create the partial function that returns the E-field of a single aberrated mode. """
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
-                                                    self.rst_cgi, self.resDir, self.save_efields, self.saveopds)
+                                                    self.rst_cgi, self.resDir, self.saveopds)
 
 
 def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, calc_science, calc_wfs,
-                                  norm_one_photon, resDir, saveefields, saveopds, mode_no):
+                                  norm_one_photon, resDir, saveopds, mode_no):
     """
     Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
     :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
@@ -414,21 +458,6 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
             simulator.create_zernike_wfs()
         efield_wfs_plane = simulator.zwfs(inter['active_pupil'])
 
-    if saveefields:
-        # Save focal plane Efields
-        if calc_science:
-            fname_real_focal = f'focal_real_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.real, os.path.join(resDir, 'efields', fname_real_focal + '.fits'))
-            fname_imag_focal = f'focal_imag_mode{mode_no}'
-            hcipy.write_fits(efield_focal_plane.imag, os.path.join(resDir, 'efields', fname_imag_focal + '.fits'))
-
-        # Save wfs plane Efields
-        if calc_wfs:
-            fname_real_wfs = f'wfs_real_mode{mode_no}'
-            hcipy.write_fits(efield_wfs_plane.real, os.path.join(resDir, 'efields_wfs', fname_real_wfs + '.fits'))
-            fname_imag_wfs = f'wfs_imag_mode{mode_no}'
-            hcipy.write_fits(efield_wfs_plane.imag, os.path.join(resDir, 'efields_wfs', fname_imag_wfs + '.fits'))
-
     if saveopds:
         opd_map = inter[which_dm].phase
         opd_name = f'opd_mode_{mode_no}'
@@ -443,7 +472,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     return efields
 
 
-def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mode_no):
+def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveopds, mode_no):
     """
     Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
     :param wfe_aber: float, calibration aberration per actuator in m
@@ -467,13 +496,6 @@ def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveefields, saveopds, mo
     # Calculate coronagraphic E-field
     _psf, inter = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6, return_intermediates=True)
     efield_focal_plane = inter[6]    # [6] is the last optic = detector
-
-    # Save E field image to disk
-    if saveefields:
-        fname_real = f'efield_real_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.wavefront.real, os.path.join(resDir, 'efields', fname_real + '.fits'))
-        fname_imag = f'efield_imag_mode{mode_no}'
-        hcipy.write_fits(efield_focal_plane.wavefront.imag, os.path.join(resDir, 'efields', fname_imag + '.fits'))
 
     # Plot deformable mirror WFE and save to disk
     if saveopds:
