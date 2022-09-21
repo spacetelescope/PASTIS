@@ -340,3 +340,9 @@ c5 = c_contrast5['averaged_hist']
 n_tmp1 = len(c5)
 result_c5.append(c5[n_tmp1-1])
 print(result_c5[0]-contrast_floor)
+
+print(np.sqrt(np.mean((result_c5[0]-contrast_floor)**2 +
+                      (result_c4[0]-contrast_floor)**2 +
+                      (result_c3[0]-contrast_floor)**2 +
+                      (result_c2[0]-contrast_floor)**2 +
+                      (result_c1[0]-contrast_floor)**2)))
