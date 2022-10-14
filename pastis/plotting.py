@@ -15,6 +15,7 @@ from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.colors import TwoSlopeNorm
 import numpy as np
 from scipy.stats import norm
 
@@ -994,3 +995,130 @@ def natural_keys(text):
     https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside)
     """
     return [atoi(c) for c in re.split(r'(\d+)', text)]
+
+
+def plot_thermal_mus(mus, nmodes, nsegments, c0, out_dir, save=False):
+    """
+    Generates modal constraints plot for individual segment.
+
+    Parameters
+    ----------
+    mus : ndarray
+        list of standard deviations for each segment
+    nmodes : int
+        number of thermal modes
+    nsegments :  int
+        number of segments
+    c0 : scalar
+        target contrast
+    out_dir : str
+        path to save the plot
+    save : bool
+        whether to save the plot
+    """
+    harris_coeffs_table = np.zeros([nmodes, nsegments])
+    for qq in range(nmodes):
+        for kk in range(nsegments):
+            harris_coeffs_table[qq, kk] = mus[qq + (kk) * nmodes]
+
+    plt.figure(figsize=(10, 10))
+    plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=20)
+    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
+    plt.xlabel("Segment Number", fontsize=20)
+    plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
+    plt.plot(harris_coeffs_table[0]*1e3, label="Faceplates Silvered")
+    plt.plot(harris_coeffs_table[1]*1e3, label="Bulk")
+    plt.plot(harris_coeffs_table[2]*1e3, label="Gradiant Radial")
+    plt.plot(harris_coeffs_table[3]*1e3, label="Gradiant X lateral")
+    plt.plot(harris_coeffs_table[4]*1e3, label="Gradient Z axial")
+    plt.grid()
+    plt.legend(fontsize=15)
+    plt.tight_layout()
+    if save:
+        plt.savefig(os.path.join(out_dir, 'mus_1d_multi_modes_%s.png' % c0))
+    else:
+        plt.show()
+
+
+def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir, save=False):
+    """
+    Creates surface deformation tolerance maps for thermal aberrations.
+
+    Parameters:
+    tel : class instance of the simulator for "instrument"
+    mus : 1d array
+        list of tolerances for individual segments in units of nm
+    num_modes : int
+        len of segment level thmodal basis
+    num_actuators : int
+        total number of dm actuators
+    c_target : float
+        desired dark hole contrast for which the tolerancing is done
+    data_dir :  str
+        path to save the plot
+    save : bool
+        whether to save the plot
+    """
+    nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
+
+    harris_coeffs_numaps = np.zeros([num_modes, num_actuators])
+    for qq in range(num_modes):
+        harris_coeffs_tmp = np.zeros([num_actuators])
+        for kk in range(tel.nseg):
+            harris_coeffs_tmp[qq + (kk) * num_modes] = mus[qq + (kk) * num_modes]  # arranged per modal basis
+        harris_coeffs_numaps[qq] = harris_coeffs_tmp  # arranged into 5 groups of nseg elements and in units of nm
+
+    nu_maps = []
+    for qq in range(num_modes):
+        harris_coeffs = harris_coeffs_numaps[qq]  # in units of nm
+        tel.harris_sm.actuators = harris_coeffs * nm_aber / 2  # in units of m
+        nu_maps.append(tel.harris_sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
+
+    plt.figure(figsize=(15, 10))
+    plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)
+    plt.title("Faceplates Silvered", fontsize=10)
+    plot_norm1 = TwoSlopeNorm(vcenter=0, vmin=-5, vmax=5)
+    hcipy.imshow_field((nu_maps[0]) * 1e12, norm=plot_norm1, cmap='RdBu')  # nu_map is already in 1e-9 m
+    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label("$pm$", fontsize=10)
+
+    plt.subplot2grid((2, 6), (0, 2), colspan=2)
+    plt.title("Bulk", fontsize=10)
+    plot_norm2 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    hcipy.imshow_field((nu_maps[1]) * 1e12, norm=plot_norm2, cmap='RdBu')
+    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label("$pm$", fontsize=10)
+
+    plt.subplot2grid((2, 6), (0, 4), colspan=2)
+    plt.title("Gradiant Radial", fontsize=10)
+    plot_norm3 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    hcipy.imshow_field((nu_maps[2]) * 1e12, norm=plot_norm3, cmap='RdBu')
+    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label("$pm$", fontsize=10)
+
+    plt.subplot2grid((2, 6), (1, 1), colspan=2)
+    plt.title("Gradient X lateral", fontsize=10)
+    plot_norm4 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    hcipy.imshow_field((nu_maps[3]) * 1e12, norm=plot_norm4, cmap='RdBu')
+    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label("$pm$", fontsize=10)
+
+    plt.subplot2grid((2, 6), (1, 3), colspan=2)
+    plt.title("Gradient Z axial", fontsize=10)
+    plot_norm5 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    hcipy.imshow_field((nu_maps[4]) * 1e12, norm=plot_norm5, cmap='RdBu')
+    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+    cbar = plt.colorbar()
+    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label("$pm$", fontsize=10)
+    plt.tight_layout()
+    if save:
+        plt.savefig(os.path.join(data_dir, 'stat_mu_maps_nm_%s.png' % c_target))
