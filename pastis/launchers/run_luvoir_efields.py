@@ -35,7 +35,6 @@ if __name__ == '__main__':
     # pad_orientation = np.pi / 2 * np.ones(tel.nseg)
     # filepath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')
     # tel.create_segmented_harris_mirror(filepath, pad_orientation, thermal=True, mechanical=False, other=False)
-    # tel.harris_sm
     # num_actuators = tel.harris_sm.num_actuators
     # num_modes = 5
     # tel.harris_sm.flatten()
@@ -62,7 +61,7 @@ if __name__ == '__main__':
     norm = np.max(ref)
     dh_intensity = (unaberrated_coro_psf / norm) * tel.dh_mask
     contrast_floor = np.mean(dh_intensity[np.where(tel.dh_mask != 0)])
-    print(f'contrast floor: {contrast_floor}')
+    print(f'contrast floor: {contrast_floor}') #TODO:  access this value from run_matrix
 
     # Calculate and save per segment static tolerance
     pastis_matrix = fits.getdata(os.path.join(dir_run, 'matrix_numerical', 'pastis_matrix.fits'))
@@ -73,4 +72,4 @@ if __name__ == '__main__':
     np.savetxt(os.path.join(dir_run, 'mu_map_%s.csv' % c_target), mus, delimiter=',')
 
     ppl.plot_thermal_mus(mus, num_modes, tel.nseg, c0=c_target, out_dir=dir_run, save=True)
-    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, dir_run, save=False)
+    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, dir_run, mirror='sm', save=False)
