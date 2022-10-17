@@ -1050,7 +1050,9 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     mus : 1d array
         list of tolerances for individual segments in units of nm
     num_modes : int
-        len of segment level thmodal basis
+        the total number of local modes used to poke a segment.
+        For a harris segment mirror  it is 5 (taking only thermal basis map).
+        For a segmented mirror, it represents the total number of local zernike modes.
     num_actuators : int
         total number of dm actuators
     c_target : float
