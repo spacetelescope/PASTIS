@@ -71,5 +71,5 @@ if __name__ == '__main__':
     mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
     np.savetxt(os.path.join(dir_run, 'mu_map_%s.csv' % c_target), mus, delimiter=',')
 
-    ppl.plot_thermal_mus(mus, num_modes, tel.nseg, c0=c_target, out_dir=dir_run, save=True)
+    ppl.plot_thermal_mus(mus, num_modes, tel.nseg, c_target, out_dir=dir_run, save=True)
     ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, dir_run, mirror='sm', save=False)
