@@ -1,22 +1,47 @@
+import os
 import numpy as np
+from astropy.io import fits
 from pastis.config import CONFIG_PASTIS
+import pastis.util as util
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldHex
-
+from pastis.simulators.scda_telescopes import HexRingAPLC
+from pastis.pastis_analysis import  calculate_segment_constraints
+import pastis.plotting as ppl
 
 if __name__ == '__main__':
 
-    NUM_RINGS = 1
-    DM = 'seg_mirror'   # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    # Instantiate the LUVEx telescope
+    NUM_RINGS = 2
+    optics_dir = os.path.join(util.find_repo_location(), 'data', 'SCDA')
+    sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
+    robust = 4
+    tel = HexRingAPLC(optics_dir, NUM_RINGS, sampling, robustness_px=robust)
 
-    # Needed for Harris mirror
-    fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
-    #pad_orientations = np.pi / 2 * np.ones(120)    #TODO: replace 120 with actual number of segments
-
-    DM_SPEC = 3
     # DM_SPEC = tuple or int, specification for the used DM -
-    #    for seg_mirror: int, number of local Zernike modes on each segment
-    #    for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets (thermal, mechanical, other)
-    #    for zernike_mirror: int, number of global Zernikes
+    # for seg_mirror: int, number of local Zernike modes on each segment
+    # for harris_seg_mirror: tuple (string, array, bool, bool, bool),
+    # absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets (thermal, mechanical, other)
+    # for zernike_mirror: int, number of global Zernikes
+
+    # If Harris deformable mirror, uncomment the following lines
+    # --------------------------------------------------------------------------------------------#
+    # DM = 'harris_seg_mirror'  # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    # fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
+    # pad_orientations = np.pi / 2 * np.ones(CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures'))
+    # DM_SPEC = (fpath, pad_orientations, True, False, False)
+    # pad_orientation = np.pi / 2 * np.ones(tel.nseg)
+    # filepath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')
+    # tel.create_segmented_harris_mirror(filepath, pad_orientation, thermal=True, mechanical=False, other=False)
+    # num_actuators = tel.harris_sm.num_actuators
+    # num_modes = 5
+
+    # If Segmented Zernike Mirror, uncomment the following lines
+    # --------------------------------------------------------------------------------------------#
+    # DM = 'seg_mirror' # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    # DM_SPEC = 5
+    # tel.create_segmented_mirror(DM_SPEC)
+    # num_modes = DM_SPEC
+    # num_actuators = tel.sm.num_actuators
 
     # First generate a couple of matrices
     run_matrix = MatrixEfieldHex(which_dm=DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
@@ -24,3 +49,14 @@ if __name__ == '__main__':
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
     print(f'All saved to {dir_run}.')
+
+    # get the automatically saved pastis_matrix
+    pastis_matrix = fits.getdata(os.path.join(dir_run, 'matrix_numerical', 'pastis_matrix.fits'))
+
+    # Calculate the static tolerances
+    c_target = 5.3*1e-11
+    mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=0)
+    np.savetxt(os.path.join(dir_run, 'mus_%s_%d.csv' % (c_target, NUM_RINGS)), mus, delimiter=',')
+
+    ppl.plot_thermal_mus(mus, num_modes, tel.nseg, c_target, dir_run, save=True)
+    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, dir_run, save=True)

@@ -33,7 +33,6 @@ if __name__ == '__main__':
     dir_run = run_matrix.overall_dir
     print(f'All saved to {dir_run}.')
 
-
     # Instantiate the LUVOIR telescope
     optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('LUVOIR', 'optics_path_in_repo'))
     coronagraph_design = CONFIG_PASTIS.get('LUVOIR', 'coronagraph_design')
@@ -59,6 +58,8 @@ if __name__ == '__main__':
 
     # Calculate and save per segment static tolerance
     pastis_matrix = fits.getdata(os.path.join(dir_run, 'matrix_numerical', 'pastis_matrix.fits'))
+
+    # set the target contrast
     c_target = 5.3*1e-11
     mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
     np.savetxt(os.path.join(dir_run, 'mu_map_harris_%s.csv' % c_target), mus, delimiter=',')
