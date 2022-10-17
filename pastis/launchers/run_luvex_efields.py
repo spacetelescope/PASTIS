@@ -34,14 +34,16 @@ if __name__ == '__main__':
     # tel.create_segmented_harris_mirror(filepath, pad_orientation, thermal=True, mechanical=False, other=False)
     # num_actuators = tel.harris_sm.num_actuators
     # num_modes = 5
+    # tel.harris_sm.flatten()
 
     # If Segmented Zernike Mirror, uncomment the following lines
     # --------------------------------------------------------------------------------------------#
-    # DM = 'seg_mirror' # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    # DM_SPEC = 5
-    # tel.create_segmented_mirror(DM_SPEC)
-    # num_modes = DM_SPEC
-    # num_actuators = tel.sm.num_actuators
+    DM = 'seg_mirror' # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    DM_SPEC = 5
+    tel.create_segmented_mirror(DM_SPEC)
+    num_modes = DM_SPEC
+    num_actuators = tel.sm.num_actuators
+    tel.sm.flatten()
 
     # First generate a couple of matrices
     run_matrix = MatrixEfieldHex(which_dm=DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
@@ -53,10 +55,18 @@ if __name__ == '__main__':
     # get the automatically saved pastis_matrix
     pastis_matrix = fits.getdata(os.path.join(dir_run, 'matrix_numerical', 'pastis_matrix.fits'))
 
+    # calculate baseline contrast
+    unaberrated_coro_psf, ref = tel.calc_psf(ref=True, display_intermediate=False, norm_one_photon=True)
+    norm = np.max(ref)
+    dh_intensity = (unaberrated_coro_psf / norm) * tel.dh_mask
+    contrast_floor = np.mean(dh_intensity[np.where(tel.dh_mask != 0)])
+    print(f'contrast floor: {contrast_floor}')
+
     # Calculate the static tolerances
     c_target = 5.3*1e-11
-    mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=0)
+    mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
     np.savetxt(os.path.join(dir_run, 'mus_%s_%d.csv' % (c_target, NUM_RINGS)), mus, delimiter=',')
 
     ppl.plot_thermal_mus(mus, num_modes, tel.nseg, c_target, dir_run, save=True)
-    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, dir_run, save=True)
+    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
+                                       dir_run, mirror='sm', save=True)

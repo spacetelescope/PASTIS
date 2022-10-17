@@ -1040,7 +1040,7 @@ def plot_thermal_mus(mus, nmodes, nsegments, c0, out_dir, save=False):
         plt.show()
 
 
-def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir, save=False):
+def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir, mirror, save=False):
     """
     Creates surface deformation tolerance maps for thermal aberrations.
 
@@ -1060,23 +1060,27 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
         whether to save the plot
     """
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
-
-    harris_coeffs_numaps = np.zeros([num_modes, num_actuators])
+    coeffs_numaps = np.zeros([num_modes, num_actuators])
     for qq in range(num_modes):
-        harris_coeffs_tmp = np.zeros([num_actuators])
+        coeffs_tmp = np.zeros([num_actuators])
         for kk in range(tel.nseg):
-            harris_coeffs_tmp[qq + (kk) * num_modes] = mus[qq + (kk) * num_modes]  # arranged per modal basis
-        harris_coeffs_numaps[qq] = harris_coeffs_tmp  # arranged into 5 groups of nseg elements and in units of nm
+            coeffs_tmp[qq + (kk) * num_modes] = mus[qq + (kk) * num_modes]  # arranged per modal basis
+        coeffs_numaps[qq] = coeffs_tmp  # arranged into 5 groups of nseg elements and in units of nm
 
     nu_maps = []
-    for qq in range(num_modes):
-        harris_coeffs = harris_coeffs_numaps[qq]  # in units of nm
-        tel.harris_sm.actuators = harris_coeffs * nm_aber / 2  # in units of m
-        nu_maps.append(tel.harris_sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
+    if mirror == 'harris_sm':
+        for qq in range(num_modes):
+            coeffs = coeffs_numaps[qq]  # in units of nm
+            tel.harris_sm.actuators = coeffs * nm_aber / 2  # in units of m
+            nu_maps.append(tel.harris_sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
+    if mirror == 'sm':
+        for qq in range(num_modes):
+            coeffs = coeffs_numaps[qq]
+            tel.sm.actuators = coeffs * nm_aber / 2
+            nu_maps.append(tel.sm.surface)
 
     plt.figure(figsize=(15, 10))
     plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)
-    plt.title("Faceplates Silvered", fontsize=10)
     plot_norm1 = TwoSlopeNorm(vcenter=0, vmin=-5, vmax=5)
     hcipy.imshow_field((nu_maps[0]) * 1e12, norm=plot_norm1, cmap='RdBu')  # nu_map is already in 1e-9 m
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
@@ -1085,7 +1089,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (0, 2), colspan=2)
-    plt.title("Bulk", fontsize=10)
     plot_norm2 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
     hcipy.imshow_field((nu_maps[1]) * 1e12, norm=plot_norm2, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
@@ -1094,7 +1097,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (0, 4), colspan=2)
-    plt.title("Gradiant Radial", fontsize=10)
     plot_norm3 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
     hcipy.imshow_field((nu_maps[2]) * 1e12, norm=plot_norm3, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
@@ -1103,7 +1105,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (1, 1), colspan=2)
-    plt.title("Gradient X lateral", fontsize=10)
     plot_norm4 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
     hcipy.imshow_field((nu_maps[3]) * 1e12, norm=plot_norm4, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
@@ -1112,7 +1113,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (1, 3), colspan=2)
-    plt.title("Gradient Z axial", fontsize=10)
     plot_norm5 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
     hcipy.imshow_field((nu_maps[4]) * 1e12, norm=plot_norm5, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
