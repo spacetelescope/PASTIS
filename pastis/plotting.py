@@ -997,7 +997,7 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def plot_thermal_mus(mus, nmodes, nsegments, c0, out_dir, save=False):
+def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     """
     Generates modal constraints plot for individual segment.
 
@@ -1009,20 +1009,20 @@ def plot_thermal_mus(mus, nmodes, nsegments, c0, out_dir, save=False):
         number of thermal modes
     nsegments :  int
         number of segments
-    c0 : scalar
+    c_target : scalar
         target contrast
     out_dir : str
-        path to save the plot
+        path to save the plot, if save=True
     save : bool
         whether to save the plot
     """
     harris_coeffs_table = np.zeros([nmodes, nsegments])
     for qq in range(nmodes):
         for kk in range(nsegments):
-            harris_coeffs_table[qq, kk] = mus[qq + (kk) * nmodes]
+            harris_coeffs_table[qq, kk] = mus[qq + kk * nmodes]
 
     plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c0), fontsize=20)
+    plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c_target), fontsize=20)
     plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
     plt.xlabel("Segment Number", fontsize=20)
     plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
@@ -1035,14 +1035,15 @@ def plot_thermal_mus(mus, nmodes, nsegments, c0, out_dir, save=False):
     plt.legend(fontsize=15)
     plt.tight_layout()
     if save:
-        plt.savefig(os.path.join(out_dir, 'mus_1d_multi_modes_%s.png' % c0))
+        fname = f'stat_1d_mus_{c_target}'
+        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
     else:
         plt.show()
 
 
 def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir, mirror, save=False):
     """
-    Creates surface deformation tolerance maps for thermal aberrations.
+    Creates surface deformation tolerance maps for wavefront aberrations.
 
     Parameters:
     tel : class instance of the simulator for "instrument"
@@ -1055,7 +1056,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     c_target : float
         desired dark hole contrast for which the tolerancing is done
     data_dir :  str
-        path to save the plot
+        path to save the plot, if save=True
     save : bool
         whether to save the plot
     """
@@ -1064,8 +1065,8 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     for qq in range(num_modes):
         coeffs_tmp = np.zeros([num_actuators])
         for kk in range(tel.nseg):
-            coeffs_tmp[qq + (kk) * num_modes] = mus[qq + (kk) * num_modes]  # arranged per modal basis
-        coeffs_numaps[qq] = coeffs_tmp  # arranged into 5 groups of nseg elements and in units of nm
+            coeffs_tmp[qq + kk * num_modes] = mus[qq + kk * num_modes]  # arranged per modal basis
+        coeffs_numaps[qq] = coeffs_tmp  # arranged into 'num_modes' groups of nseg elements and in units of nm
 
     nu_maps = []
     if mirror == 'harris_sm':
@@ -1121,4 +1122,5 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
     plt.tight_layout()
     if save:
-        plt.savefig(os.path.join(data_dir, 'stat_mu_maps_nm_%s.png' % c_target))
+        fname = f'stat_mu_maps_{c_target}'
+        plt.savefig(os.path.join(data_dir, '.'.join([fname, 'png'])))
