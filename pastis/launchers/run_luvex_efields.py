@@ -11,7 +11,7 @@ import pastis.plotting as ppl
 if __name__ == '__main__':
 
     # Instantiate the LUVEx telescope
-    NUM_RINGS = 2
+    NUM_RINGS = 1
     optics_dir = os.path.join(util.find_repo_location(), 'data', 'SCDA')
     sampling = CONFIG_PASTIS.getfloat('LUVOIR', 'sampling')
     robust = 4
@@ -47,7 +47,8 @@ if __name__ == '__main__':
 
     # First generate a couple of matrices
     run_matrix = MatrixEfieldHex(which_dm=DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
-                                 initial_path=CONFIG_PASTIS.get('local', 'local_data_path'))
+                                 calc_science=True, calc_wfs=True,
+                                 initial_path=CONFIG_PASTIS.get('local', 'local_data_path'), norm_one_photon=True)
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
     print(f'All saved to {dir_run}.')
