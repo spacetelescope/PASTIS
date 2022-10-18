@@ -1014,12 +1014,10 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     out_dir : str
         path to save the plot, if save=True
     save : bool
-        whether to save the plot
+        whether to save the plot, if False, it shows the plot
     """
-    harris_coeffs_table = np.zeros([nmodes, nsegments])
-    for qq in range(nmodes):
-        for kk in range(nsegments):
-            harris_coeffs_table[qq, kk] = mus[qq + kk * nmodes]
+
+    harris_coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
 
     plt.figure(figsize=(10, 10))
     plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c_target), fontsize=20)
@@ -1063,24 +1061,18 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
         whether to save the plot
     """
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
-    coeffs_mumaps = np.zeros([num_modes, num_actuators])
-    for qq in range(num_modes):
-        coeffs_tmp = np.zeros([num_actuators])
-        for kk in range(tel.nseg):
-            coeffs_tmp[qq + kk * num_modes] = mus[qq + kk * num_modes]  # arranged per modal basis
-        coeffs_mumaps[qq] = coeffs_tmp  # arranged into 'num_modes' groups of nseg elements and in units of nm
+
+    coeffs_mumaps = pastis.util.calculate_mu_maps(mus, num_modes, num_actuators, tel.nseg)
 
     mu_maps = []
-    if mirror == 'harris_sm':
-        for qq in range(num_modes):
-            coeffs = coeffs_mumaps[qq]  # in units of nm
-            tel.harris_sm.actuators = coeffs * nm_aber / 2  # in units of m
-            mu_maps.append(tel.harris_sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
-    if mirror == 'sm':
-        for qq in range(num_modes):
-            coeffs = coeffs_mumaps[qq]
+    for qq in range(num_modes):
+        coeffs = coeffs_mumaps[qq] # in units of nm
+        if mirror == 'harris_sm':
+            tel.harris_sm.actuators = coeffs * nm_aber / 2 # in units of m
+            mu_maps.append(tel.harris_sm.surface)
+        if mirror == 'sm':
             tel.sm.actuators = coeffs * nm_aber / 2
-            mu_maps.append(tel.sm.surface)
+            mu_maps.append(tel.sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
 
     plt.figure(figsize=(15, 10))
     plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)

@@ -694,3 +694,63 @@ def seg_to_dm_xy(actuator_total, segment):
     actuator_pair_y = (segment-actuator_pair_x)/actuator_total
 
     return actuator_pair_x, int(actuator_pair_y)
+
+
+def sort_1d_mus(mus, nmodes, nsegments):
+    """
+    Sorts one dimensional multimode-tolerances values into 'n-multimode'
+    groups, where each group contains tolerance values for all segments for a single mode.
+    (This sorting is in sync with the way the PASTIS matrix is calculated for multimode-segment aberrations.
+    Each segment is poked n number of times with a given mode, and corresponding contrast is calculated)
+
+    Parameters
+    ----------
+    mus : ndarray
+        list of standard deviations for each segment in nm
+    nmodes : int
+        number of thermal modes
+    nsegments :  int
+        number of segments
+
+    Returns
+    -------
+    coeffs_table : ndarray
+         groups of single-mode tolerance values for all segments.
+    """
+    coeffs_table = np.zeros([nmodes, nsegments])
+    for qq in range(nmodes):
+        for kk in range(nsegments):
+            coeffs_table[qq, kk] = mus[qq + kk * nmodes]
+
+    return coeffs_table
+
+
+def calculate_mu_maps(mus, nmodes, nactuators, nsegments):
+    """
+    Sorts one dimensional multimode-tolerances values into groups of dm actuators settings.
+    Each "dm actuator setting" group contains tolerance values for one aberration mode.
+
+    Parameters
+    ----------
+    mus : ndarray
+        list of standard deviations for each segment in nm
+    nmodes : int
+        number of localized segment modes
+    num_actuators : int
+        total number of dm actuators
+    nsegments :  int
+        number of segments
+    Returns
+    -------
+    coeffs_mumaps : ndarray
+        group of single mode dm actuators settings
+    """
+    coeffs_mumaps = np.zeros([nmodes, nactuators])
+    for qq in range(nmodes):
+        coeffs_tmp = np.zeros([nactuators])
+        for kk in range(nsegments):
+            coeffs_tmp[qq + kk * nmodes] = mus[qq + kk * nmodes]  # arranged per modal basis
+        coeffs_mumaps[qq] = coeffs_tmp  # arranged into 'nmodes' groups in units of nm
+
+    return coeffs_mumaps
+
