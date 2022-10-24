@@ -1039,7 +1039,8 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
         plt.show()
 
 
-def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir, mirror, save=False):
+def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir,
+                                   mirror, cmin, cmax, save=False):
     """
     Creates surface deformation tolerance maps for wavefront aberrations.
 
@@ -1057,6 +1058,10 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
         desired dark hole contrast for which the tolerancing is done
     data_dir :  str
         path to save the plot, if save=True
+    cmin : float
+        minimum value for colorbar plot
+    cmax : float
+        minimum value for colorbar plot
     save : bool
         whether to save the plot
     """
@@ -1076,7 +1081,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
 
     plt.figure(figsize=(15, 10))
     plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)
-    plot_norm1 = TwoSlopeNorm(vcenter=0, vmin=-5, vmax=5)
+    plot_norm1 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
     hcipy.imshow_field((mu_maps[0]) * 1e12, norm=plot_norm1, cmap='RdBu')  # nu_map is already in 1e-9 m
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
     cbar = plt.colorbar()
@@ -1084,7 +1089,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (0, 2), colspan=2)
-    plot_norm2 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    plot_norm2 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
     hcipy.imshow_field((mu_maps[1]) * 1e12, norm=plot_norm2, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
     cbar = plt.colorbar()
@@ -1092,7 +1097,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (0, 4), colspan=2)
-    plot_norm3 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    plot_norm3 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
     hcipy.imshow_field((mu_maps[2]) * 1e12, norm=plot_norm3, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
     cbar = plt.colorbar()
@@ -1100,7 +1105,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (1, 1), colspan=2)
-    plot_norm4 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    plot_norm4 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
     hcipy.imshow_field((mu_maps[3]) * 1e12, norm=plot_norm4, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
     cbar = plt.colorbar()
@@ -1108,7 +1113,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     cbar.set_label("$pm$", fontsize=10)
 
     plt.subplot2grid((2, 6), (1, 3), colspan=2)
-    plot_norm5 = TwoSlopeNorm(vcenter=0, vmin=-10, vmax=10)
+    plot_norm5 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
     hcipy.imshow_field((mu_maps[4]) * 1e12, norm=plot_norm5, cmap='RdBu')
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
     cbar = plt.colorbar()
