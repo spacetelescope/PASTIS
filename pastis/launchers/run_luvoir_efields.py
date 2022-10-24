@@ -55,4 +55,4 @@ if __name__ == '__main__':
 
     tel = run_matrix.simulator
     ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, tel.sm.num_actuators,
-                                       c_target, dir_run, mirror='sm', save=False)
+                                       c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)

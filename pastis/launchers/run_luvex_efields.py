@@ -23,9 +23,10 @@ if __name__ == '__main__':
     # pad_orientations = np.pi / 2 * np.ones(CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures'))
     # DM_SPEC = (fpath, pad_orientations, True, False, False)
 
-    # If Segmented Zernike Mirror, uncomment the following lines
+    # If Segmented Zernike Mirror, uncomment the following two lines
     DM = 'seg_mirror' # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    DM_SPEC = 5
+    DM_SPEC = 10
+
     NUM_RINGS = 1
 
     # First generate a couple of matrices
@@ -47,13 +48,13 @@ if __name__ == '__main__':
     # Calculate the static tolerances
     c_target = 6.3*1e-11
     mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
-    np.savetxt(os.path.join(dir_run, 'mus_%s_%d.csv' % (c_target, NUM_RINGS)), mus, delimiter=',')
+    np.savetxt(os.path.join(dir_run, 'mus_%.2e_%d.csv' % (c_target, NUM_RINGS)), mus, delimiter=',')
 
-    num_modes = 5 # for harris thermal map or number of localized zernike modes
+    num_modes = 10 # for harris thermal map or number of localized zernike modes = "DM_SPEC"
     nseg = run_matrix.simulator.nseg
 
-    # plot
-    ppl.plot_thermal_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
+    ppl.plot_zernike_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
+    # ppl.plot_thermal_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
     tel = run_matrix.simulator
     ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, tel.sm.num_actuators,
-                                       c_target, dir_run, mirror='sm', save=True)
+                                       c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)
