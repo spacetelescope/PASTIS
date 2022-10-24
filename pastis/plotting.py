@@ -999,12 +999,12 @@ def natural_keys(text):
 
 def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     """
-    Generates modal constraints plot for individual segment.
+    Plot modal constraints plot for individual segment.
 
     Parameters
     ----------
     mus : ndarray
-        list of standard deviations for each segment
+        list of standard deviations for each segment in nm
     nmodes : int
         number of thermal modes
     nsegments :  int
@@ -1032,6 +1032,49 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     plt.grid()
     plt.legend(fontsize=15)
     plt.tight_layout()
+    if save:
+        fname = f'stat_1d_mus_{c_target}'
+        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
+    else:
+        plt.show()
+
+
+def plot_zernike_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
+    """
+    Plot localized zernike modal constraints plot for individual segment.
+
+    Parameters
+    ----------
+    mus : ndarray
+        list of standard deviations for each segment in nm
+    nmodes : int
+        number of thermal modes
+    nsegments :  int
+        number of segments
+    c_target : scalar
+        target contrast
+    out_dir : str
+        path to save the plot, if save=True
+    save : bool
+        whether to save the plot, if False, it shows the plot
+    """
+
+    coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
+
+    plt.figure(figsize=(10, 10))
+    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
+    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
+    plt.xlabel("Segment Number", fontsize=20)
+    plt.tick_params(top=True, bottom=True, left=True, right=True,
+                    labelleft=True, labelbottom=True, labelsize=20)
+
+    for i in range(nmodes):
+        plt.plot(coeffs_table[i]*1e3, label='Zernike mode: %s' % i)
+
+    plt.grid()
+    plt.legend(fontsize=15)
+    plt.tight_layout()
+
     if save:
         fname = f'stat_1d_mus_{c_target}'
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
