@@ -698,10 +698,10 @@ def seg_to_dm_xy(actuator_total, segment):
 
 def sort_1d_mus(mus, nmodes, nsegments):
     """
-    Sorts one dimensional multimode-tolerances values into 'n-multimode'
-    groups, where each group contains tolerance values for all segments for a single mode.
+    Sorts one dimensional multimode-tolerances values into 'n-multimode' groups,
+    where each group contains tolerance values for all segments for a one kind of aberration mode.
     (This sorting is in sync with the way the PASTIS matrix is calculated for multimode-segment aberrations.
-    Each segment is poked n number of times with a given mode, and corresponding contrast is calculated)
+    Each segment is poked n types of aberration mode, one mode at a time, and corresponding contrast is calculated)
 
     Parameters
     ----------
@@ -727,16 +727,16 @@ def sort_1d_mus(mus, nmodes, nsegments):
 
 def calculate_mu_maps(mus, nmodes, nactuators, nsegments):
     """
-    Sorts one dimensional multimode-tolerances values into groups of dm actuators settings.
-    Each "dm actuator setting" group contains tolerance values for one aberration mode.
+    Sorts one dimensional multimode-tolerances values into nmodes-groups of dm actuators settings.
+    Each "dm actuator setting" group contains tolerance values for one kind of aberration mode.
 
     Parameters
     ----------
     mus : ndarray
         list of standard deviations for each segment in nm
     nmodes : int
-        number of localized segment modes
-    num_actuators : int
+        number of localized segment level aberration modes
+    nactuators : int
         total number of dm actuators
     nsegments :  int
         number of segments
