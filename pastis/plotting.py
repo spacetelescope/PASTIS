@@ -1020,7 +1020,7 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     harris_coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
 
     plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of "r"$10^{%d}$" % np.log10(c_target), fontsize=20)
+    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
     plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
     plt.xlabel("Segment Number", fontsize=20)
     plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
@@ -1042,7 +1042,7 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
 def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir,
                                    mirror, cmin, cmax, save=False):
     """
-    Creates surface deformation tolerance maps for wavefront aberrations.
+    Creates surface deformation tolerance maps for localized wavefront aberrations.
 
     Parameters:
     tel : class instance of the simulator for "instrument"
@@ -1079,47 +1079,18 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
             tel.sm.actuators = coeffs * nm_aber / 2
             mu_maps.append(tel.sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
 
-    plt.figure(figsize=(15, 10))
-    plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)
-    plot_norm1 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-    hcipy.imshow_field((mu_maps[0]) * 1e12, norm=plot_norm1, cmap='RdBu')  # nu_map is already in 1e-9 m
-    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-    cbar = plt.colorbar()
-    cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("$pm$", fontsize=10)
-
-    plt.subplot2grid((2, 6), (0, 2), colspan=2)
-    plot_norm2 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-    hcipy.imshow_field((mu_maps[1]) * 1e12, norm=plot_norm2, cmap='RdBu')
-    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-    cbar = plt.colorbar()
-    cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("$pm$", fontsize=10)
-
-    plt.subplot2grid((2, 6), (0, 4), colspan=2)
-    plot_norm3 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-    hcipy.imshow_field((mu_maps[2]) * 1e12, norm=plot_norm3, cmap='RdBu')
-    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-    cbar = plt.colorbar()
-    cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("$pm$", fontsize=10)
-
-    plt.subplot2grid((2, 6), (1, 1), colspan=2)
-    plot_norm4 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-    hcipy.imshow_field((mu_maps[3]) * 1e12, norm=plot_norm4, cmap='RdBu')
-    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-    cbar = plt.colorbar()
-    cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("$pm$", fontsize=10)
-
-    plt.subplot2grid((2, 6), (1, 3), colspan=2)
-    plot_norm5 = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-    hcipy.imshow_field((mu_maps[4]) * 1e12, norm=plot_norm5, cmap='RdBu')
-    plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-    cbar = plt.colorbar()
-    cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("$pm$", fontsize=10)
-    plt.tight_layout()
-    if save:
-        fname = f'stat_mu_maps_{c_target}'
-        plt.savefig(os.path.join(data_dir, '.'.join([fname, 'pdf'])))
+    for i in range(0, num_modes):
+        plt.figure(figsize=(7, 5))
+        plt.title("Modal constraints for a DH contrast of %.2e, mode number: %s" % (c_target, i), fontsize=10)
+        plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
+        hcipy.imshow_field((mu_maps[i]) * 1e12, norm=plot_norm, cmap='RdBu') # nu_map is already in 1e-9 m
+        plt.tick_params(top=False, bottom=True, left=True,
+                        right=False, labelleft=True, labelbottom=True)
+        cbar = plt.colorbar()
+        cbar.ax.tick_params(labelsize=10)
+        cbar.set_label("$pm$", fontsize=10)
+        plt.tight_layout()
+        if save:
+            os.makedirs(os.path.join(data_dir, 'mu_maps'), exist_ok=True)
+            fname = f'stat_mu_maps_mode_{i}'
+            plt.savefig(os.path.join(data_dir, 'mu_maps', '.'.join([fname, 'pdf'])))
