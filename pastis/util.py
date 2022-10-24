@@ -698,24 +698,25 @@ def seg_to_dm_xy(actuator_total, segment):
 
 def sort_1d_mus(mus, nmodes, nsegments):
     """
-    Sorts one dimensional multimode-tolerances values into 'n-multimode' groups,
-    where each group contains tolerance values for all segments for a one kind of aberration mode.
-    (This sorting is in sync with the way the PASTIS matrix is calculated for multimode-segment aberrations.
-    Each segment is poked n types of aberration mode, one mode at a time, and corresponding contrast is calculated)
+    Sorts one-dimensional multi-mode tolerance values into 'nmodes-multimode' groups.
+
+    The resulting array sorts the tolerance values in a 2D array, with the dimensions representing the number of modes
+    and number of segments, respectively. The input tolerance values 'mus' are grouped by segment, meaning it holds
+    the tolerances as: mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters
     ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
+    mus : 1d-array
+        1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
-        number of thermal modes
-    nsegments :  int
+        number of individual modes per segment
+    nsegments : int
         number of segments
 
     Returns
     -------
-    coeffs_table : ndarray
-         groups of single-mode tolerance values for all segments.
+    coeffs_table : 2d-array
+        groups of single-mode tolerance values for all segments.
     """
     coeffs_table = np.zeros([nmodes, nsegments])
     for qq in range(nmodes):
