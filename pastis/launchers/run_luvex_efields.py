@@ -67,4 +67,4 @@ if __name__ == '__main__':
 
     ppl.plot_segment_weights(mu_list, dir_run, c_target, labels=label_list, fname=f'stat_1d_mus_{c_target:.2e}', save=True)
     tel = run_matrix.simulator
-    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)
+    ppl.plot_multimode_surface_maps(tel, mus, num_modes, c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)

@@ -997,7 +997,7 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
+def plot_multimode_surface_maps(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
     """
     Creates surface deformation tolerance maps for localized wavefront aberrations.
 
