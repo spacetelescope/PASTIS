@@ -1110,7 +1110,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     """
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
 
-    coeffs_mumaps = pastis.util.calculate_mu_maps(mus, num_modes, num_actuators, tel.nseg)
+    coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)
 
     mu_maps = []
     for qq in range(num_modes):

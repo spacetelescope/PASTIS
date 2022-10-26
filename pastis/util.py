@@ -726,7 +726,7 @@ def sort_1d_mus_per_segment(mus, nmodes, nsegments):
     return coeffs_table
 
 
-def calculate_mu_maps(mus, nmodes, nactuators, nsegments):
+def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
     """
     Sorts one dimensional multimode-tolerances values into nmodes-groups of dm actuators settings.
     Each "dm actuator setting" group contains tolerance values for one kind of aberration mode.
