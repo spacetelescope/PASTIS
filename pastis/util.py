@@ -746,12 +746,10 @@ def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
     coeffs_mumaps : ndarray
         group of single mode dm actuators settings
     """
+    nactuators = nmodes * nsegments
     coeffs_mumaps = np.zeros([nmodes, nactuators])
-    for qq in range(nmodes):
-        coeffs_tmp = np.zeros([nactuators])
-        for kk in range(nsegments):
-            coeffs_tmp[qq + kk * nmodes] = mus[qq + kk * nmodes]  # arranged per modal basis
-        coeffs_mumaps[qq] = coeffs_tmp  # arranged into 'nmodes' groups in units of nm
+
+    for i, j in zip(np.tile(np.arange(nmodes), nsegments), np.arange(nactuators)):
+        coeffs_mumaps[i, j] = mus[j]
 
     return coeffs_mumaps
-
