@@ -728,23 +728,31 @@ def sort_1d_mus_per_segment(mus, nmodes, nsegments):
 
 def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
     """
-    Sorts one dimensional multimode-tolerances values into nmodes-groups of dm actuators settings.
-    Each "dm actuator setting" group contains tolerance values for one kind of aberration mode.
+    Sorts one-dimensional multi-mode tolerance values into an actuator array for the internal simulators.
+
+    The resulting array sorts the mode coefficients into a 2D array, with the dimensions representing the number of
+    input mode and number of actuators, respectively. Each row of the 2D output array (first index) is a valid array to
+    be passed directly to the actuators of a segmented mirror of an internal simulator.
+    Following the convention of the internal simulators, the number of actuators is calculated as the product of local
+    modes times all segments.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters
     ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
+    mus : 1d-darray
+        1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
-        number of localized segment level aberration modes
-    nactuators : int
-        total number of dm actuators
-    nsegments :  int
+        number of individual modes per segment
+    nsegments : int
         number of segments
+
     Returns
     -------
-    coeffs_mumaps : ndarray
-        group of single mode dm actuators settings
+    coeffs_mumaps : 2d-darray
+        actuator array whose rows (first index) can be directly passed to the segmented mirror of an internal simulator
     """
     nactuators = nmodes * nsegments
     coeffs_mumaps = np.zeros([nmodes, nactuators])
