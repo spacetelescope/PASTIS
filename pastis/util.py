@@ -698,11 +698,14 @@ def seg_to_dm_xy(actuator_total, segment):
 
 def sort_1d_mus_per_segment(mus, nmodes, nsegments):
     """
-    Sorts one-dimensional multi-mode tolerance values into 'nmodes-multimode' groups.
+    Sorts one-dimensional multi-mode coefficients into 'nmodes-multimode' groups.
 
-    The resulting array sorts the tolerance values in a 2D array, with the dimensions representing the number of modes
-    and number of segments, respectively. The input tolerance values 'mus' are grouped by segment, meaning it holds
-    the tolerances as: mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
+    The result sorts the mode coefficients in a 2D array, with the dimensions representing the number of modes
+    and number of segments, respectively.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters
     ----------
@@ -716,7 +719,7 @@ def sort_1d_mus_per_segment(mus, nmodes, nsegments):
     Returns
     -------
     coeffs_table : 2d-array
-        groups of single-mode tolerance values for all segments.
+        groups of single-mode coefficients for all segments.
     """
     coeffs_table = np.zeros([nmodes, nsegments])
     for qq in range(nmodes):
@@ -752,7 +755,8 @@ def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
     Returns
     -------
     coeffs_mumaps : 2d-darray
-        actuator array whose rows (first index) can be directly passed to the segmented mirror of an internal simulator
+        actuator holding mode coefficients array whose rows (first index) can be directly passed to the actuators of a
+        segmented mirror of an internal simulator
     """
     nactuators = nmodes * nsegments
     coeffs_mumaps = np.zeros([nmodes, nactuators])
