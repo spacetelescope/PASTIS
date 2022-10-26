@@ -428,23 +428,22 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', save=False):
+def plot_segment_weights(mus, out_dir, c_target, labels=None, fname=None, save=False):
     """
     Plot segment weights against segment index, in units of picometers (converted from input).
-    :param mus: array or list, segment requirements in nm
+
+    :param mus: array or list of arrays, segment requirements in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
     :param labels: tuple, optional, labels for the different lists of sigmas provided
-    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param fname: str, optional, file name to save plot to
     :param save: bool, whether to save to disk or not, default is False
-    :return:
     """
-    fname = f'segment_requirements_{c_target}'
-    if fname_suffix != '':
-        fname += f'_{fname_suffix}'
+    if fname is None:
+        fname = f'segment_requirements_{c_target:.2e}'
 
-    # Figure out how many sets of sigmas we have
-    if isinstance(mus, tuple):
+    # Figure out how many sets of mode coefficients per segment we have
+    if isinstance(mus, list):
         sets = len(mus)
         if labels is None:
             raise AttributeError('A tuple of labels needs to be defined when more than one set of mus is provided.')
@@ -464,6 +463,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     if labels is not None:
         plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+    plt.grid()
     plt.tight_layout()
 
     if save:
@@ -1032,49 +1032,6 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
     plt.grid()
     plt.legend(fontsize=15)
     plt.tight_layout()
-    if save:
-        fname = f'stat_1d_mus_{c_target}'
-        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
-    else:
-        plt.show()
-
-
-def plot_zernike_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
-    """
-    Plot localized zernike modal constraints plot for individual segment.
-
-    Parameters
-    ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
-    nmodes : int
-        number of thermal modes
-    nsegments :  int
-        number of segments
-    c_target : scalar
-        target contrast
-    out_dir : str
-        path to save the plot, if save=True
-    save : bool
-        whether to save the plot, if False, it shows the plot
-    """
-
-    coeffs_table = pastis.util.sort_1d_mus_per_segment(mus, nmodes, nsegments)
-
-    plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
-    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-    plt.xlabel("Segment Number", fontsize=20)
-    plt.tick_params(top=True, bottom=True, left=True, right=True,
-                    labelleft=True, labelbottom=True, labelsize=20)
-
-    for i in range(nmodes):
-        plt.plot(coeffs_table[i]*1e3, label='Zernike mode: %s' % i)
-
-    plt.grid()
-    plt.legend(fontsize=15)
-    plt.tight_layout()
-
     if save:
         fname = f'stat_1d_mus_{c_target}'
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))

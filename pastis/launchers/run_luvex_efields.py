@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # If Segmented Zernike Mirror, uncomment the following two lines
     DM = 'seg_mirror' # Possible: "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    DM_SPEC = 10
+    DM_SPEC = 3
 
     NUM_RINGS = 1
 
@@ -48,12 +48,19 @@ if __name__ == '__main__':
     # Calculate the static tolerances
     c_target = 6.3*1e-11
     mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
-    np.savetxt(os.path.join(dir_run, 'mus_%.2e_%d.csv' % (c_target, NUM_RINGS)), mus, delimiter=',')
+    np.savetxt(os.path.join(dir_run, f'mus_{c_target:.2e}_{NUM_RINGS:d}.csv'), mus, delimiter=',')
 
-    num_modes = 10 # for harris thermal map or number of localized zernike modes = "DM_SPEC"
+    num_modes = DM_SPEC   # for harris thermal map or number of localized zernike modes = "DM_SPEC"
     nseg = run_matrix.simulator.nseg
 
-    ppl.plot_zernike_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
+    coeffs_table = util.sort_1d_mus_per_segment(mus, num_modes, nseg)
+    mu_list = []
+    label_list = []
+    for i in range(coeffs_table.shape[0]):
+        mu_list.append(coeffs_table[i])
+        label_list.append(f'Zernike mode {i}')
+
+    ppl.plot_segment_weights(mu_list, dir_run, c_target, labels=label_list, fname=f'stat_1d_mus_{c_target:.2e}', save=True)
     # ppl.plot_thermal_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
     tel = run_matrix.simulator
     ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)
