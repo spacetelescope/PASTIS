@@ -696,7 +696,7 @@ def seg_to_dm_xy(actuator_total, segment):
     return actuator_pair_x, int(actuator_pair_y)
 
 
-def sort_1d_mus_per_segment(mus, nmodes, nsegments):
+def sort_1d_mus_per_segment(mus, nmodes, nseg):
     """
     Sorts one-dimensional multi-mode coefficients into 'nmodes-multimode' groups.
 
@@ -713,7 +713,7 @@ def sort_1d_mus_per_segment(mus, nmodes, nsegments):
         1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
         number of individual modes per segment
-    nsegments : int
+    nseg : int
         number of segments
 
     Returns
@@ -721,15 +721,15 @@ def sort_1d_mus_per_segment(mus, nmodes, nsegments):
     coeffs_table : 2d-array
         groups of single-mode coefficients for all segments.
     """
-    coeffs_table = np.zeros([nmodes, nsegments])
+    coeffs_table = np.zeros([nmodes, nseg])
     for qq in range(nmodes):
-        for kk in range(nsegments):
+        for kk in range(nseg):
             coeffs_table[qq, kk] = mus[qq + kk * nmodes]
 
     return coeffs_table
 
 
-def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
+def sort_1d_mus_per_actuator(mus, nmodes, nseg):
     """
     Sorts one-dimensional multi-mode tolerance values into an actuator array for the internal simulators.
 
@@ -749,7 +749,7 @@ def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
         1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
         number of individual modes per segment
-    nsegments : int
+    nseg : int
         number of segments
 
     Returns
@@ -758,10 +758,10 @@ def sort_1d_mus_per_actuator(mus, nmodes, nsegments):
         actuator holding mode coefficients array whose rows (first index) can be directly passed to the actuators of a
         segmented mirror of an internal simulator
     """
-    nactuators = nmodes * nsegments
+    nactuators = nmodes * nseg
     coeffs_mumaps = np.zeros([nmodes, nactuators])
 
-    for i, j in zip(np.tile(np.arange(nmodes), nsegments), np.arange(nactuators)):
+    for i, j in zip(np.tile(np.arange(nmodes), nseg), np.arange(nactuators)):
         coeffs_mumaps[i, j] = mus[j]
 
     return coeffs_mumaps
