@@ -1,14 +1,13 @@
 import os
-import numpy as np
 from astropy.io import fits
+import numpy as np
+
 from pastis.config import CONFIG_PASTIS
 import pastis.util as util
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldHex
-from pastis.simulators.scda_telescopes import HexRingAPLC
-import hcipy
-import matplotlib.pyplot as plt
-from pastis.pastis_analysis import  calculate_segment_constraints
+from pastis.pastis_analysis import calculate_segment_constraints
 import pastis.plotting as ppl
+
 
 if __name__ == '__main__':
     

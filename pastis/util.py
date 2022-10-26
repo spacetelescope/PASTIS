@@ -1,7 +1,6 @@
 """
 Helper functions for PASTIS.
 """
-
 import glob
 import os
 import datetime
