@@ -56,5 +56,4 @@ if __name__ == '__main__':
     ppl.plot_zernike_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
     # ppl.plot_thermal_mus(mus, num_modes, nseg, c_target, dir_run, save=True)
     tel = run_matrix.simulator
-    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, tel.sm.num_actuators,
-                                       c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)
+    ppl.plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, dir_run, mirror='sm', cmin=-5, cmax=5, save=True)

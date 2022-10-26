@@ -1082,8 +1082,7 @@ def plot_zernike_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
         plt.show()
 
 
-def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir,
-                                   mirror, cmin, cmax, save=False):
+def plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
     """
     Creates surface deformation tolerance maps for localized wavefront aberrations.
 
@@ -1095,8 +1094,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
         the total number of local modes used to poke a segment.
         For a harris segment mirror  it is 5 (taking only thermal basis map).
         For a segmented mirror, it represents the total number of local zernike modes.
-    num_actuators : int
-        total number of dm actuators
     c_target : float
         desired dark hole contrast for which the tolerancing is done
     data_dir :  str
