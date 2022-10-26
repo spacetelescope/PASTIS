@@ -696,7 +696,7 @@ def seg_to_dm_xy(actuator_total, segment):
     return actuator_pair_x, int(actuator_pair_y)
 
 
-def sort_1d_mus(mus, nmodes, nsegments):
+def sort_1d_mus_per_segment(mus, nmodes, nsegments):
     """
     Sorts one-dimensional multi-mode tolerance values into 'nmodes-multimode' groups.
 

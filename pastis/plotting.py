@@ -1017,7 +1017,7 @@ def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
         whether to save the plot, if False, it shows the plot
     """
 
-    harris_coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
+    harris_coeffs_table = pastis.util.sort_1d_mus_per_segment(mus, nmodes, nsegments)
 
     plt.figure(figsize=(10, 10))
     plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
@@ -1059,7 +1059,7 @@ def plot_zernike_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
         whether to save the plot, if False, it shows the plot
     """
 
-    coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
+    coeffs_table = pastis.util.sort_1d_mus_per_segment(mus, nmodes, nsegments)
 
     plt.figure(figsize=(10, 10))
     plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
