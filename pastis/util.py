@@ -722,9 +722,9 @@ def sort_1d_mus_per_segment(mus, nmodes, nseg):
         groups of single-mode coefficients for all segments.
     """
     coeffs_table = np.zeros([nmodes, nseg])
-    for qq in range(nmodes):
-        for kk in range(nseg):
-            coeffs_table[qq, kk] = mus[qq + kk * nmodes]
+    for mode in range(nmodes):
+        for seg in range(nseg):
+            coeffs_table[mode, seg] = mus[mode + seg * nmodes]
 
     return coeffs_table
 
@@ -761,7 +761,7 @@ def sort_1d_mus_per_actuator(mus, nmodes, nseg):
     nactuators = nmodes * nseg
     coeffs_mumaps = np.zeros([nmodes, nactuators])
 
-    for i, j in zip(np.tile(np.arange(nmodes), nseg), np.arange(nactuators)):
-        coeffs_mumaps[i, j] = mus[j]
+    for mode, act in zip(np.tile(np.arange(nmodes), nseg), np.arange(nactuators)):
+        coeffs_mumaps[mode, act] = mus[act]
 
     return coeffs_mumaps
