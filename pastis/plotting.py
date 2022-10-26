@@ -997,48 +997,6 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
-    """
-    Plot modal constraints plot for individual segment.
-
-    Parameters
-    ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
-    nmodes : int
-        number of thermal modes
-    nsegments :  int
-        number of segments
-    c_target : scalar
-        target contrast
-    out_dir : str
-        path to save the plot, if save=True
-    save : bool
-        whether to save the plot, if False, it shows the plot
-    """
-
-    harris_coeffs_table = pastis.util.sort_1d_mus_per_segment(mus, nmodes, nsegments)
-
-    plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
-    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-    plt.xlabel("Segment Number", fontsize=20)
-    plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-    plt.plot(harris_coeffs_table[0]*1e3, label="Faceplates Silvered")
-    plt.plot(harris_coeffs_table[1]*1e3, label="Bulk")
-    plt.plot(harris_coeffs_table[2]*1e3, label="Gradiant Radial")
-    plt.plot(harris_coeffs_table[3]*1e3, label="Gradiant X lateral")
-    plt.plot(harris_coeffs_table[4]*1e3, label="Gradient Z axial")
-    plt.grid()
-    plt.legend(fontsize=15)
-    plt.tight_layout()
-    if save:
-        fname = f'stat_1d_mus_{c_target}'
-        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
-    else:
-        plt.show()
-
-
 def plot_multimode_mus_surface_map(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
     """
     Creates surface deformation tolerance maps for localized wavefront aberrations.
