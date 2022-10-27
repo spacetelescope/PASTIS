@@ -11,7 +11,6 @@ import pastis.plotting as ppl
 
 if __name__ == '__main__':
 
-    NUM_RINGS = 1
     WHICH_DM = 'harris_seg_mirror'   # 'harris_seg_mirror' or 'seg_mirror', or (global) 'zernike_mirror'
 
     # DM_SPEC = tuple or int, specification for the used DM -
