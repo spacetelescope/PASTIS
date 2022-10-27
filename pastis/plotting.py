@@ -435,7 +435,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname=None, save=F
     :param mus: array or list of arrays, segment requirements in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
-    :param labels: tuple, optional, labels for the different lists of sigmas provided
+    :param labels: list, optional, labels for the different lists of sigmas provided
     :param fname: str, optional, file name to save plot to
     :param save: bool, whether to save to disk or not, default is False
     """
@@ -445,12 +445,15 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname=None, save=F
     # Figure out how many sets of mode coefficients per segment we have
     if isinstance(mus, list):
         sets = len(mus)
-        if labels is None:
-            raise AttributeError('A tuple of labels needs to be defined when more than one set of mus is provided.')
+        if sets > 1:
+            if labels is None:
+                raise AttributeError('A list of labels needs to be defined when more than one set of mus is provided.')
+        elif sets == 1:
+            mus = mus[0]
     elif isinstance(mus, np.ndarray) and mus.ndim == 1:
         sets = 1
     else:
-        raise AttributeError('Segment weights "mus" must be an array of values, or a tuple of such arrays.')
+        raise AttributeError('Segment weights "mus" must be a 1d array of values, or a list of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
