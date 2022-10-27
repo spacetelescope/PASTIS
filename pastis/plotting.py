@@ -428,30 +428,32 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', save=False):
+def plot_segment_weights(mus, out_dir, c_target, labels=None, fname=None, save=False):
     """
     Plot segment weights against segment index, in units of picometers (converted from input).
-    :param mus: array or list, segment requirements in nm
+
+    :param mus: array or list of arrays, segment requirements in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
-    :param labels: tuple, optional, labels for the different lists of sigmas provided
-    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param labels: list, optional, labels for the different lists of sigmas provided
+    :param fname: str, optional, file name to save plot to
     :param save: bool, whether to save to disk or not, default is False
-    :return:
     """
-    fname = f'segment_requirements_{c_target}'
-    if fname_suffix != '':
-        fname += f'_{fname_suffix}'
+    if fname is None:
+        fname = f'segment_requirements_{c_target:.2e}'
 
-    # Figure out how many sets of sigmas we have
-    if isinstance(mus, tuple):
+    # Figure out how many sets of mode coefficients per segment we have
+    if isinstance(mus, list):
         sets = len(mus)
-        if labels is None:
-            raise AttributeError('A tuple of labels needs to be defined when more than one set of mus is provided.')
+        if sets > 1:
+            if labels is None:
+                raise AttributeError('A list of labels needs to be defined when more than one set of mus is provided.')
+        elif sets == 1:
+            mus = mus[0]
     elif isinstance(mus, np.ndarray) and mus.ndim == 1:
         sets = 1
     else:
-        raise AttributeError('Segment weights "mus" must be an array of values, or a tuple of such arrays.')
+        raise AttributeError('Segment weights "mus" must be a 1d array of values, or a list of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
@@ -464,6 +466,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     if labels is not None:
         plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+    plt.grid()
     plt.tight_layout()
 
     if save:
@@ -997,93 +1000,7 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def plot_thermal_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
-    """
-    Plot modal constraints plot for individual segment.
-
-    Parameters
-    ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
-    nmodes : int
-        number of thermal modes
-    nsegments :  int
-        number of segments
-    c_target : scalar
-        target contrast
-    out_dir : str
-        path to save the plot, if save=True
-    save : bool
-        whether to save the plot, if False, it shows the plot
-    """
-
-    harris_coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
-
-    plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
-    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-    plt.xlabel("Segment Number", fontsize=20)
-    plt.tick_params(top=True, bottom=True, left=True, right=True, labelleft=True, labelbottom=True, labelsize=20)
-    plt.plot(harris_coeffs_table[0]*1e3, label="Faceplates Silvered")
-    plt.plot(harris_coeffs_table[1]*1e3, label="Bulk")
-    plt.plot(harris_coeffs_table[2]*1e3, label="Gradiant Radial")
-    plt.plot(harris_coeffs_table[3]*1e3, label="Gradiant X lateral")
-    plt.plot(harris_coeffs_table[4]*1e3, label="Gradient Z axial")
-    plt.grid()
-    plt.legend(fontsize=15)
-    plt.tight_layout()
-    if save:
-        fname = f'stat_1d_mus_{c_target}'
-        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
-    else:
-        plt.show()
-
-
-def plot_zernike_mus(mus, nmodes, nsegments, c_target, out_dir, save=False):
-    """
-    Plot localized zernike modal constraints plot for individual segment.
-
-    Parameters
-    ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
-    nmodes : int
-        number of thermal modes
-    nsegments :  int
-        number of segments
-    c_target : scalar
-        target contrast
-    out_dir : str
-        path to save the plot, if save=True
-    save : bool
-        whether to save the plot, if False, it shows the plot
-    """
-
-    coeffs_table = pastis.util.sort_1d_mus(mus, nmodes, nsegments)
-
-    plt.figure(figsize=(10, 10))
-    plt.title("Modal constraints to achieve a dark hole contrast of %.2e" % c_target, fontsize=20)
-    plt.ylabel("Weight per segment (in units of pm)", fontsize=15)
-    plt.xlabel("Segment Number", fontsize=20)
-    plt.tick_params(top=True, bottom=True, left=True, right=True,
-                    labelleft=True, labelbottom=True, labelsize=20)
-
-    for i in range(nmodes):
-        plt.plot(coeffs_table[i]*1e3, label='Zernike mode: %s' % i)
-
-    plt.grid()
-    plt.legend(fontsize=15)
-    plt.tight_layout()
-
-    if save:
-        fname = f'stat_1d_mus_{c_target}'
-        plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
-    else:
-        plt.show()
-
-
-def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target, data_dir,
-                                   mirror, cmin, cmax, save=False):
+def plot_multimode_surface_maps(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
     """
     Creates surface deformation tolerance maps for localized wavefront aberrations.
 
@@ -1095,8 +1012,6 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
         the total number of local modes used to poke a segment.
         For a harris segment mirror  it is 5 (taking only thermal basis map).
         For a segmented mirror, it represents the total number of local zernike modes.
-    num_actuators : int
-        total number of dm actuators
     c_target : float
         desired dark hole contrast for which the tolerancing is done
     data_dir :  str
@@ -1110,7 +1025,7 @@ def plot_multimode_mus_surface_map(tel, mus, num_modes, num_actuators, c_target,
     """
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
 
-    coeffs_mumaps = pastis.util.calculate_mu_maps(mus, num_modes, num_actuators, tel.nseg)
+    coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)
 
     mu_maps = []
     for qq in range(num_modes):

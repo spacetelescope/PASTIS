@@ -1,7 +1,6 @@
 """
 Helper functions for PASTIS.
 """
-
 import glob
 import os
 import datetime
@@ -696,61 +695,72 @@ def seg_to_dm_xy(actuator_total, segment):
     return actuator_pair_x, int(actuator_pair_y)
 
 
-def sort_1d_mus(mus, nmodes, nsegments):
+def sort_1d_mus_per_segment(mus, nmodes, nseg):
     """
-    Sorts one dimensional multimode-tolerances values into 'n-multimode' groups,
-    where each group contains tolerance values for all segments for a one kind of aberration mode.
-    (This sorting is in sync with the way the PASTIS matrix is calculated for multimode-segment aberrations.
-    Each segment is poked n types of aberration mode, one mode at a time, and corresponding contrast is calculated)
+    Sorts one-dimensional multi-mode coefficients into 'nmodes-multimode' groups.
+
+    The result sorts the mode coefficients in a 2D array, with the dimensions representing the number of modes
+    and number of segments, respectively.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters
     ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
+    mus : 1d-array
+        1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
-        number of thermal modes
-    nsegments :  int
+        number of individual modes per segment
+    nseg : int
         number of segments
 
     Returns
     -------
-    coeffs_table : ndarray
-         groups of single-mode tolerance values for all segments.
+    coeffs_table : 2d-array
+        groups of single-mode coefficients for all segments.
     """
-    coeffs_table = np.zeros([nmodes, nsegments])
-    for qq in range(nmodes):
-        for kk in range(nsegments):
-            coeffs_table[qq, kk] = mus[qq + kk * nmodes]
+    coeffs_table = np.zeros([nmodes, nseg])
+    for mode in range(nmodes):
+        for seg in range(nseg):
+            coeffs_table[mode, seg] = mus[mode + seg * nmodes]
 
     return coeffs_table
 
 
-def calculate_mu_maps(mus, nmodes, nactuators, nsegments):
+def sort_1d_mus_per_actuator(mus, nmodes, nseg):
     """
-    Sorts one dimensional multimode-tolerances values into nmodes-groups of dm actuators settings.
-    Each "dm actuator setting" group contains tolerance values for one kind of aberration mode.
+    Sorts one-dimensional multi-mode tolerance values into an actuator array for the internal simulators.
+
+    The resulting array sorts the mode coefficients into a 2D array, with the dimensions representing the number of
+    input mode and number of actuators, respectively. Each row of the 2D output array (first index) is a valid array to
+    be passed directly to the actuators of a segmented mirror of an internal simulator.
+    Following the convention of the internal simulators, the number of actuators is calculated as the product of local
+    modes times all segments.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters
     ----------
-    mus : ndarray
-        list of standard deviations for each segment in nm
+    mus : 1d-darray
+        1d array of standard deviations for all modes on each segment, in nm
     nmodes : int
-        number of localized segment level aberration modes
-    nactuators : int
-        total number of dm actuators
-    nsegments :  int
+        number of individual modes per segment
+    nseg : int
         number of segments
+
     Returns
     -------
-    coeffs_mumaps : ndarray
-        group of single mode dm actuators settings
+    coeffs_mumaps : 2d-darray
+        actuator holding mode coefficients array whose rows (first index) can be directly passed to the actuators of a
+        segmented mirror of an internal simulator
     """
+    nactuators = nmodes * nseg
     coeffs_mumaps = np.zeros([nmodes, nactuators])
-    for qq in range(nmodes):
-        coeffs_tmp = np.zeros([nactuators])
-        for kk in range(nsegments):
-            coeffs_tmp[qq + kk * nmodes] = mus[qq + kk * nmodes]  # arranged per modal basis
-        coeffs_mumaps[qq] = coeffs_tmp  # arranged into 'nmodes' groups in units of nm
+
+    for mode, act in zip(np.tile(np.arange(nmodes), nseg), np.arange(nactuators)):
+        coeffs_mumaps[mode, act] = mus[act]
 
     return coeffs_mumaps
-
