@@ -1007,7 +1007,9 @@ def plot_multimode_surface_maps(tel, mus, num_modes, c_target, data_dir, mirror,
     Parameters:
     tel : class instance of the simulator for "instrument"
     mus : 1d array
-        list of tolerances for individual segments in units of nm
+        an array of segment requirements for all segment-level localized aberration modes, in units of nm.
+        each element in this array is a tolerance value per segment per mode
+        len(mus) = total number of modes * total number of segments
     num_modes : int
         the total number of local modes used to poke a segment.
         For a harris segment mirror  it is 5 (taking only thermal basis map).
