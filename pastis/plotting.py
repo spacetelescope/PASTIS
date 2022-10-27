@@ -1023,7 +1023,7 @@ def plot_multimode_surface_maps(tel, mus, num_modes, c_target, data_dir, mirror,
     cmax : float
         minimum value for colorbar plot
     save : bool
-        whether to save the plot
+        whether to save the plot, default is False
     """
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
 
