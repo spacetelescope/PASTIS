@@ -481,7 +481,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the segment requirements have been calculated
-    :param limits: tuple, colorbar limirs, deault is None
+    :param limits: tuple, colorbar limits, default is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -1000,57 +1000,59 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def plot_multimode_surface_maps(tel, mus, num_modes, c_target, data_dir, mirror, cmin, cmax, save=False):
+def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_dir=None, fname=None):
     """
-    Creates surface deformation tolerance maps for localized wavefront aberrations.
+    Creates surface deformation maps for localized wavefront aberrations.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
     Parameters:
-    tel : class instance of the simulator for "instrument"
+    -----------
+    tel : class instance of internal simulator
+        the simulator to plot the surface maps for
     mus : 1d array
-        an array of segment requirements for all segment-level localized aberration modes, in units of nm.
-        each element in this array is a tolerance value per segment per mode
-        len(mus) = total number of modes * total number of segments
+        1d array of standard deviations for all modes on each segment, in nm
     num_modes : int
-        the total number of local modes used to poke a segment.
-        For a harris segment mirror  it is 5 (taking only thermal basis map).
-        For a segmented mirror, it represents the total number of local zernike modes.
-    c_target : float
-        desired dark hole contrast for which the tolerancing is done
-    data_dir :  str
-        path to save the plot, if save=True
+        number of local modes used to poke each segment
+    mirror : str
+        'harris_seg_mirror' or 'seg_mirror', segmented mirror of simulator 'tel' to use for plotting
     cmin : float
-        minimum value for colorbar plot
+        minimum value for colorbar
     cmax : float
-        minimum value for colorbar plot
-    save : bool
-        whether to save the plot, default is False
+        maximum value for colorbar
+    data_dir : str, default None
+        path to save the plots; if None, then not saved to disk
+    fname : str, default None
+        file name for surface maps saved to disk
     """
-    nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
+    if fname is None:
+        fname = f'map_on_{mirror}'
 
-    coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)
+    nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
+    coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
 
     mu_maps = []
     for mode in range(num_modes):
-        coeffs = coeffs_mumaps[mode] # in units of nm
-        if mirror == 'harris_sm':
-            tel.harris_sm.actuators = coeffs * nm_aber / 2 # in units of m
+        coeffs = coeffs_mumaps[mode]
+        if mirror == 'harris_seg_mirror':
+            tel.harris_sm.actuators = coeffs * nm_aber / 2
             mu_maps.append(tel.harris_sm.surface)
-        if mirror == 'sm':
+        if mirror == 'seg_mirror':
             tel.sm.actuators = coeffs * nm_aber / 2
-            mu_maps.append(tel.sm.surface)  # in units of m, each nu_map is now of the order of 1e-9 m
+            mu_maps.append(tel.sm.surface)  # in m
 
-    for i in range(0, num_modes):
+    plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
+    for i in range(num_modes):
         plt.figure(figsize=(7, 5))
-        plt.title("Modal constraints for a DH contrast of %.2e, mode number: %s" % (c_target, i), fontsize=10)
-        plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
-        hcipy.imshow_field((mu_maps[i]) * 1e12, norm=plot_norm, cmap='RdBu') # nu_map is already in 1e-9 m
-        plt.tick_params(top=False, bottom=True, left=True,
-                        right=False, labelleft=True, labelbottom=True)
+        hcipy.imshow_field((mu_maps[i]) * 1e12, norm=plot_norm, cmap='RdBu')
+        plt.tick_params(top=False, bottom=True, left=True, right=False, labelleft=True, labelbottom=True)
         cbar = plt.colorbar()
         cbar.ax.tick_params(labelsize=10)
-        cbar.set_label("$pm$", fontsize=10)
+        cbar.set_label("pm", fontsize=10)
         plt.tight_layout()
-        if save:
-            os.makedirs(os.path.join(data_dir, 'mu_maps'), exist_ok=True)
-            fname = f'stat_mu_maps_mode_{i}'
-            plt.savefig(os.path.join(data_dir, 'mu_maps', '.'.join([fname, 'pdf'])))
+
+        if data_dir is not None:
+            fname += f'_mode_{i}.pdf'
+            plt.savefig(os.path.join(data_dir, 'mu_maps', fname))
