@@ -28,7 +28,7 @@ if __name__ == '__main__':
         NUM_MODES = 5  # TODO: works only for thermal modes currently
 
     # If using Segmented Zernike Mirror
-    if WHICH_DM == 'seg_mirror':
+    if WHICH_DM in ['seg_mirror', 'zernike_mirror']:
         DM_SPEC = 3
         NUM_MODES = DM_SPEC
 
