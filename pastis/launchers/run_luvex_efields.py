@@ -25,10 +25,12 @@ if __name__ == '__main__':
         fpath = CONFIG_PASTIS.get('LUVOIR', 'harris_data_path')  # path to Harris spreadsheet
         pad_orientations = np.pi / 2 * np.ones(CONFIG_PASTIS.getint('LUVOIR', 'nb_subapertures'))
         DM_SPEC = (fpath, pad_orientations, True, False, False)
+        NUM_MODES = 5  # TODO: works only for thermal modes currently
 
     # If using Segmented Zernike Mirror
     if WHICH_DM == 'seg_mirror':
         DM_SPEC = 3
+        NUM_MODES = DM_SPEC
 
     # First generate a couple of matrices
     run_matrix = MatrixEfieldHex(which_dm=WHICH_DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
@@ -51,10 +53,8 @@ if __name__ == '__main__':
     mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
     np.savetxt(os.path.join(dir_run, f'mus_{c_target:.2e}_{NUM_RINGS:d}.csv'), mus, delimiter=',')
 
-    num_modes = 5   # for Harris thermal map or number of localized zernike modes = "DM_SPEC"
     nseg = run_matrix.simulator.nseg
-
-    coeffs_table = util.sort_1d_mus_per_segment(mus, num_modes, nseg)
+    coeffs_table = util.sort_1d_mus_per_segment(mus, NUM_MODES, nseg)
     mu_list = []
     label_list = []
     for i in range(coeffs_table.shape[0]):
@@ -67,4 +67,5 @@ if __name__ == '__main__':
     ppl.plot_segment_weights(mu_list, dir_run, c_target, labels=label_list, fname=f'stat_1d_mus_{c_target:.2e}', save=True)
     tel = run_matrix.simulator
     os.makedirs(os.path.join(dir_run, 'mu_maps'), exist_ok=True)
-    ppl.plot_multimode_surface_maps(tel, mus, num_modes, mirror=WHICH_DM, cmin=-5, cmax=5, data_dir=dir_run, fname='stat_mu_maps')
+    ppl.plot_multimode_surface_maps(tel, mus, NUM_MODES, mirror=WHICH_DM, cmin=-5, cmax=5,
+                                    data_dir=dir_run, fname='stat_mu_maps')
