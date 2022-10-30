@@ -226,7 +226,7 @@ def apply_mode_to_luvoir(pmode, luvoir):
 
     This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
     one by one to the segmented mirror.
-    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
+    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS WFE
     :param luvoir: LuvoirAPLC
     :return: hcipy.Wavefront of the segmented mirror, hcipy.Wavefront of the detector plane
     """

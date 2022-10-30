@@ -477,7 +477,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     """
     Plot the segment requirement map for a specific target contrast.
     :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
-    :param mus: array or list, segment requirements (standard deviations) in nm
+    :param mus: array or list, segment requirements (standard deviations) in nm WFE
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the segment requirements have been calculated
@@ -1002,9 +1002,9 @@ def natural_keys(text):
 
 def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_dir=None, fname=None):
     """
-    Creates surface deformation maps for localized wavefront aberrations.
+    Creates surface deformation maps (not WFE) for localized wavefront aberrations.
 
-    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    The input mode coefficients 'mus' are in units of *WFE* and need to be grouped by segment, meaning the array holds
     the mode coefficients as:
         mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
 
@@ -1013,7 +1013,7 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
     tel : class instance of internal simulator
         the simulator to plot the surface maps for
     mus : 1d array
-        1d array of standard deviations for all modes on each segment, in nm
+        1d array of standard deviations for all modes on each segment, in nm WFE
     num_modes : int
         number of local modes used to poke each segment
     mirror : str
@@ -1028,7 +1028,7 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
         file name for surface maps saved to disk
     """
     if fname is None:
-        fname = f'map_on_{mirror}'
+        fname = f'surface_on_{mirror}'
 
     nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
     coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
@@ -1038,7 +1038,7 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
         coeffs = coeffs_mumaps[mode]
         if mirror == 'harris_seg_mirror':
             tel.harris_sm.actuators = coeffs * nm_aber / 2
-            mu_maps.append(tel.harris_sm.surface)
+            mu_maps.append(tel.harris_sm.surface)  # in m
         if mirror == 'seg_mirror':
             tel.sm.actuators = coeffs * nm_aber / 2
             mu_maps.append(tel.sm.surface)  # in m
@@ -1050,7 +1050,7 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
         plt.tick_params(top=False, bottom=True, left=True, right=False, labelleft=True, labelbottom=True)
         cbar = plt.colorbar()
         cbar.ax.tick_params(labelsize=10)
-        cbar.set_label("pm", fontsize=10)
+        cbar.set_label("Surface (pm)", fontsize=10)
         plt.tight_layout()
 
         if data_dir is not None:
