@@ -1030,11 +1030,11 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
     if fname is None:
         fname = f'surface_on_{mirror}'
 
-    coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
+    mus_per_actuator = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
 
     mu_maps = []
     for mode in range(num_modes):
-        coeffs = coeffs_mumaps[mode]
+        coeffs = mus_per_actuator[mode]
         if mirror == 'harris_seg_mirror':
             tel.harris_sm.actuators = coeffs / 2
             mu_maps.append(tel.harris_sm.surface)  # in m
