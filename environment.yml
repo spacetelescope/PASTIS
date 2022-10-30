@@ -6,6 +6,7 @@ name: pastis
 dependencies:
   - astropy
   - configparser
+  - flake8
   - jupyter
   - matplotlib
   - numpy
