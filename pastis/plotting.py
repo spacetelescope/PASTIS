@@ -1030,17 +1030,16 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
     if fname is None:
         fname = f'surface_on_{mirror}'
 
-    nm_aber = CONFIG_PASTIS.getfloat('LUVOIR', 'calibration_aberration') * 1e-9
     coeffs_mumaps = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
 
     mu_maps = []
     for mode in range(num_modes):
         coeffs = coeffs_mumaps[mode]
         if mirror == 'harris_seg_mirror':
-            tel.harris_sm.actuators = coeffs * nm_aber / 2
+            tel.harris_sm.actuators = coeffs / 2
             mu_maps.append(tel.harris_sm.surface)  # in m
         if mirror == 'seg_mirror':
-            tel.sm.actuators = coeffs * nm_aber / 2
+            tel.sm.actuators = coeffs / 2
             mu_maps.append(tel.sm.surface)  # in m
 
     plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
