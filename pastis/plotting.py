@@ -1036,10 +1036,10 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
     for mode in range(num_modes):
         coeffs = mus_per_actuator[mode]
         if mirror == 'harris_seg_mirror':
-            tel.harris_sm.actuators = coeffs / 2
+            tel.harris_sm.actuators = coeffs * 1e-9 / 2  # in meters of surface
             mu_maps.append(tel.harris_sm.surface)  # in m
         if mirror == 'seg_mirror':
-            tel.sm.actuators = coeffs / 2
+            tel.sm.actuators = coeffs * 1e-9 / 2  # in meters of surface
             mu_maps.append(tel.sm.surface)  # in m
 
     plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
