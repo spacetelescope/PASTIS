@@ -122,7 +122,7 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
             sim_instance[1].zero()
             for segnum in range(nseg):  # TODO: there is probably a single function that puts the aberration on the OTE at once
                 seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
-                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i]/2, trans_unit='nm')
+                sim_instance[1].move_seg_local(seg_name, piston=pmodes[segnum, i] / 2, trans_unit='nm')
 
             psf_detector_data, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
             psf_detector = psf_detector_data[0].data
@@ -234,7 +234,7 @@ def calculate_delta_sigma(cdyn, nmodes, svalue):
     :param svalue: float, singular value of the mode we are calculating delta sigma for
     :return: float, dynamic contrast contribution
     """
-    del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes)*svalue))
+    del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes) * svalue))
     return del_sigma
 
 
@@ -259,13 +259,13 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
         if individual:
             opd = pmodes[:, maxmode] * sigmas[maxmode]
         else:
-            opd = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+            opd = np.nansum(pmodes[:, :maxmode + 1] * sigmas[:maxmode + 1], axis=1)
         opd *= u.nm    # the package is currently set up to spit out the modes in units of nm
 
         if instrument == 'LUVOIR':
             sim_instance.flatten()
             for seg, val in enumerate(opd):
-                sim_instance.set_segment(seg + 1, val.to(u.m).value/2, 0, 0)
+                sim_instance.set_segment(seg + 1, val.to(u.m).value / 2, 0, 0)
             im_data = sim_instance.calc_psf()
             psf = im_data.shaped
 
@@ -281,12 +281,12 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
             for seg, val in enumerate(opd):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
                 # The function below works with physical motions, meaning the piston is in surface
-                sim_instance[1].move_seg_local(seg_num, piston=val.value/2, trans_unit='nm')
+                sim_instance[1].move_seg_local(seg_num, piston=val.value / 2, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf = im_data[0].data
 
         # Calculate the contrast from that PSF
-        contrast = util.dh_mean(psf/norm_direct, dh_mask)
+        contrast = util.dh_mean(psf / norm_direct, dh_mask)
         cont_cum_e2e.append(contrast)
 
     return cont_cum_e2e
@@ -309,7 +309,7 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False
         if individual:
             aber = pmodes[:, maxmode] * sigmas[maxmode]
         else:
-            aber = np.nansum(pmodes[:, :maxmode+1] * sigmas[:maxmode+1], axis=1)
+            aber = np.nansum(pmodes[:, :maxmode + 1] * sigmas[:maxmode + 1], axis=1)
         aber *= u.nm
 
         contrast_matrix = util.pastis_contrast(aber, matrix) + c_floor
@@ -352,7 +352,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
     if instrument == "LUVOIR":
         sim_instance.flatten()
         for seg in range(mus.shape[0]):
-            sim_instance.set_segment(seg+1, random_weights[seg].to(u.m).value/2, 0, 0)
+            sim_instance.set_segment(seg + 1, random_weights[seg].to(u.m).value / 2, 0, 0)
         im_data = sim_instance.calc_psf()
         psf = im_data.shaped
 
@@ -368,7 +368,7 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
         for seg in range(mus.shape[0]):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             # The function below works with physical motions, meaning the piston is in surface
-            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value/2, trans_unit='nm')
+            sim_instance[1].move_seg_local(seg_num, piston=random_weights[seg].value / 2, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
@@ -418,7 +418,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
         for seg, aber in enumerate(opd):
             seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
             # The function below works with physical motions, meaning the piston is in surface
-            sim_instance[1].move_seg_local(seg_num, piston=aber.value/2, trans_unit='nm')
+            sim_instance[1].move_seg_local(seg_num, piston=aber.value / 2, trans_unit='nm')
         im_data = sim_instance[0].calc_psf(nlambda=1)
         psf = im_data[0].data
 
@@ -592,6 +592,11 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         log.info(f'Standard deviation of the Monte Carlo result modes: {stddev_modes}')
         end_monte_carlo_modes = time.time()
 
+        log.info('\nRuntimes:')
+        log.info('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_modes - start_monte_carlo_modes,
+                                                                                             (end_monte_carlo_modes - start_monte_carlo_modes) / 60,
+                                                                                             (end_monte_carlo_modes - start_monte_carlo_modes) / 3600))
+
         # Save Monte Carlo simulation
         np.savetxt(os.path.join(workdir, 'results', f'mc_mode_reqs_{c_target}.txt'), all_random_weight_sets)
         np.savetxt(os.path.join(workdir, 'results', f'mc_modes_contrasts_{c_target}.txt'), all_contr_rand_modes)
@@ -651,7 +656,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
             for seg, mu in enumerate(mus):
                 seg_num = webbpsf_imaging.WSS_SEGS[seg].split('-')[0]
                 # The function below works with physical motions, meaning the piston is in surface
-                sim_instance[1].move_seg_local(seg_num, piston=mu.value/2, trans_unit='nm')
+                sim_instance[1].move_seg_local(seg_num, piston=mu.value / 2, trans_unit='nm')
             im_data = sim_instance[0].calc_psf(nlambda=1)
             psf_pure_mu_map = im_data[0].data
 
@@ -689,8 +694,8 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
 
         log.info('\nRuntimes:')
         log.info('Monte Carlo on segments with {} iterations: {} sec = {} min = {} h'.format(n_repeat, end_monte_carlo_seg - start_monte_carlo_seg,
-                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
-                                                                                          (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
+                                                                                             (end_monte_carlo_seg - start_monte_carlo_seg) / 60,
+                                                                                             (end_monte_carlo_seg - start_monte_carlo_seg) / 3600))
 
         # Save Monte Carlo simulation
         np.savetxt(os.path.join(workdir, 'results', f'mc_segment_req_maps_{c_target}.txt'), all_random_maps)   # in m

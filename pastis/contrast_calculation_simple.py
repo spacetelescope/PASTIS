@@ -54,9 +54,9 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     lyot_stop = CONFIG_PASTIS.get(which_tel, 'pupil_plane_stop')   # Lyot stop
     inner_wa = CONFIG_PASTIS.getint(which_tel, 'IWA')
     outer_wa = CONFIG_PASTIS.getint(which_tel, 'OWA')
-    tel_size_px = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
+    # tel_size_px = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
     sampling = CONFIG_PASTIS.getfloat(which_tel, 'sampling')
-    #real_samp = sampling * tel_size_px / im_size
+    # real_samp = sampling * tel_size_px / im_size
     zern_number = CONFIG_PASTIS.getint('calibration', 'local_zernike')
     zern_mode = util.ZernikeMode(zern_number)
     zern_max = CONFIG_PASTIS.getint('zernikes', 'max_zern')
@@ -72,7 +72,7 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     # Create random aberration coefficients
     aber = np.random.random([nb_seg])   # piston values in input units
-    #log.info(f'PISTON ABERRATIONS: {aber}')
+    # log.info(f'PISTON ABERRATIONS: {aber}')
 
     # Normalize to the RMS value I want
     rms_init = util.rms(aber)
@@ -86,13 +86,12 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
     # Make equivalent aberration array that goes into the WebbPSF function
     Aber_WSS = np.zeros([nb_seg, zern_max])
-    Aber_WSS[:,0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
+    Aber_WSS[:, 0] = aber.to(u.m).value   # index "0" works because we're using piston currently; convert to meters
 
     ### BASELINE PSF - NO ABERRATIONS, NO CORONAGRAPH
     log.info('Generating baseline PSF from E2E - no coronagraph, no aberrations')
     psf_perfect = webbim.nircam_nocoro(filter, np.zeros_like(Aber_WSS))
     normp = np.max(psf_perfect)
-    psf_perfect = psf_perfect / normp
 
     ### WEBBPSF
     log.info('Generating E2E coro contrast')
@@ -107,11 +106,11 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
     contrast_webbpsf = np.mean(webb_dh_psf[np.where(webb_dh_psf != 0)])
     end_webb = time.time()
 
-    #TODO: save plots of phase on segmented pupil
+    # TODO: save plots of phase on segmented pupil
 
     # Load in baseline contrast
     contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    coro_floor = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname+'.txt')))
+    coro_floor = float(np.loadtxt(os.path.join(dataDir, 'calibration', contrastname + '.txt')))
 
     ### IMAGE PASTIS
     contrast_am = np.nan
@@ -157,10 +156,10 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
         if plotting:
 
             # As fits files
-            util.write_fits(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), os.path.join(dataDir, 'results',
-                            'dh_images_'+matrix_mode, '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_e2e.fits'))
-            util.write_fits(psf_am, os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
-                                                 '{:.2e}'.format(rms.value)+str(rms.unit)+'RMS_am.fits'))
+            util.write_fits(util.zoom_cen(webb_dh_psf, psf_am.shape[0] / 2), os.path.join(dataDir, 'results',
+                            'dh_images_' + matrix_mode, '{:.2e}'.format(rms.value) + str(rms.unit) + 'RMS_e2e.fits'))
+            util.write_fits(psf_am, os.path.join(dataDir, 'results', 'dh_images_' + matrix_mode,
+                                                 '{:.2e}'.format(rms.value) + str(rms.unit) + 'RMS_am.fits'))
 
             # As PDF plot
             plt.clf()
@@ -168,20 +167,20 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
             plt.suptitle('{:.2e}'.format(rms.value) + str(rms.unit) + " RMS")
             plt.subplot(1, 2, 1)
             plt.title("E2E")
-            plt.imshow(util.zoom_cen(webb_dh_psf, psf_am.shape[0]/2), norm=LogNorm())
+            plt.imshow(util.zoom_cen(webb_dh_psf, psf_am.shape[0] / 2), norm=LogNorm())
             plt.colorbar()
             plt.subplot(1, 2, 2)
             plt.title("PASTIS image")
             plt.imshow(psf_am, norm=LogNorm())
             plt.colorbar()
-            plt.savefig(os.path.join(dataDir, 'results', 'dh_images_'+matrix_mode,
-                                     '{:.2e}'.format(rms.value)+'DH_PSFs.pdf'))
-            #TODO: check image rotation, I think there is a 90 degree difference in them for the JWST simulations
+            plt.savefig(os.path.join(dataDir, 'results', 'dh_images_' + matrix_mode,
+                                     '{:.2e}'.format(rms.value) + 'DH_PSFs.pdf'))
+            # TODO: check image rotation, I think there is a 90 degree difference in them for the JWST simulations
 
     return contrast_webbpsf, contrast_am, contrast_matrix
 
 
-def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
+def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1 * u.nm):
     """
     Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
 
@@ -252,7 +251,7 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1*u.nm):
     return contrast_hicat, contrast_matrix
 
 
-def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
+def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1 * u.nm):
     """
     Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
 
@@ -289,7 +288,7 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     log.info('Calculating E2E contrast...')
     # Put aberrations on segmented mirror
     for nseg in range(nb_seg):
-        luvoir.set_segment(nseg+1, aber[nseg].to(u.m).value/2, 0, 0)
+        luvoir.set_segment(nseg + 1, aber[nseg].to(u.m).value / 2, 0, 0)
     psf_luvoir = luvoir.calc_psf()
     psf_luvoir /= norm
 
@@ -320,7 +319,7 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1*u.nm):
     return contrast_luvoir, contrast_matrix
 
 
-def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
+def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50 * u.nm):
     """
     Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
 
@@ -357,7 +356,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     jwst_sim[1].zero()
     for nseg in range(nb_seg):    # TODO: there is probably a single function that puts the aberration on the OTE at once
         seg_num = webbpsf_imaging.WSS_SEGS[nseg].split('-')[0]
-        jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value/2, trans_unit='nm')   # this function works with physical motions, meaning the piston is in surface
+        jwst_sim[1].move_seg_local(seg_num, piston=aber[nseg].value / 2, trans_unit='nm')   # this function works with physical motions, meaning the piston is in surface
 
     image = jwst_sim[0].calc_psf(nlambda=1)
     psf_jwst = image[0].data / norm
@@ -391,7 +390,7 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     return contrast_jwst, contrast_matrix
 
 
-def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
+def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50 * u.nm):
     """
     Compute the contrast for a random aberration over all DM actuators in the RST simulator.
 
@@ -422,13 +421,12 @@ def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50*u.nm):
     nb_actu = rst_sim.nbactuator
     iwa = CONFIG_PASTIS.getfloat('RST', 'IWA')
     owa = CONFIG_PASTIS.getfloat('RST', 'OWA')
-    sampling = CONFIG_PASTIS.getfloat('RST', 'sampling')
 
     # Put aberration on OTE
     rst_sim.dm1.flatten()
     for nseg in range(total_seg):
         actu_x, actu_y = util.seg_to_dm_xy(nb_actu, nseg)
-        rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value*u.nm)
+        rst_sim.dm1.set_actuator(actu_x, actu_y, aber[nseg].value * u.nm)
 
     image = rst_sim.calc_psf(nlambda=1, fov_arcsec=1.6)
     psf = image[0].data / norm
@@ -471,9 +469,9 @@ if __name__ == '__main__':
     # contrast_jwst_ana_num(WORKDIRECTORY, matrix_mode=matrix, rms=total_rms, im_pastis=True)
 
     # Test HiCAT
-    #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT', rms=10*u.nm)
-    #c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical', rms=10*u.nm)
+    # c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/Git/PASTIS/Jupyter Notebooks/HiCAT', rms=10*u.nm)
+    # c_e2e, c_matrix = contrast_hicat_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical', rms=10*u.nm)
 
     # Test LUVOIR
     c_e2e, c_matrix = contrast_luvoir_num(matrix_dir='/Users/ilaginja/Documents/data_from_repos/pastis_data/active/matrix_numerical',
-                                         rms=1 * u.nm)
+                                          rms=1 * u.nm)

@@ -37,7 +37,7 @@ def ana_matrix_jwst():
     if not os.path.isdir(resDir):
         os.mkdir(resDir)
 
-    #-# Generating the PASTIS matrix
+    ### Generating the PASTIS matrix
     matrix_direct = np.zeros([nb_seg, nb_seg])   # Generate empty matrix for contrast values from loop.
     all_ims = []
     all_dhs = []
@@ -46,7 +46,7 @@ def ana_matrix_jwst():
     for i in range(nb_seg):
         for j in range(nb_seg):
 
-            log.info('STEP: {}-{} / {}-{}'.format(i+1, j+1, nb_seg, nb_seg))
+            log.info('STEP: {}-{} / {}-{}'.format(i + 1, j + 1, nb_seg, nb_seg))
 
             # Putting aberration only on segments i and j
             tempA = np.zeros([nb_seg])
@@ -57,16 +57,16 @@ def ana_matrix_jwst():
             # Create PASTIS image and save full image as well as DH image
             temp_im_am, full_psf = impastis.analytical_model(zern_number, tempA, cali=True)
 
-            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_psf = 'psf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i + 1) + '-' + str(j + 1)
             util.write_fits(full_psf, os.path.join(resDir, 'psfs', filename_psf + '.fits'), header=None, metadata=None)
             all_ims.append(full_psf)
 
-            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i+1) + '-' + str(j+1)
+            filename_dh = 'dh_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_segs_' + str(i + 1) + '-' + str(j + 1)
             util.write_fits(temp_im_am, os.path.join(resDir, 'darkholes', filename_dh + '.fits'), header=None, metadata=None)
             all_dhs.append(temp_im_am)
 
             contrast = np.mean(temp_im_am[np.where(temp_im_am != 0)])
-            matrix_direct[i,j] = contrast
+            matrix_direct[i, j] = contrast
             log.info(f'contrast = {contrast}')
             all_contrasts.append(contrast)
 
@@ -82,8 +82,8 @@ def ana_matrix_jwst():
         for j in range(nb_seg):
             if i != j:
                 matrix_off_val = (matrix_two_N[i, j] - matrix_two_N[i, i] - matrix_two_N[j, j]) / 2.
-                matrix_pastis[i,j] = matrix_off_val
-                log.info('Off-axis for i{}-j{}: {}'.format(i+1, j+1, matrix_off_val))
+                matrix_pastis[i, j] = matrix_off_val
+                log.info('Off-axis for i{}-j{}: {}'.format(i + 1, j + 1, matrix_off_val))
 
     # Normalize matrix for the input aberration
     matrix_pastis /= np.square(nm_aber.value)

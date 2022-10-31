@@ -21,11 +21,11 @@ if __name__ == '__main__':
     dir_run = run_matrix.overall_dir
 
     # Alternatively, pick data locations to run PASTIS analysis on
-    #dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory')
+    # dir_run = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'your-data-directory')
 
     # Set up loggers for data analysis in all cases
     util.setup_pastis_logging(dir_run, 'pastis_analysis')
-    
+
     # Then generate all hockey  stick curves
     result_dir_small = os.path.join(dir_run, 'results')
     matrix_dir_small = os.path.join(dir_run, 'matrix_numerical')

@@ -6,11 +6,11 @@ from pastis.ultra_analysis import MultiModeAnalysis
 
 
 if __name__ == '__main__':
-    
+
     NUM_RINGS = 1
     WHICH_DM = 'harris_seg_mirror'   # 'harris_seg_mirror' or 'seg_mirror', or (global) 'zernike_mirror'
     C_TARGET = 6.3 * 1e-11
-    
+
     # DM_SPEC = tuple or int, specification for the used DM -
     # for seg_mirror: int, number of local Zernike modes on each segment
     # for harris_seg_mirror: tuple (string, array, bool, bool, bool),

@@ -361,9 +361,9 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
     # Put aberration on correct segments. If i=j, apply only once!
     jwst_ote.zero()
-    jwst_ote.move_seg_local(seg_i, piston=wfe_aber/2, trans_unit='m')    # this function works with physical motions, meaning the piston is in surface
+    jwst_ote.move_seg_local(seg_i, piston=wfe_aber / 2, trans_unit='m')    # this function works with physical motions, meaning the piston is in surface
     if segment_pair[0] != segment_pair[1]:
-        jwst_ote.move_seg_local(seg_j, piston=wfe_aber/2, trans_unit='m')
+        jwst_ote.move_seg_local(seg_j, piston=wfe_aber / 2, trans_unit='m')
 
     log.info('Calculating coro image...')
     image = jwst_instrument.calc_psf(nlambda=1)
@@ -417,9 +417,9 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
     # Put aberration on correct segments. If i=j, apply only once!
     luv.flatten()
-    luv.set_segment(segment_pair[0]+1, wfe_aber / 2, 0, 0)
+    luv.set_segment(segment_pair[0] + 1, wfe_aber / 2, 0, 0)
     if segment_pair[0] != segment_pair[1]:
-        luv.set_segment(segment_pair[1]+1, wfe_aber / 2, 0, 0)
+        luv.set_segment(segment_pair[1] + 1, wfe_aber / 2, 0, 0)
 
     log.info('Calculating coro image...')
     image, inter = luv.calc_psf(ref=False, display_intermediate=False, return_intermediate='intensity')
@@ -787,7 +787,7 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
     # Save matrix to file
     filename_matrix = 'pastis_matrix'
     hcipy.write_fits(matrix_pastis, os.path.join(resDir, filename_matrix + '.fits'))
-    ppl.plot_pastis_matrix(matrix_pastis, wvln*1e9, out_dir=resDir, save=True)    # convert wavelength to nm
+    ppl.plot_pastis_matrix(matrix_pastis, wvln * 1e9, out_dir=resDir, save=True)    # convert wavelength to nm
     log.info(f'PASTIS matrix saved to: {os.path.join(resDir, filename_matrix + ".fits")}')
 
     # Tell us how long it took to finish.
@@ -906,4 +906,4 @@ class MatrixIntensityRST(PastisMatrixIntensities):
 if __name__ == '__main__':
 
         MatrixIntensityLuvoirA(design='small', initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
-        #MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()
+        # MatrixIntensityHicat(initial_path=CONFIG_PASTIS.get('local', 'local_data_path')).calc()

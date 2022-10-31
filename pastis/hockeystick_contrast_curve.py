@@ -55,7 +55,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     # Set up path for results
     outDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), WORKDIRECTORY, 'results')
     os.makedirs(outDir, exist_ok=True)
-    os.makedirs(os.path.join(outDir, 'dh_images_'+matrix_mode), exist_ok=True)
+    os.makedirs(os.path.join(outDir, 'dh_images_' + matrix_mode), exist_ok=True)
 
     # Loop over different RMS values and calculate contrast with PASTIS and E2E simulation
     e2e_contrasts = []        # contrasts from E2E sim
@@ -97,7 +97,7 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
     # Save results to txt file
     df = pd.DataFrame({'rms': rms_range, 'c_e2e': e2e_contrasts, 'c_am': am_contrasts, 'c_matrix': matrix_contrasts})
-    df.to_csv(os.path.join(outDir, "hockey_contrasts_"+matrix_mode+".txt"), sep=' ', na_rep='NaN')
+    df.to_csv(os.path.join(outDir, "hockey_contrasts_" + matrix_mode + ".txt"), sep=' ', na_rep='NaN')
 
     # Plot
     plt.clf()
@@ -110,8 +110,8 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
     plt.xlabel("WFE RMS (OPD) in " + str(u.nm))
     plt.ylabel("Contrast")
     plt.legend()
-    #plt.show()
-    plt.savefig(os.path.join(outDir, "PASTIS_HOCKEY_STICK_"+matrix_mode+".pdf"))
+    # plt.show()
+    plt.savefig(os.path.join(outDir, "PASTIS_HOCKEY_STICK_" + matrix_mode + ".pdf"))
 
     end_time = time.time()
     runtime = end_time - start_time
@@ -211,7 +211,7 @@ def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir=
 if __name__ == '__main__':
 
     # Pick one to run
-    #hockeystick_jwst()
+    # hockeystick_jwst()
 
     instrument = CONFIG_PASTIS.get('telescope', 'name')
     run_choice = CONFIG_PASTIS.get('numerical', 'current_analysis')

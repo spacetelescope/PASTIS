@@ -62,7 +62,7 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     hexagon = hcipy.hexagonal_aperture(segment_circum_diameter - segment_gap)
 
     def segment(grid):
-        return hexagon(grid.rotated(np.pi/2))
+        return hexagon(grid.rotated(np.pi / 2))
 
     segmented_aperture = hcipy.make_segmented_aperture(segment, segment_positions, segment_transmissions)
 
@@ -78,7 +78,7 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
 
         hcipy.imshow_field(atlast)
         for i in range(36):
-            plt.annotate(str(i + 1), size='x-large', xy=(segment_positions.x[i]-pupil_diameter*0.03, segment_positions.y[i]-pupil_diameter*0.02))
+            plt.annotate(str(i + 1), size='x-large', xy=(segment_positions.x[i] - pupil_diameter * 0.03, segment_positions.y[i] - pupil_diameter * 0.02))
             # -0.03/-0.02 is for shifting the numbers closer to the segment centers. Scaling that by pupil_diameter
             # keeps them in place.
         plt.savefig(os.path.join(outDir, 'ATLAST_pupil.pdf'))
@@ -211,9 +211,9 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
             self._seg_y[wseg] = y[wseg] - ceny
 
             # Set gaps to zero
-            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1*PUP_DIAMETER)    #*PUP_DIAMETER generalizes it for any size pupil field
+            bad_gaps_x = np.where(np.abs(self._seg_x) > 0.1 * PUP_DIAMETER)    # *PUP_DIAMETER generalizes it for any size pupil field
             self._seg_x[bad_gaps_x] = 0
-            bad_gaps_y = np.where(np.abs(self._seg_y) > 0.1*PUP_DIAMETER)
+            bad_gaps_y = np.where(np.abs(self._seg_y) > 0.1 * PUP_DIAMETER)
             self._seg_y[bad_gaps_y] = 0
 
     def apply_coef(self):
@@ -225,8 +225,8 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
         for i in self.segmentlist:
             wseg = self._seg_indices[i]
             keep_surf[wseg] = (self._coef[i - 1, 0] +
-                              self._coef[i - 1, 1] * self._seg_x[wseg] +
-                              self._coef[i - 1, 2] * self._seg_y[wseg])
+                               self._coef[i - 1, 1] * self._seg_x[wseg] +
+                               self._coef[i - 1, 2] * self._seg_y[wseg])
         return hcipy.Field(keep_surf, self.input_grid)
 
     def phase_for(self, wavelength):
@@ -267,8 +267,8 @@ def seg_mirror_test():
     fac = 6.55
 
     # --------------------------------- #
-    #aber_rad = 6.2
-    aber_array = np.linspace(0, 2*np.pi, 50, True)
+    # aber_rad = 6.2
+    aber_array = np.linspace(0, 2 * np.pi, 50, True)
     log.info('Aber in rad: \n{}'.format(aber_array))
     log.info('Aber in m: \n{}'.format(util.aber_to_opd(aber_array, wvln)))
     # --------------------------------- #
@@ -309,7 +309,7 @@ def seg_mirror_test():
 
         # HCIPy
         for i in [19, 28]:
-            hsm.set_segment(i, util.aber_to_opd(aber_rad, wvln)/2, 0, 0)
+            hsm.set_segment(i, util.aber_to_opd(aber_rad, wvln) / 2, 0, 0)
 
         # Poppy
         for i in [34, 25]:
@@ -337,15 +337,15 @@ def seg_mirror_test():
         # Get the PSF as an array
         im_pistoned_pop = psf[0].data
 
-        hc_ims.append(im_pistoned_hc.intensity.shaped/np.max(im_pistoned_hc.intensity))
-        pop_ims.append(im_pistoned_pop/np.max(im_pistoned_pop))
+        hc_ims.append(im_pistoned_hc.intensity.shaped / np.max(im_pistoned_hc.intensity))
+        pop_ims.append(im_pistoned_pop / np.max(im_pistoned_pop))
 
     ### Trying to do it with numbers
     hc_ims = np.array(hc_ims)
     pop_ims = np.array(pop_ims)
 
-    sum_hc = np.sum(hc_ims, axis=(1,2))
-    sum_pop = np.sum(pop_ims, axis=(1,2)) - 1.75   # the -1.75 is just there because I didn't bother about image normalization too much
+    sum_hc = np.sum(hc_ims, axis=(1, 2))
+    sum_pop = np.sum(pop_ims, axis=(1, 2)) - 1.75   # the -1.75 is just there because I didn't bother about image normalization too much
 
     plt.suptitle('Image degradation of SMs')
     plt.plot(aber_array, sum_hc, label='HCIPy SM')

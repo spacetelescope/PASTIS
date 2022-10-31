@@ -64,7 +64,7 @@ class LuvoirA_APLC(ScdaAPLC):
                          wvln=wvln, imlamD=imlamD, aplc_params=aplc_params)
 
 
-class SegmentedTelescopeAPLC(SegmentedAPLC):   #TODO: remove completely from repo
+class SegmentedTelescopeAPLC(SegmentedAPLC):   # TODO: remove completely from repo
     """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
     """
@@ -156,7 +156,7 @@ class LuvoirBVortex(SegmentedTelescope):
         indexed_aperture_data_pad = np.pad(indexed_aperture_data, int((nPup_dms - nPup_arrays) / 2), mode='constant')
 
         # Create pupil grids and focal grid
-        pupil_grid_arrays = hcipy.make_pupil_grid(nPup * (nPup_arrays / nPup), self.D_pup * (nPup_arrays / nPup))
+        # pupil_grid_arrays = hcipy.make_pupil_grid(nPup * (nPup_arrays / nPup), self.D_pup * (nPup_arrays / nPup))
         pupil_grid_dms = hcipy.make_pupil_grid(nPup * (nPup_dms / nPup), self.D_pup * (nPup_dms / nPup))
         self.focal_grid = hcipy.make_focal_grid(self.samp_foc, self.rad_foc, pupil_diameter=self.D_pup, focal_length=1.,
                                                 reference_wavelength=self.wavelength)
@@ -174,9 +174,9 @@ class LuvoirBVortex(SegmentedTelescope):
         self.seg_pos = load_segment_centers(datadir, 'aperture_LUVOIR-B_indexed.fits',
                                             CONFIG_PASTIS.getint('LUVOIR-B', 'nb_subapertures'), self.D_pup)
         # Calculate segment circumscribed diameter from flat-to-flat distance, and scale from 8m to pupil size used here
-        self.segment_circum_diameter = 2 / np.sqrt(3) * 0.955 * (self.D_pup/8)   # m
+        self.segment_circum_diameter = 2 / np.sqrt(3) * 0.955 * (self.D_pup / 8)   # m
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None):
+    def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None):
         """ Calculate the PSF of LUVOIR B, and return optionally all E-fields.
 
         Parameters:
@@ -206,7 +206,7 @@ class LuvoirBVortex(SegmentedTelescope):
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils()
 
         # All E-field propagations
-        wf_dm1_coro = hcipy.Wavefront(wf_active_pupil.electric_field * np.exp(4 * 1j * np.pi/self.wavelength * self.DM1), self.wavelength)
+        wf_dm1_coro = hcipy.Wavefront(wf_active_pupil.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM1), self.wavelength)
         wf_dm2_coro_before = self.fresnel(wf_dm1_coro)
         wf_dm2_coro_after = hcipy.Wavefront(wf_dm2_coro_before.electric_field * np.exp(4 * 1j * np.pi / self.wavelength * self.DM2) * self.DM2_circle, self.wavelength)
         wf_back_at_dm1 = self.fresnel_back(wf_dm2_coro_after)

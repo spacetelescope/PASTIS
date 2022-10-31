@@ -88,7 +88,7 @@ class SegmentedMirror(hcipy.OpticalElement):
         """
         imshow_field(self.ind_aper)
         for i, par in enumerate(self.seg_pos):
-            plt.annotate(s=i+1, xy=par, xytext=par, color='white', fontweight='bold') #TODO: scale text size by segment size
+            plt.annotate(s=i + 1, xy=par, xytext=par, color='white', fontweight='bold')  # TODO: scale text size by segment size
 
     def flatten(self):
         """ Flatten the DM by setting all segment coefficients to zero."""
@@ -668,7 +668,7 @@ class SegmentedTelescope(Telescope):
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
-        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg-1
+        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg - 1
         if segid > segment_cutoff_id:
             raise NotImplementedError(f"Your telescope has {self.nseg} active segments and the highest existing "
                                       f"segment index is segment number {segment_cutoff_id}; you requested {segid}.")
@@ -813,7 +813,7 @@ class SegmentedTelescope(Telescope):
         if segid == 0 and not self.center_segment:
             raise NotImplementedError("'self.center_segment' is set to 'False', so there is not center segment to command.")
 
-        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg-1
+        segment_cutoff_id = self.nseg if self.center_segment is False else self.nseg - 1
         if segid > segment_cutoff_id:
             raise NotImplementedError(f"Your telescope has {self.nseg} active segments and the highest existing "
                                       f"segment index is segment number {segment_cutoff_id}; you requested {segid}.")
@@ -1035,7 +1035,7 @@ class SegmentedAPLC(SegmentedTelescope):
         dh_inner = hcipy.circular_aperture(2 * iwa * self.lam_over_d)(self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None, norm_one_photon=False):
+    def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of the segmented APLC, normalized to contrast units. Optionally return reference (direct
         PSF) and/or E-fields in all planes.
 

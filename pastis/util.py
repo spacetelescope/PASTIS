@@ -32,7 +32,7 @@ def write_fits(data, filepath, header=None, metadata=None):
     :return: filepath
     """
     # Make sure file ends with fit or fits.
-    #if not (filepath.endswith(".fit") or filepath.endswith(".fits")):
+    # if not (filepath.endswith(".fit") or filepath.endswith(".fits")):
     #    filepath += ".fits"
 
     if not os.path.exists(os.path.dirname(filepath)):
@@ -58,7 +58,7 @@ def write_fits(data, filepath, header=None, metadata=None):
     fits.HDUList([hdu])
     hdu.writeto(filepath, overwrite=True)
 
-    #print('Wrote ' + filepath)
+    # print('Wrote ' + filepath)
     return filepath
 
 
@@ -83,8 +83,8 @@ def write_all_fits_to_cube(path):
 def circle_mask(im, xc, yc, rcirc):
     """ Create a circle on array im centered on xc, yc with radius rcirc; inside circle equals 1."""
     x, y = np.shape(im)
-    newy, newx = np.mgrid[0:y,0:x]
-    circ = (newx-xc)**2 + (newy-yc)**2 < rcirc**2
+    newy, newx = np.mgrid[0:y, 0:x]
+    circ = (newx - xc)**2 + (newy - yc)**2 < rcirc**2
     return circ
 
 
@@ -107,9 +107,9 @@ def zoom_cen(im, bb):
     :param bb: half-box size
     :return:
     """
-    x = int(im.shape[1]/2)
-    y = int(im.shape[0]/2)
-    return im[int(y-bb):int(y+bb), int(x-bb):int(x+bb)]
+    x = int(im.shape[1] / 2)
+    y = int(im.shape[0] / 2)
+    return im[int(y - bb):int(y + bb), int(x - bb):int(x + bb)]
 
 
 def FFT(ef):
@@ -133,8 +133,8 @@ def create_dark_hole(pup_im, iwa, owa, samp):
     :param samp: sampling factor
     :return: dh_area: np.array
     """
-    circ_inner = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., iwa * samp) * 1   # *1 converts from booleans to integers
-    circ_outer = circle_mask(pup_im, pup_im.shape[0]/2., pup_im.shape[1]/2., owa * samp) * 1
+    circ_inner = circle_mask(pup_im, pup_im.shape[0] / 2., pup_im.shape[1] / 2., iwa * samp) * 1   # *1 converts from booleans to integers
+    circ_outer = circle_mask(pup_im, pup_im.shape[0] / 2., pup_im.shape[1] / 2., owa * samp) * 1
     dh_area = circ_outer - circ_inner
 
     return dh_area
@@ -482,7 +482,6 @@ def copy_config(outdir):
     """
     Copy the config_local, or if non-existent, config_pastis.ini to outdir
     :param outdir: string, target location of copied configfile
-    :return: 
     """
     print('Saving the configfile to outputs folder.')
     try:
@@ -550,7 +549,7 @@ class PDF(fpdf.FPDF):
         # Arial italic 8
         self.set_font('Arial', 'I', 8)
         # Page number, on the right
-        #self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'R')
+        # self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'R')
         # Date, centered
         self.cell(0, 10, str(datetime.date.today()), 0, 0, 'C')
 
@@ -690,7 +689,7 @@ def seg_to_dm_xy(actuator_total, segment):
     segment: int, single-index actuator number on the DM, to be converted to x|y coordinate
     """
     actuator_pair_x = segment % actuator_total
-    actuator_pair_y = (segment-actuator_pair_x)/actuator_total
+    actuator_pair_y = (segment - actuator_pair_x) / actuator_total
 
     return actuator_pair_x, int(actuator_pair_y)
 
