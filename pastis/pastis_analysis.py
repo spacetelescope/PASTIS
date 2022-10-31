@@ -547,7 +547,7 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
         pmodes, svals = modes_from_matrix(instrument, workdir)
 
         ### Get full 2D modes and save them
-        mode_cube = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
+        _ = full_modes_from_themselves(instrument, pmodes, workdir, sim_instance, saving=True)
 
     else:
         log.info(f'Reading PASTIS modes from {workdir}')
