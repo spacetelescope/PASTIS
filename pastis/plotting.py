@@ -168,7 +168,7 @@ def plot_eigenvalues(eigenvalues, nseg, wvln=None, out_dir='', fname_suffix='', 
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.title('PASTIS matrix eigenvalues', size=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel(f'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
+    plt.ylabel(fr'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
     plt.tight_layout()
 
     if save:
@@ -221,7 +221,7 @@ def plot_mode_weights_simple(sigmas, c_target, wvln=None, out_dir='', fname_suff
     plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel(f'Mode weights $\sigma_p$ ({weights_units})', size=30)
+    plt.ylabel(fr'Mode weights $\sigma_p$ ({weights_units})', size=30)
     if labels is not None:
         plt.legend(prop={'size': 20})
     plt.tight_layout()
@@ -307,8 +307,8 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
         ax_wave.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
 
         ax_nm.set_title(f'Constraints per mode for $c_t = {c_target}$', size=30)
-        ax_nm.set_ylabel('Mode weight $\sigma_p$ (nm)', size=30)
-        ax_wave.set_ylabel('Mode weight $\sigma_p$ (waves)', size=30)
+        ax_nm.set_ylabel(r'Mode weight $\sigma_p$ (nm)', size=30)
+        ax_wave.set_ylabel(r'Mode weight $\sigma_p$ (waves)', size=30)
         ax_nm.set_xlabel('Mode index', size=30)
         if labels is not None:
             ax_nm.legend(prop={'size': 25})
@@ -883,7 +883,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
         map_small = np.ma.masked_where(map_small == 0, map_small)
 
         plt.subplot(1, 3, 1)
-        plt.title('$\mu$ map', fontsize=30)
+        plt.title(r'$\mu$ map', fontsize=30)
         plt.imshow(map_small, cmap=cmap_brev, norm=norm_center_zero)
         cbar = plt.colorbar(fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
@@ -898,7 +898,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
         pdf = norm.pdf(wfe_range, dist_mean, dist_stddev)
 
         plt.subplot(1, 3, 2)
-        plt.title('$\mu_k$ as stddev', fontsize=30)
+        plt.title(r'$\mu_k$ as stddev', fontsize=30)
         plt.plot(wfe_range, pdf)
         plt.axvline(dist_mean, c='r', ls='-.', lw=3)
         plt.axvline(dist_mean + dist_stddev, c='darkorange', ls=':', lw=3)
@@ -915,7 +915,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
             vmax = 0.0015
 
         plt.subplot(1, 3, 3)
-        plt.title('$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
+        plt.title(r'$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
         one_mode = pastis.util.apply_mode_to_luvoir(seg_weights_all, luvoir)[0]
         hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
         plt.axis('off')
