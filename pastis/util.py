@@ -1,7 +1,6 @@
 """
 Helper functions for PASTIS.
 """
-
 import glob
 import os
 import datetime
@@ -227,7 +226,7 @@ def apply_mode_to_luvoir(pmode, luvoir):
 
     This function first flattens the segmented mirror and then applies all segment coefficients from the input mode
     one by one to the segmented mirror.
-    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS
+    :param pmode: array, a single PASTIS mode [nseg] or any other segment phase map in NANOMETERS WFE
     :param luvoir: LuvoirAPLC
     :return: hcipy.Wavefront of the segmented mirror, hcipy.Wavefront of the detector plane
     """
@@ -694,3 +693,74 @@ def seg_to_dm_xy(actuator_total, segment):
     actuator_pair_y = (segment-actuator_pair_x)/actuator_total
 
     return actuator_pair_x, int(actuator_pair_y)
+
+
+def sort_1d_mus_per_segment(mus, nmodes, nseg):
+    """
+    Sorts one-dimensional multi-mode coefficients into 'nmodes-multimode' groups.
+
+    The result sorts the mode coefficients in a 2D array, with the dimensions representing the number of modes
+    and number of segments, respectively.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
+
+    Parameters
+    ----------
+    mus : 1d-array
+        1d array of standard deviations for all modes on each segment, in nm
+    nmodes : int
+        number of individual modes per segment
+    nseg : int
+        number of segments
+
+    Returns
+    -------
+    coeffs_table : 2d-array
+        groups of single-mode coefficients for all segments.
+    """
+    coeffs_table = np.zeros([nmodes, nseg])
+    for mode in range(nmodes):
+        for seg in range(nseg):
+            coeffs_table[mode, seg] = mus[mode + seg * nmodes]
+
+    return coeffs_table
+
+
+def sort_1d_mus_per_actuator(mus, nmodes, nseg):
+    """
+    Sorts one-dimensional multi-mode tolerance values into an actuator array for the internal simulators.
+
+    The resulting array sorts the mode coefficients into a 2D array, with the dimensions representing the number of
+    input mode and number of actuators, respectively. Each row of the 2D output array (first index) is a valid array to
+    be passed directly to the actuators of a segmented mirror of an internal simulator.
+    Following the convention of the internal simulators, the number of actuators is calculated as the product of local
+    modes times all segments.
+
+    The input mode coefficients 'mus' need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
+
+    Parameters
+    ----------
+    mus : 1d-darray
+        1d array of standard deviations for all modes on each segment, in nm
+    nmodes : int
+        number of individual modes per segment
+    nseg : int
+        number of segments
+
+    Returns
+    -------
+    coeffs_mumaps : 2d-darray
+        actuator holding mode coefficients array whose rows (first index) can be directly passed to the actuators of a
+        segmented mirror of an internal simulator
+    """
+    nactuators = nmodes * nseg
+    coeffs_mumaps = np.zeros([nmodes, nactuators])
+
+    for mode, act in zip(np.tile(np.arange(nmodes), nseg), np.arange(nactuators)):
+        coeffs_mumaps[mode, act] = mus[act]
+
+    return coeffs_mumaps

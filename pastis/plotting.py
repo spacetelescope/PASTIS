@@ -15,6 +15,7 @@ from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap, LogNorm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.colors import TwoSlopeNorm
 import numpy as np
 from scipy.stats import norm
 
@@ -427,30 +428,32 @@ def plot_covariance_matrix(covariance_matrix, out_dir, c_target, segment_space=T
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', save=False):
+def plot_segment_weights(mus, out_dir, c_target, labels=None, fname=None, save=False):
     """
     Plot segment weights against segment index, in units of picometers (converted from input).
-    :param mus: array or list, segment requirements in nm
+
+    :param mus: array or list of arrays, segment requirements in nm
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the mode weights have been calculated
-    :param labels: tuple, optional, labels for the different lists of sigmas provided
-    :param fname_suffix: str, optional, suffix to add to the saved file name
+    :param labels: list, optional, labels for the different lists of sigmas provided
+    :param fname: str, optional, file name to save plot to
     :param save: bool, whether to save to disk or not, default is False
-    :return:
     """
-    fname = f'segment_requirements_{c_target}'
-    if fname_suffix != '':
-        fname += f'_{fname_suffix}'
+    if fname is None:
+        fname = f'segment_requirements_{c_target:.2e}'
 
-    # Figure out how many sets of sigmas we have
-    if isinstance(mus, tuple):
+    # Figure out how many sets of mode coefficients per segment we have
+    if isinstance(mus, list):
         sets = len(mus)
-        if labels is None:
-            raise AttributeError('A tuple of labels needs to be defined when more than one set of mus is provided.')
+        if sets > 1:
+            if labels is None:
+                raise AttributeError('A list of labels needs to be defined when more than one set of mus is provided.')
+        elif sets == 1:
+            mus = mus[0]
     elif isinstance(mus, np.ndarray) and mus.ndim == 1:
         sets = 1
     else:
-        raise AttributeError('Segment weights "mus" must be an array of values, or a tuple of such arrays.')
+        raise AttributeError('Segment weights "mus" must be a 1d array of values, or a list of such arrays.')
 
     plt.figure(figsize=(12, 8))
     if sets == 1:
@@ -463,6 +466,7 @@ def plot_segment_weights(mus, out_dir, c_target, labels=None, fname_suffix='', s
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     if labels is not None:
         plt.legend(prop={'size': 25}, loc=(0.15, 0.73))
+    plt.grid()
     plt.tight_layout()
 
     if save:
@@ -473,11 +477,11 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
     """
     Plot the segment requirement map for a specific target contrast.
     :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
-    :param mus: array or list, segment requirements (standard deviations) in nm
+    :param mus: array or list, segment requirements (standard deviations) in nm WFE
     :param sim_instance: class instance of the simulator for "instrument"
     :param out_dir: str, output path to save the figure to if save=True
     :param c_target: float, target contrast for which the segment requirements have been calculated
-    :param limits: tuple, colorbar limirs, deault is None
+    :param limits: tuple, colorbar limits, default is None
     :param fname_suffix: str, optional, suffix to add to the saved file name
     :param save: bool, whether to save to disk or not, default is False
     :return:
@@ -994,3 +998,60 @@ def natural_keys(text):
     https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside)
     """
     return [atoi(c) for c in re.split(r'(\d+)', text)]
+
+
+def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_dir=None, fname=None):
+    """
+    Creates surface deformation maps (not WFE) for localized wavefront aberrations.
+
+    The input mode coefficients 'mus' are in units of *WFE* and need to be grouped by segment, meaning the array holds
+    the mode coefficients as:
+        mode1 on seg1, mode2 on seg1, ..., mode'nmodes' on seg1, mode1 on seg2, mode2 on seg2 and so on.
+
+    Parameters:
+    -----------
+    tel : class instance of internal simulator
+        the simulator to plot the surface maps for
+    mus : 1d array
+        1d array of standard deviations for all modes on each segment, in nm WFE
+    num_modes : int
+        number of local modes used to poke each segment
+    mirror : str
+        'harris_seg_mirror' or 'seg_mirror', segmented mirror of simulator 'tel' to use for plotting
+    cmin : float
+        minimum value for colorbar
+    cmax : float
+        maximum value for colorbar
+    data_dir : str, default None
+        path to save the plots; if None, then not saved to disk
+    fname : str, default None
+        file name for surface maps saved to disk
+    """
+    if fname is None:
+        fname = f'surface_on_{mirror}'
+
+    mus_per_actuator = pastis.util.sort_1d_mus_per_actuator(mus, num_modes, tel.nseg)  # in nm
+
+    mu_maps = []
+    for mode in range(num_modes):
+        coeffs = mus_per_actuator[mode]
+        if mirror == 'harris_seg_mirror':
+            tel.harris_sm.actuators = coeffs * 1e-9 / 2  # in meters of surface
+            mu_maps.append(tel.harris_sm.surface)  # in m
+        if mirror == 'seg_mirror':
+            tel.sm.actuators = coeffs * 1e-9 / 2  # in meters of surface
+            mu_maps.append(tel.sm.surface)  # in m
+
+    plot_norm = TwoSlopeNorm(vcenter=0, vmin=cmin, vmax=cmax)
+    for i in range(num_modes):
+        plt.figure(figsize=(7, 5))
+        hcipy.imshow_field((mu_maps[i]) * 1e12, norm=plot_norm, cmap='RdBu')
+        plt.tick_params(top=False, bottom=True, left=True, right=False, labelleft=True, labelbottom=True)
+        cbar = plt.colorbar()
+        cbar.ax.tick_params(labelsize=10)
+        cbar.set_label("Surface (pm)", fontsize=10)
+        plt.tight_layout()
+
+        if data_dir is not None:
+            fname += f'_mode_{i}.pdf'
+            plt.savefig(os.path.join(data_dir, 'mu_maps', fname))
