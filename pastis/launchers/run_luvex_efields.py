@@ -1,18 +1,15 @@
-import os
-from astropy.io import fits
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-import pastis.util as util
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldHex
-from pastis.pastis_analysis import calculate_segment_constraints
-import pastis.plotting as ppl
+from pastis.ultra_analysis import MultiModeAnalysis
 
 
 if __name__ == '__main__':
     
     NUM_RINGS = 1
     WHICH_DM = 'harris_seg_mirror'   # 'harris_seg_mirror' or 'seg_mirror', or (global) 'zernike_mirror'
+    C_TARGET = 6.3 * 1e-11
     
     # DM_SPEC = tuple or int, specification for the used DM -
     # for seg_mirror: int, number of local Zernike modes on each segment
@@ -32,7 +29,7 @@ if __name__ == '__main__':
         DM_SPEC = 3
         NUM_MODES = DM_SPEC
 
-    # First generate a couple of matrices
+    # Calculate sensitivity matrix
     run_matrix = MatrixEfieldHex(which_dm=WHICH_DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
                                  calc_science=True, calc_wfs=True,
                                  initial_path=CONFIG_PASTIS.get('local', 'local_data_path'), norm_one_photon=True)
@@ -40,32 +37,6 @@ if __name__ == '__main__':
     dir_run = run_matrix.overall_dir
     print(f'All saved to {dir_run}.')
 
-    # get the automatically saved pastis_matrix
-    pastis_matrix = fits.getdata(os.path.join(dir_run, 'matrix_numerical', 'pastis_matrix.fits'))
-
-    # get the unaberrated coro_psf after the matrix run
-    e0_psf = fits.getdata(os.path.join(dir_run, 'unaberrated_coro_psf.fits'))  # already normalized to max of direct pdf
-    dh_mask = np.array(run_matrix.simulator.dh_mask.shaped)
-    contrast_floor = util.dh_mean(e0_psf, dh_mask)
-
-    # Calculate the static tolerances
-    c_target = 6.3*1e-11
-    mus = calculate_segment_constraints(pastis_matrix, c_target=c_target, coronagraph_floor=contrast_floor)
-    np.savetxt(os.path.join(dir_run, f'mus_{c_target:.2e}_{NUM_RINGS:d}.csv'), mus, delimiter=',')
-
-    nseg = run_matrix.simulator.nseg
-    coeffs_table = util.sort_1d_mus_per_segment(mus, NUM_MODES, nseg)
-    mu_list = []
-    label_list = []
-    for i in range(coeffs_table.shape[0]):
-        mu_list.append(coeffs_table[i])
-        if WHICH_DM == 'seg_mirror':
-            label_list.append(f'Zernike mode {i}')
-    if WHICH_DM == 'harris_seg_mirror':
-        label_list = ['Faceplates Silvered', 'Bulk', 'Gradient Radial', 'Gradient X lateral', 'Gradient Z axial']
-
-    ppl.plot_segment_weights(mu_list, dir_run, c_target, labels=label_list, fname=f'stat_1d_mus_{c_target:.2e}', save=True)
-    tel = run_matrix.simulator
-    os.makedirs(os.path.join(dir_run, 'mu_maps'), exist_ok=True)
-    ppl.plot_multimode_surface_maps(tel, mus, NUM_MODES, mirror=WHICH_DM, cmin=-5, cmax=5,
-                                    data_dir=dir_run, fname='stat_mu_maps')
+    # Run the analysis
+    analysis = MultiModeAnalysis(C_TARGET, run_matrix.simulator, WHICH_DM, NUM_MODES, dir_run)
+    analysis.run()
