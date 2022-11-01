@@ -18,9 +18,10 @@ log = logging.getLogger()
 
 class LuvoirA_APLC(ScdaAPLC):
     """LUVOIR A with APLC simulator"""
+
     def __init__(self, input_dir, apod_design, sampling):
         """
-        Parameters:
+        Parameters
         ----------
         input_dir : string
             Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
@@ -91,17 +92,18 @@ class LuvoirAPLC(LuvoirA_APLC):
 
 
 class LuvoirBVortex(SegmentedTelescope):
-    """A segmented Vortex coronagraph
-
-    Parameters:
-    ----------
-    input_dir : string
-        Path to input files: DMs, aperture, indexed aperture, Lyot stop, etc.
-    charge : int
-        charge of vortex coronagraph
-    """
+    """A segmented Vortex coronagraph"""
 
     def __init__(self, input_dir, charge):
+        """
+        Parameters
+        ----------
+        input_dir : string
+            Path to input files: DMs, aperture, indexed aperture, Lyot stop, etc.
+        charge : int
+            charge of vortex coronagraph
+        """
+
         self.input_dir = input_dir
         self.set_up_telescope()
         super().__init__(indexed_aper=self.indexed_aperture, seg_pos=self.seg_pos,
@@ -179,7 +181,7 @@ class LuvoirBVortex(SegmentedTelescope):
     def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None):
         """Calculate the PSF of LUVOIR B, and return optionally all E-fields.
 
-        Parameters:
+        Parameters
         ----------
         ref : bool
             Whether to return the reference (direct) PSF

@@ -556,7 +556,7 @@ class SegmentedTelescope(Telescope):
 
     The segments are numbered following their respective index in the indexed aperture input file.
 
-    Attributes:
+    Attributes
     ----------
     aper_ind : hcipy.Field
         Indexed telescope aperture
@@ -1021,7 +1021,7 @@ class SegmentedTelescope(Telescope):
 class SegmentedAPLC(SegmentedTelescope):
     """A segmented Apodized Pupil Lyot Coronagraph (APLC)
 
-    Attributes:
+    Attributes
     ----------
     apodizer : hcipy.Field
         Apodizer

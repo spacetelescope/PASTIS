@@ -15,6 +15,8 @@ log = logging.getLogger()
 
 
 class ScdaAPLC(SegmentedAPLC):
+    """Any segmented telescope with APLC created with optimization scripts from SCDA."""
+
     def __init__(self, input_dir, sampling, diameter, seg_flat_to_flat, wvln, imlamD, aplc_params):
         num_seg = aplc_params['num_seg']
         aper_fname = aplc_params['aper_fname']
@@ -68,20 +70,21 @@ class ScdaAPLC(SegmentedAPLC):
 
 
 class HexRingAPLC(ScdaAPLC):
-    """Segmented telescope with APLC with varying number of hexagonal segment rings.
+    """Segmented telescope with APLC with varying number of hexagonal segment rings."""
 
-    Parameters:
-    ----------
-    input_dir : string
-        Path to directories sorted by number of rings that contain the input files: apodizer, aperture, indexed aperture, Lyot stop.
-    num_rings : integer
-        Numer of segment rings.
-    sampling : float
-        Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
-    robustness_px : int
-        Robustness to Lyot stop misalignments in pixels. 0, 2, 4 or 8.
-    """
     def __init__(self, input_dir, num_rings, sampling, robustness_px=0):
+        """
+        Parameters:
+        ----------
+        input_dir : string
+            Path to directories sorted by number of rings that contain the input files: apodizer, aperture, indexed aperture, Lyot stop.
+        num_rings : integer
+            Numer of segment rings.
+        sampling : float
+            Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
+        robustness_px : int
+            Robustness to Lyot stop misalignments in pixels. 0, 2, 4 or 8.
+        """
         if num_rings not in [1, 2, 3, 4, 5]:
             raise ValueError(f"No telescope/coronagraph solution provided for {num_rings} number of rings.")
         self.num_rings = num_rings

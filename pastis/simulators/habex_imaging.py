@@ -13,7 +13,15 @@ log = logging.getLogger()
 
 
 class Habex_VC(Telescope):
+    """Habex telescope with a Vortex coronagraph."""
+
     def __init__(self, charge):
+        """
+        Parameters
+        ----------
+        charge : int
+            Charge of the Vortex coronagraph.
+        """
 
         # Define or read parameters
         pxsize = CONFIG_PASTIS.getfloat('HabEx', 'pupil_pixels')
@@ -52,7 +60,7 @@ class Habex_VC(Telescope):
     def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
         """Calculate the PSF of this telescope, and return optionally all E-fields.
 
-        Parameters:
+        Parameters
         ----------
         ref : bool
             Keyword for additionally returning the reference PSF without the FPM.
@@ -63,7 +71,7 @@ class Habex_VC(Telescope):
         norm_one_photon : bool
             Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_image.intensity : Field
             returned if return_intermediate=None (default)
