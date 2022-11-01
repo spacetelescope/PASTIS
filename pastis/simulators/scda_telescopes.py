@@ -68,7 +68,7 @@ class ScdaAPLC(SegmentedAPLC):
 
 
 class HexRingAPLC(ScdaAPLC):
-    """ Segmented telescope with APLC with varying number of hexagonal segment rings.
+    """Segmented telescope with APLC with varying number of hexagonal segment rings.
 
     Parameters:
     ----------

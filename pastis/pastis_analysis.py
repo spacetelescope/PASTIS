@@ -1,8 +1,9 @@
 """
 This is a module that lets you do a full PASTIS WFE requirement analysis from a PASTIS matrix.
 
-Currently supports only LUVOIR.
+Supports LUVOIR, HiCAT, JWST.
 """
+
 import os
 import time
 import numpy as np
@@ -26,15 +27,26 @@ log = logging.getLogger(__name__)
 
 
 def modes_from_matrix(instrument, datadir, saving=True):
-    """
-    Calculate mode basis and singular values from PASTIS matrix using an SVD. In the case of the PASTIS matrix,
-    this is equivalent to using an eigendecomposition, because the matrix is symmetric. Note how the SVD orders the
-    modes and singular values in reverse order compared to an eigendecomposition.
+    """Calculate mode basis and singular values from PASTIS matrix using an SVD.
 
-    :param instrument: string, "LUVOIR", "HiCAT" or "JWST"
-    :param datadir: string, path to overall data directory containing matrix and results folder
-    :param saving: string, whether to save singular values, modes and their plots or not; default=True
-    :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
+    In the case of the PASTIS matrix, this is equivalent to using an eigendecomposition, because the matrix is
+    symmetric. Note how the SVD orders the modes and singular values in reverse order compared to an eigendecomposition.
+
+    Parameters
+    ----------
+    instrument : string
+        "LUVOIR", "HiCAT" or "JWST"
+    datadir : string
+        path to overall data directory containing matrix and results folder
+    saving : bool, default True
+        whether to save singular values, modes and their plots or not
+
+    Returns
+    -------
+    pmodes : ndarray
+        pastis modes (which are the singular vectors/eigenvectors)
+    svals : ndarray
+        singular values/eigenvalues
     """
 
     # Read matrix
@@ -61,10 +73,19 @@ def modes_from_matrix(instrument, datadir, saving=True):
 
 
 def modes_from_file(datadir):
-    """
-    Read mode basis and singular values of a PASTIS matrix from file.
-    :param datadir: string, path to overall data directory containing matrix and results folder
-    :return: pastis modes (which are the singular vectors/eigenvectors), singular values/eigenvalues
+    """Read mode basis and singular values of a PASTIS matrix from file.
+
+    Parameters
+    ----------
+    datadir : string
+        path to overall data directory containing matrix and results folder
+
+    Returns
+    -------
+    pmodes : ndarray
+        pastis modes (which are the singular vectors/eigenvectors)
+    svals : ndarray
+        singular values/eigenvalues
     """
 
     svals = np.loadtxt(os.path.join(datadir, 'results', 'eigenvalues.txt'))
@@ -74,20 +95,30 @@ def modes_from_file(datadir):
 
 
 def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving=False):
-    """
-    Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
+    """Put all modes onto the segmented mirror in the pupil and get full 2D pastis modes, in pupil plane and focal plane.
 
     Take the pmodes array of all modes (shape [segnum, modenum] = [nseg, nseg]) and apply them onto a segmented mirror
     in the pupil. This phase gets returned both as an array of 2D arrays.
     Both the pupl plane and the focal plane modes get save into a PDF grid, and as a cube to fits. Optionally, you can
     save the pupil plane modes individually to PDF files by setting saving=True.
 
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
-    :param pmodes: array of PASTIS modes [segnum, modenum], expected in nanometers
-    :param datadir: string, path to overall data directory containing matrix and results folder
-    :param sim_instance: class instance of the simulator for "instrument"
-    :param saving: bool, whether to save the individual pupil plane modes as PDFs to disk, default=False
-    :return: cube of pupil plane modes as array of 2D arrays
+    Parameters
+    ----------
+    instrument : string
+        'LUVOIR', 'HiCAT' or 'JWST'
+    pmodes : ndarray
+        array of PASTIS modes [segnum, modenum], in nanometers
+    datadir : string
+        path to overall data directory containing matrix and results folder
+    sim_instance : instance of the simulator for "instrument"
+        instance of the simulator for "instrument"
+    saving : bool, default False
+        whether to save the individual pupil plane modes as PDFs to disk
+
+    Returns
+    -------
+    mode_cube : ndarray
+        cube of pupil plane modes as array of 2D arrays
     """
 
     nseg = pmodes.shape[0]
@@ -201,10 +232,19 @@ def full_modes_from_themselves(instrument, pmodes, datadir, sim_instance, saving
 
 
 def full_modes_from_file(datadir):
-    """
-    Read all modes into an array of hcipy.Fields and an array of 2D arrays.
-    :param datadir: string, path to overall data directory containing matrix and results folder
-    :return: all_modes as array of Fields, mode_cube as array of 2D arrays (hcipy vs matplotlib)
+    """Read all modes into an array of hcipy.Fields and an array of 2D arrays.
+
+    Parameters
+    ----------
+    datadir : string
+        path to overall data directory containing matrix and results folder
+
+    Returns
+    -------
+    all_modes : ndarray
+        all pastis modes as an array of Fields
+    mode_cube : ndarray
+        all pastis modes as a 2D array
     """
 
     mode_cube = hcipy.read_fits(os.path.join(datadir, 'results', 'modes', 'pupil_plane', 'fits', 'cube_modes.fits'))
@@ -214,42 +254,76 @@ def full_modes_from_file(datadir):
 
 
 def calculate_sigma(cstat, nmodes, svalues, c_floor):
+    """Calculate the maximum mode contribution(s) from the static contrast target and the singular values.
+
+    Parameters
+    ----------
+    cstat : float
+        static contrast requirement
+    nmodes : int
+        number of contributing PASTIS modes we want to calculate the sigmas for
+    svalues : float or array
+        singular value(s) of the mode(s) we are calculating the sigma(s) for
+    c_floor : float
+        coronagraph floor (baseline contrast without aberrations)
+
+    Returns
+    -------
+    sigma : float or array
+        maximum mode contribution sigma for each mode
     """
-    Calculate the maximum mode contribution(s) from the static contrast target and the singular values.
-    :param cstat: float, static contrast requirement
-    :param nmodes: int, number of contributing PASTIS modes we want to calculate the sigmas for
-    :param svalues: float or array, singular value(s) of the mode(s) we are calculating the sigma(s) for
-    :param c_floor: float, coronagraph floor (baseline contrast without aberrations)
-    :return: sigma: float or array, maximum mode contribution sigma for each mode
-    """
+
     sigma = np.sqrt((cstat - c_floor) / (nmodes * svalues))
     return sigma
 
 
 def calculate_delta_sigma(cdyn, nmodes, svalue):
+    """Calculate dynamic contrast contribution of a mode - not tested, not implemented anywhere.
+
+    Parameters
+    ----------
+    cdyn : float
+        dynamic contrast requirement
+    nmodes : float
+        dynamic contrast requirement
+    svalue : float
+        singular value of the mode we are calculating delta sigma for
+
+    Returns
+    -------
+    del_sigma : float
+        dynamic contrast contribution
     """
-    Calculate dynamic contrast contribution of a mode - not tested, not implemented anywhere
-    :param cdyn: float, dynamic contrast requirement
-    :param nseg: float, dynamic contrast requirement
-    :param svalue: float, singular value of the mode we are calculating delta sigma for
-    :return: float, dynamic contrast contribution
-    """
+
     del_sigma = np.sqrt(cdyn / (np.sqrt(nmodes) * svalue))
     return del_sigma
 
 
 def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, norm_direct, individual=False):
-    """
-    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    """Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using an E2E simulator.
-    :param instrument: string, 'LUVOIR' or 'HiCAT'
-    :param pmodes: array, PASTIS modes [nseg, nmodes]
-    :param sigmas: array, weights per PASTIS mode
-    :param sim_instance: class instance of the simulator for "instrument"
-    :param dh_mask: hcipy.Field, dh_mask that goes together with the instance of the LUVOIR simulator
-    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
-    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
-    :return: cont_cum_e2e, list of cumulative or individual contrasts
+
+    Parameters
+    ----------
+    instrument : string
+        'LUVOIR' or 'HiCAT'
+    pmodes : ndarray
+        PASTIS modes [nseg, nmodes]
+    sigmas : ndarray
+        weights per PASTIS mode
+    sim_instance : instance of the simulator for "instrument"
+        instance of the simulator for "instrument"
+    dh_mask : hcipy.Field
+        dh_mask that goes together with the instance of the LUVOIR simulator
+    norm_direct : float
+        normalization factor for PSF; peak of unaberrated direct PSF
+    individual : bool, default False
+        if False, calculates cumulative contrast, if True, calculates contrast per mode
+
+    Returns
+    -------
+    cont_cum_e2e : list
+        list of cumulative or individual contrasts
     """
 
     cont_cum_e2e = []
@@ -293,16 +367,28 @@ def cumulative_contrast_e2e(instrument, pmodes, sigmas, sim_instance, dh_mask, n
 
 
 def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False):
-    """
-    Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
+    """Calculate the cumulative contrast or contrast per mode of a set of PASTIS modes with mode weights sigmas,
     using PASTIS propagation.
-    :param pmodes: array, PASTIS modes [nseg, nmodes]
-    :param sigmas: array, weights per PASTIS mode
-    :param matrix: array, PASTIS matrix [nseg, nseg]
-    :param c_floor: float, coronagraph contrast floor
-    :param individual: bool, if False (default), calculates cumulative contrast, if True, calculates contrast per mode
-    :return: cont_cum_pastis, list of cumulative or individual contrasts
+
+    Parameters
+    ----------
+    pmodes : ndarray
+        PASTIS modes [nseg, nmodes]
+    sigmas : ndarray
+        weights per PASTIS mode
+    matrix : ndarray
+        PASTIS matrix [nseg, nseg]
+    c_floor : float
+        coronagraph contrast floor
+    individual : bool, default False
+        if False, calculates cumulative contrast, if True, calculates contrast per mode
+
+    Returns
+    -------
+    cont_cum_pastis : list
+        list of cumulative or individual contrasts
     """
+
     cont_cum_pastis = []
     for maxmode in range(pmodes.shape[0]):
 
@@ -319,13 +405,23 @@ def cumulative_contrast_matrix(pmodes, sigmas, matrix, c_floor, individual=False
 
 
 def calculate_segment_constraints(pastismatrix, c_target, coronagraph_floor):
+    """Calculate segment-based PASTIS constraints from PASTIS matrix and PASTIS modes.
+
+    Parameters
+    ----------
+    pastismatrix : ndarray
+        full PASTIS matrix [nseg, nseg]
+    c_target : float
+        static target contrast
+    coronagraph_floor : float
+        coronagraph contrast floor
+
+    Returns
+    -------
+    mu_map : ndarray
+         map of segment-based PASTIS constraints
     """
-    Calculate segment-based PASTIS constraints from PASTIS matrix and PASTIS modes.
-    :param pastismatrix: array, full PASTIS matrix [nseg, nseg]
-    :param c_target: float, static target contrast
-    :param coronagraph_floor: float, coronagraph contrast floor
-    :return: mu_map: array, map of segment-based PASTIS constraints
-    """
+
     nseg = pastismatrix.shape[0]
     mu_map = np.sqrt((c_target - coronagraph_floor) / (nseg * np.diag(pastismatrix)))
 
@@ -333,15 +429,27 @@ def calculate_segment_constraints(pastismatrix, c_target, coronagraph_floor):
 
 
 def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, norm_direct):
-    """
-    Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
-    :param sim_instance: class instance of the simulator for "instrument"
-    :param mus: array, segment-based PASTIS constraints in nm
-    :param dh_mask: array, dark hole mask for PSF produced by/for instrument
-    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
-    :return: random_map: list, random segment map used in this PSF calculation in m;
-             rand_contrast: float, mean contrast of the calculated PSF
+    """Calculate the PSF after applying a randomly weighted set of segment-based PASTIS constraints on the pupil.
+
+    Parameters
+    ----------
+    instrument : string
+        "LUVOIR", "HiCAT" or "JWST"
+    sim_instance : instance of the simulator for "instrument"
+        instance of the simulator for "instrument"
+    mus : ndarray
+        segment-based PASTIS constraints in nm
+    dh_mask : ndarray
+        dark hole mask for PSF produced by/for instrument
+    norm_direct : float
+        normalization factor for PSF; peak of unaberrated direct PSF
+
+    Returns
+    -------
+    ndarray
+        random segment map used in this PSF calculation in m
+    float
+        mean contrast of the calculated PSF
     """
 
     # Create a random set of segment weights with mus as stddevs in the normal distribution
@@ -378,16 +486,29 @@ def calc_random_segment_configuration(instrument, sim_instance, mus, dh_mask, no
 
 
 def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh_mask, norm_direct):
-    """
-    Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
-    :param pmodes: array, pastis mode matrix [nseg, nmodes]
-    :param sim_instance: class instance of the simulator for "instrument"
-    :param sigmas: array, mode-based PASTIS constraints
-    :param dh_mask: array, dark hole mask for PSF produced by instrument
-    :param norm_direct: float, normalization factor for PSF; peak of unaberrated direct PSF
-    :return: random_weights: array, random weights used in this PSF calculation
-             rand_contrast: float, mean contrast of the calculated PSF
+    """Calculate the PSF after weighting the PASTIS modes with weights from a normal distribution with stddev = sigmas.
+
+    Parameters
+    ----------
+    instrument : string
+        "LUVOIR", "HiCAT" or "JWST"
+    pmodes : ndarray
+        pastis mode matrix [nseg, nmodes]
+    sim_instance : instance of the simulator for "instrument"
+        instance of the simulator for "instrument"
+    sigmas : ndarray
+        mode-based PASTIS constraints
+    dh_mask : ndarray
+        dark hole mask for PSF produced by instrument
+    norm_direct : float
+        normalization factor for PSF; peak of unaberrated direct PSF
+
+    Returns
+    -------
+    ndarray
+        random weights used in this PSF calculation
+    float
+        mean contrast of the calculated PSF
     """
 
     # Create a random set of mode weights with sigmas as stddevs in the normal distribution
@@ -428,8 +549,7 @@ def calc_random_mode_configurations(instrument, pmodes, sim_instance, sigmas, dh
 
 
 def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10, n_repeat=100):
-    """
-    Run a full PASTIS analysis on a given PASTIS matrix.
+    """Run a full PASTIS analysis on a given PASTIS matrix.
 
     The first couple of lines contain switches to turn different parts of the analysis on and off. These include:
     1. calculating the PASTIS modes
@@ -440,14 +560,25 @@ def run_full_pastis_analysis(instrument, run_choice, design=None, c_target=1e-10
     6. running an E2E Monte Carlo simulation on the segments with their weights mu
     7. calculating the segment- and mode-space covariance matrices Ca and Cb
     8. analytically calculating the statistical mean contrast and its variance
-    9. calculting segment-based error budget
+    9. calculating segment-based error budget
 
-    :param instrument: str, "LUVOIR", "HiCAT" or "JWST"
-    :param run_choice: str, path to data and where outputs will be saved
-    :param design: str, optional, default=None, which means we read from the configfile (if running for LUVOIR):
-                   what coronagraph design to use - 'small', 'medium' or 'large'
-    :param c_target: float, target contrast
-    :param n_repeat: number of realizations in both Monte Carlo simulations (modes and segments), default=100
+    Parameters
+    ----------
+    instrument : string
+        "LUVOIR", "HiCAT" or "JWST"
+    run_choice : string
+        path to data and where outputs will be saved
+    design : string, default None
+        "None" means we read from the configfile (if running for LUVOIR):
+        what coronagraph design to use - 'small', 'medium' or 'large'
+    c_target : float
+        target contrast
+    n_repeat : int, default 100
+        number of realizations in both Monte Carlo simulations (modes and segments)
+
+    Returns
+    -------
+
     """
 
     # Which parts are we running?

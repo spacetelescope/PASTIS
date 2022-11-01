@@ -22,7 +22,7 @@ matplotlib.rc('pdf', fonttype=42)
 
 class PastisMatrixEfields(PastisMatrix):
     instrument = None
-    """ Main class for PASTIS matrix calculations from individually 'poked' modes. """
+    """Main class for PASTIS matrix calculations from individually 'poked' modes."""
 
     def __init__(self, nb_seg, seglist, calc_science, calc_wfs,
                  initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
@@ -37,9 +37,9 @@ class PastisMatrixEfields(PastisMatrix):
             Whether to calculate the Efields in the science focal plane.
         calc_wfs : bool
             Whether to calculate the Efields in the out-of-band Zernike WFS plane.
-        initial_path: string
+        initial_path : string
             Path to top-level directory where result folder should be saved to.
-        saveefields: bool
+        saveefields : bool
             Whether to save E-fields both at focal and wfs plane as fits file to disk or not
         saveopds : bool
             Whether to save images of pair-wise aberrated pupils to disk or not
@@ -58,7 +58,7 @@ class PastisMatrixEfields(PastisMatrix):
         self.norm_one_photon = norm_one_photon
 
     def calc(self):
-        """ Main method that calculates the PASTIS matrix """
+        """Main method that calculates the PASTIS matrix"""
 
         start_time = time.time()
 
@@ -76,7 +76,7 @@ class PastisMatrixEfields(PastisMatrix):
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_efields(self):
-        """ Poke each mode individually and calculate the resulting focal plane E-field. """
+        """Poke each mode individually and calculate the resulting focal plane E-field."""
 
         for i in range(self.number_all_modes):
             efields = self.calculate_one_mode(i)
@@ -111,7 +111,7 @@ class PastisMatrixEfields(PastisMatrix):
                 hcipy.write_fits(efield_obwfs_imag, os.path.join(self.resDir, 'efield_obwfs_imag.fits'))
 
     def calculate_pastis_matrix_from_efields(self):
-        """ Use the individual-mode E-fields to calculate the PASTIS matrix from it. """
+        """Use the individual-mode E-fields to calculate the PASTIS matrix from it."""
 
         self.matrix_pastis = pastis_matrix_from_efields(self.efields_per_mode, self.efield_ref, self.norm, self.dh_mask, self.wfe_aber)
 
@@ -122,31 +122,43 @@ class PastisMatrixEfields(PastisMatrix):
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
     def calculate_ref_efield(self):
-        """ Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref. """
+        """Create the attributes self.norm, self.dh_mask, self.coro_simulator and self.efield_ref."""
         raise NotImplementedError()
 
     def calculate_ref_efield_wfs(self):
-        """ Create the attribute self.efield_ref_wfs. """
+        """Create the attribute self.efield_ref_wfs."""
         raise NotImplementedError()
 
     def setup_deformable_mirror(self):
-        """ Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators. """
+        """Set up the deformable mirror for the modes you're using, if necessary, and define the total number of mode actuators."""
         raise NotImplementedError()
 
     def setup_single_mode_function(self):
-        """ Create an attribute that is the partial function that can calculate the focal plane E-field from one
-        aberrated mode. This needs to create self.calculate_one_mode. """
+        """Create an attribute that is the partial function that can calculate the focal plane E-field from one
+        aberrated mode. This needs to create self.calculate_one_mode."""
         raise NotImplementedError()
 
 
 def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask, wfe_aber):
-    """ Calculate the semi-analytical PASTIS matrix from the individual E-fields
-    :param electric_fields: list, items of same type as "efield_ref", individually poked mode E-fields
-    :param efield_ref: same type as items in "electric_fields", reference E-field of an unaberrated system
-    :param direct_norm: float, normalization factor - peak pixel of a direct PSF
-    :param dh_mask: array, dark hole mask
-    :param wfe_aber: float, calibration aberration in meters
-    :return: full, normalized PASTIS matrix
+    """Calculate the semi-analytical PASTIS matrix from the individual E-fields
+
+    Parameters
+    ----------
+    electric_fields : list
+        items of same type as "efield_ref", individually poked mode E-fields
+    efield_ref : ndarray or Field
+        same type as items in "electric_fields", reference E-field of an unaberrated system
+    direct_norm : float
+        normalization factor - peak pixel of a direct PSF
+    dh_mask : ndarray or Field
+        dark hole mask
+    wfe_aber : float
+        calibration aberration in meters
+
+    Returns
+    -------
+    matrix_pastis : ndarray
+        full, normalized PASTIS matrix
     """
 
     matrix_pastis_half = calculate_semi_analytic_pastis_from_efields(electric_fields, efield_ref, direct_norm, dh_mask)
@@ -162,17 +174,27 @@ def pastis_matrix_from_efields(electric_fields, efield_ref, direct_norm, dh_mask
 
 
 def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm, dh_mask):
-    """
-    Perform the semi-analytical calculation to go from list of E-fields to PASTIS matrix.
+    """Perform the semi-analytical calculation to go from list of E-fields to PASTIS matrix.
 
     This function calculates the elements of the (half !) PASTIS matrix from the E-field responses of the individually
     poked modes, in which the reference E-field has not been subtracted yet. The calculation is only performed on the
     half-PASTIS matrix, so it will need to be symmetrized after this step.
-    :param efields: list, items of same type as "efield_ref", individually poked mode E-fields
-    :param efield_ref: same type as items in "efields", reference E-field of an unaberrated system
-    :param direct_norm: float, normalization factor - peak pixel of a direct PSF
-    :param dh_mask: array, dark hole mask
-    :return: half-PASTIS matrix, where one of its matrix triangles will be all zeros
+
+    Parameters
+    ----------
+    efields : list
+        items of same type as "efield_ref", individually poked mode E-fields
+    efield_ref : ndarray or Field
+        same type as items in "efields", reference E-field of an unaberrated system
+    direct_norm : float
+        normalization factor - peak pixel of a direct PSF
+    dh_mask : ndarray or Field
+        dark hole mask
+
+    Returns
+    -------
+    matrix_pastis_half : ndarray
+        half-PASTIS matrix, where one of its matrix triangles will be all zeros
     """
 
     # Create empty matrix
@@ -189,24 +211,37 @@ def calculate_semi_analytic_pastis_from_efields(efields, efield_ref, direct_norm
 
 
 class MatrixEfieldInternalSimulator(PastisMatrixEfields):
-    """ Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields. """
+    """Calculate a PASTIS matrix for one of the package-internal simulators, using E-fields."""
     def __init__(self, which_dm, dm_spec, nb_seg, seglist, calc_science, calc_wfs,
                  initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
-        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-        :param dm_spec: tuple or int, specification for the used DM -
-                        for seg_mirror: int, number of local Zernike modes on each segment
-                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
-                        for zernike_mirror: int, number of global Zernikes
-        :param nb_seg: int, Number of segments in the segmented aperture.
-        :param seglist: list or array, list of all segment indices, as given in the indexed aperture file.
-        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
-        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
-        :param initial_path: string, path to top-level directory where result folder should be saved to.
-        :param saveefields: bool, whether to save E-fields as fits file to disk or not
-        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
-        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+        Parameters
+        ----------
+        which_dm : string
+            Which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        dm_spec : tuple or int
+            Specification for the used DM:
+            for seg_mirror : int, number of local Zernike modes on each segment
+            for harris_seg_mirror : tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+            for zernike_mirror : int, number of global Zernikes
+        nb_seg : int
+            Number of segments in the segmented aperture.
+        seglist : list or array
+            List of all segment indices, as given in the indexed aperture file.
+        calc_science : bool
+            Whether to calculate the Efields in the science focal plane.
+        calc_wfs : bool
+            Whether to calculate the Efields in the out-of-band Zernike WFS plane.
+        initial_path : string
+            Path to top-level directory where result folder should be saved to.
+        saveefields : bool, default True
+            Whether to save E-fields as fits file to disk or not
+        saveopds : bool, default True
+            Whether to save images of pair-wise aberrated pupils to disk or not
+        norm_one_photon : bool, default True
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
         """
+
         super().__init__(nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
                          initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
         self.which_dm = which_dm
@@ -215,11 +250,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.instantiate_simulator()
 
     def instantiate_simulator(self):
-        """ Create a simulator object and save to self.simulator """
+        """Create a simulator object and save to self.simulator"""
         raise NotImplementedError()
 
     def calculate_ref_efield(self):
         """Calculate the reference E-field, DH mask, and direct PSF norm factor."""
+
         self.dh_mask = self.simulator.dh_mask
 
         # Calculate contrast normalization factor from direct PSF (intensity)
@@ -254,6 +290,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
     def calculate_ref_efield_wfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
+
         unaberrated_ref_efield_wfs = self.simulator.calc_out_of_band_wfs(norm_one_photon=self.norm_one_photon)
         self.efield_ref_wfs = unaberrated_ref_efield_wfs
 
@@ -266,7 +303,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
             hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'ref_e0_wfs.fits'))
 
     def setup_deformable_mirror(self):
-        """ Set up the deformable mirror for the modes you're using and define the total number of mode actuators. """
+        """Set up the deformable mirror for the modes you're using and define the total number of mode actuators."""
 
         log.info('Setting up deformable mirror...')
         if self.which_dm == 'seg_mirror':
@@ -294,32 +331,45 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         log.info(f'Total number of modes: {self.number_all_modes}')
 
     def setup_single_mode_function(self):
-        """ Create the partial function that returns the E-field of a single aberrated mode. """
+        """Create the partial function that returns the E-field of a single aberrated mode."""
+
         self.calculate_one_mode = functools.partial(_simulator_matrix_single_mode, self.which_dm, self.number_all_modes,
                                                     self.wfe_aber, self.simulator, self.calc_science, self.calc_wfs,
                                                     self.norm_one_photon, self.resDir, self.saveopds)
 
 
 class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
-    """ Calculate a PASTIS matrix for LUVOIR-A, using E-fields. """
+    """Calculate a PASTIS matrix for LUVOIR-A, using E-fields."""
     instrument = 'LUVOIR'
 
     def __init__(self, which_dm, dm_spec, design='small', calc_science=True, calc_wfs=False,
                  initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
-        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-        :param dm_spec: tuple or int, specification for the used DM -
-                        for seg_mirror: int, number of local Zernike modes on each segment
-                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
-                        for zernike_mirror: int, number of global Zernikes
-        :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
-        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
-        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
-        :param initial_path: string, path to top-level directory where result folder should be saved to.
-        :param saveefields: bool, whether to save E-fields as fits file to disk or not
-        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
-        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+        Parameters
+        ----------
+        which_dm : string
+            which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        dm_spec : tuple or int
+            Specification for the used DM:
+            for seg_mirror : int, number of local Zernike modes on each segment
+            for harris_seg_mirror : tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+            for zernike_mirror : int, number of global Zernikes
+        design : string
+            what coronagraph design to use - 'small', 'medium' or 'large'
+        calc_science : bool, default True
+            whether to calculate the Efields in the science focal plane
+        calc_wfs : bool, default False
+            whether to calculate the Efields in the out-of-band Zernike WFS plane
+        initial_path : string
+            path to top-level directory where result folder should be saved to
+        saveefields : bool, default True
+            whether to save E-fields as fits file to disk or not
+        saveopds : bool, default True
+            whether to save images of pair-wise aberrated pupils to disk or not
+        norm_one_photon : bool, default True
+            whether to normalize the returned E-fields and intensities to one photon in the entrance pupil
         """
+
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
         seglist = util.get_segment_list(self.instrument)
         self.design = design
@@ -333,25 +383,38 @@ class MatrixEfieldLuvoirA(MatrixEfieldInternalSimulator):
 
 
 class MatrixEfieldHex(MatrixEfieldInternalSimulator):
-    """ Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields. """
+    """Calculate a PASTIS matrix for a SCDA Hex aperture with 1-5 segment rings, using E-fields."""
+
     instrument = 'HexRingTelescope'
 
     def __init__(self, which_dm, dm_spec, num_rings=1, calc_science=True, calc_wfs=False,
                  initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
         """
-        :param which_dm: string, which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-        :param dm_spec: tuple or int, specification for the used DM -
-                        for seg_mirror: int, number of local Zernike modes on each segment
-                        for harris_seg_mirror: tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
-                        for zernike_mirror: int, number of global Zernikes
-        :param num_rings: int, number of hexagonal segment rings
-        :param calc_science: bool, whether to calculate the Efields in the science focal plane.
-        :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
-        :param initial_path: string, path to top-level directory where result folder should be saved to.
-        :param saveefields: bool, whether to save E-fields as fits file to disk or not
-        :param saveopds: bool, whether to save images of pair-wise aberrated pupils to disk or not
-        :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+        Parameters
+        ----------
+        which_dm : string
+            which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        dm_spec : tuple or int
+            Specification for the used DM:
+            for seg_mirror : int, number of local Zernike modes on each segment
+            for harris_seg_mirror : tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+            for zernike_mirror : int, number of global Zernikes
+        num_rings : int
+            number of hexagonal segment rings that specifies the telescope geometry
+        calc_science : bool, default True
+            whether to calculate the Efields in the science focal plane
+        calc_wfs : bool, default False
+            whether to calculate the Efields in the out-of-band Zernike WFS plane
+        initial_path : string
+            path to top-level directory where result folder should be saved to
+        saveefields : bool, default True
+            whether to save E-fields as fits file to disk or not
+        saveopds : bool, default True
+            whether to save images of pair-wise aberrated pupils to disk or not
+        norm_one_photon : bool, default True
+            whether to normalize the returned E-fields and intensities to one photon in the entrance pupil
         """
+
         nb_seg = 3 * num_rings * (num_rings + 1) + 1
         seglist = np.arange(nb_seg) + 1
         self.num_rings = num_rings
@@ -365,9 +428,8 @@ class MatrixEfieldHex(MatrixEfieldInternalSimulator):
 
 
 class MatrixEfieldRST(PastisMatrixEfields):
-    """
-    Class to calculate the PASTIS matrix from E-fields of RST CGI.
-    """
+    """Class to calculate the PASTIS matrix from E-fields of RST CGI."""
+
     instrument = 'RST'
 
     def __init__(self, initial_path='', saveefields=True, saveopds=True):
@@ -408,27 +470,42 @@ class MatrixEfieldRST(PastisMatrixEfields):
         self.number_all_modes = CONFIG_PASTIS.getint('RST', 'nb_subapertures')
 
     def setup_single_mode_function(self):
-        """ Create the partial function that returns the E-field of a single aberrated mode. """
+        """Create the partial function that returns the E-field of a single aberrated mode."""
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.saveopds)
 
 
 def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, calc_science, calc_wfs,
                                   norm_one_photon, resDir, saveopds, mode_no):
-    """
-    Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
-    :param which_dm: string, which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
-    :param number_all_modes: int, total number of all modes
-    :param wfe_aber: float, calibration aberration in meters
-    :param simulator: instance of segmented telescope simulator
-    :param calc_science: bool, whether to calculate the Efields in the science focal plane.
-    :param calc_wfs: bool, whether to calculate the Efields in the out-of-band Zernike WFS plane.
-    :param norm_one_photon: bool, whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
-    :param resDir: str, directory for matrix calculation results
-    :param saveefields: bool, Whether to save E-fields as fits file to disk or not
-    :param saveopds: bool, Whether to save images of pair-wise aberrated pupils to disk or not
-    :param mode_no: int, which mode index to calculate the E-field for
-    :return: dict, resulting E-fields
+    """Calculate the mean E-field of one aberrated mode on one of the internal simulator instances; for PastisMatrixEfields().
+
+    Parameters
+    ----------
+    which_dm : string
+        which DM - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+    number_all_modes : int
+        total number of all modes
+    wfe_aber : float
+        calibration aberration in meters
+    simulator : simulator instance
+        instance of segmented telescope simulator
+    calc_science : bool
+        whether to calculate the Efields in the science focal plane
+    calc_wfs : bool
+        whether to calculate the Efields in the out-of-band Zernike WFS plane
+    norm_one_photon : bool
+        whether to normalize the returned E-fields and intensities to one photon in the entrance pupil
+    resDir : string
+        directory for matrix calculation results
+    saveopds : bool
+        Whether to save images of pair-wise aberrated pupils to disk or not
+    mode_no : int
+        which mode index to calculate the E-field for
+
+    Returns
+    -------
+    efields : dict
+        resulting E-fields
     """
 
     log.info(f'MODE NUMBER: {mode_no}')
@@ -473,15 +550,25 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
 
 
 def _rst_matrix_single_mode(wfe_aber, rst_sim, resDir, saveopds, mode_no):
-    """
-    Function to calculate RST Electrical field (E_field) of one DM actuator in CGI.
-    :param wfe_aber: float, calibration aberration per actuator in m
-    :param rst_sim: instance of CGI simulator
-    :param resDir: str, directory for matrix calculations
-    :param saveefields: bool, if True, all E_field will be saved to disk individually, as fits files
-    :param savepods: bool, if True, all pupil surface maps of aberrated actuators pairs will be saved to disk as PDF
-    :param mode_no: int, which aberrated actuator to calculate the E-field for
-    :return: dict, resulting E-fields
+    """Calculate RST Electrical field (E_field) of one DM actuator in CGI.
+
+    Parameters
+    ----------
+    wfe_aber : float
+        calibration aberration per actuator in m
+    rst_sim : CGI sim instance
+        RST simulator instance
+    resDir : string
+        directory for saving matrix calculations
+    saveopds : bool
+        whether to save all E_field to disk individually, as fits files
+    mode_no : int
+        which aberrated actuator to calculate the E-field for
+
+    Returns
+    -------
+    efields : dict
+        resulting E-fields
     """
 
     log.info(f'ACTUATOR NUMBER: {mode_no}')

@@ -6,7 +6,7 @@ OBSERVATORY_SECTIONS = ['JWST', 'RST', 'HiCAT', 'LUVOIR', 'LUVOIR-B']
 
 
 def test_main_sections():
-    """ Check that all main sections exist. """
+    """Check that all main sections exist."""
 
     for section in STANDARD_SECTIONS+OBSERVATORY_SECTIONS:
         exists = section in CONFIG_PASTIS
@@ -14,7 +14,7 @@ def test_main_sections():
 
 
 def test_data_paths():
-    """ Check that all required data paths exist. """
+    """Check that all required data paths exist."""
 
     data_keys = ['local_data_path', 'webbpsf_data_path']
     for key in data_keys:
@@ -22,7 +22,7 @@ def test_data_paths():
 
 
 def test_telescope():
-    """ Check that all required telescope keys exist. """
+    """Check that all required telescope keys exist."""
 
     telescope_keys = ['name']
     for key in telescope_keys:

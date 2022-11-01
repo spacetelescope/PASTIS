@@ -25,7 +25,7 @@ CONTRAST_MATRIX = fits.getdata(contrast_matrix_path)
 
 
 def test_semi_analytic_matrix_from_contrast_matrix():
-    """ Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct. """
+    """Test that the analytical calculation of the semi-analytical PASTIS matrix calculation is correct."""
 
     # Create seglist and drop in calibration aberration the matrices in tests/data have been created with
     seglist = util.get_segment_list('LUVOIR')
@@ -61,8 +61,8 @@ def test_semi_analytic_matrix_from_contrast_matrix():
 
 
 def test_pastis_forward_model():
-    """ Test that the PASTIS matrix propagates aberrations correctly
-    This is essentially a test for the hockey stick curve, inside its valid range. """
+    """Test that the PASTIS matrix propagates aberrations correctly
+    This is essentially a test for the hockey stick curve, inside its valid range."""
 
     # Define a couple of total pupil rms values of WFE to test
     rms_values = [1, 10, 15] * u.nm    # nm WFE rms over total  pupil
@@ -90,7 +90,7 @@ def test_pastis_forward_model():
 
 
 def test_luvoir_intensity_matrix_regression(tmpdir):
-    """ Check multiprocessed matrix calculation against previously calculated matrix """
+    """Check multiprocessed matrix calculation against previously calculated matrix"""
 
     # Calculate new LUVOIR small PASTIS matrix
     new_matrix_calc = matrix_calc.MatrixIntensityLuvoirA(design='small', savepsfs=False, saveopds=False, initial_path=tmpdir)

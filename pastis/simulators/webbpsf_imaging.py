@@ -85,15 +85,25 @@ def get_jwst_coords(outDir):
 
 
 def nircam_coro(filter, fpm, ppm, Aber_WSS):
-    """
-    -- Deprecated function still used in analytical PASTIS and some notebooks. --
+    """-- Deprecated function still used in analytical PASTIS and some notebooks. --
 
     Create NIRCam image with specified filter and coronagraph, and aberration input.
-    :param filter: str, filter name
-    :param fpm: focal plane mask
-    :param ppm: pupil plane mask - Lyot stop
-    :param Aber_WSS: list or array holding Zernike coefficients ordered in WSS convention and in METERS
-    :return:
+
+    Parameters
+    ----------
+    filter : string
+        Filter name
+    fpm : string
+        Name of focal-plane mask
+    ppm : string
+        Name of Lyot stop (ppm = "pupil-plane mask")
+    Aber_WSS : list or array
+        list of Zernike coefficients ordered in WSS convention and in METERS
+
+    Returns
+    -------
+    psf_webbpsf : ndarray
+        PSF image
     """
 
     # Set up NIRCam and coronagraph
@@ -119,12 +129,21 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
 
 
 def nircam_nocoro(filter, Aber_WSS):
+    """-- Deprecated function still used in analytical PASTIS and some notebooks. --
+
+    Parameters
+    ----------
+    filter : string
+        Filter name
+    Aber_WSS : list or array
+        list of Zernike coefficients ordered in WSS convention and in METERS
+
+    Returns
+    -------
+    psf_webbpsf : ndarray
+        PSF image
     """
-    -- Deprecated function still used in analytical PASTIS and some notebooks. --
-    :param filter:
-    :param Aber_WSS:
-    :return:
-    """
+
     # Create NIRCam object
     nc = webbpsf.NIRCam()
     # Set filter
@@ -147,12 +166,14 @@ def nircam_nocoro(filter, Aber_WSS):
 
 
 def set_up_nircam():
-    """
-    Return a configured instance of the NIRCam simulator on JWST.
+    """Return a configured instance of the NIRCam simulator on JWST.
 
     Sets up the Lyot stop and filter from the configfile, turns of science instrument (SI) internal WFE and zeros
     the OTE.
-    :return: Tuple of NIRCam instance, and its OTE
+
+    Returns
+    -------
+    Tuple of NIRCam instance, and its OTE
     """
 
     nircam = webbpsf.NIRCam()
@@ -167,13 +188,16 @@ def set_up_nircam():
 
 
 def set_up_cgi():
-    """
-    Return a configured instance of the CGI simulator on RST.
+    """Return a configured instance of the CGI simulator on RST.
 
     Sets up the Lyot stop and filter from the configfile, turns off science instrument (SI) internal WFE, and reads
     the FPM setting from the configfile.
-    :return: CGI instrument instance
+
+    Returns
+    -------
+    CGI instrument instance
     """
+
     webbpsf.setup_logging('ERROR')
 
     # Set actuators numbesr
@@ -197,18 +221,26 @@ def set_up_cgi():
 
 
 def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PSF", **kwargs):
-    """
-    Display OTE and PSF of a JWST instrument next to each other.
+    """Display OTE and PSF of a JWST instrument next to each other.
 
     Adapted from:
     https://github.com/spacetelescope/webbpsf/blob/develop/notebooks/Simulated%20OTE%20Mirror%20Move%20Demo.ipynb
-    :param inst: WebbPSF instrument instance, e.g. webbpsf.NIRCam()
-    :param ote: OTE of inst, usually obtained with: instrument, ote = webbpsf.enable_adjustable_ote(instrument)
-    :param opd_vmax: float, max display value for the OPD
-    :param psf_vmax: float, max display valued for PSF
-    :param title: string, plot title
-    :param kwargs:
+
+    Parameters
+    ----------
+    inst : WebbPSF instrument instance
+        for example: webbpsf.NIRCam()
+    ote :
+        OTE of inst, usually obtained with: instrument, ote = webbpsf.enable_adjustable_ote(instrument)
+    opd_vmax : float
+        max display value for the OPD
+    psf_vmax : float
+        max display valued for PSF
+    title : string
+        plot title
+    kwargs
     """
+
     psf = inst.calc_psf(nlambda=1)
     plt.figure(figsize=(12, 8))
     ax1 = plt.subplot(121)

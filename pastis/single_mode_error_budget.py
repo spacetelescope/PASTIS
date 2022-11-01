@@ -21,25 +21,45 @@ log = logging.getLogger(__name__)
 
 
 def single_mode_sigma(c_target, c_floor, evalue):
+    """Calculate the mode weight sigma assuming a single-mode error budget.
+
+    Parameters
+    ----------
+    c_target : float
+        overall target contrast
+    c_floor : float
+        coronagraph contrast floor
+    evalue : float
+        PASTIS eigenvalue of the mode weight to be calculated
+
+    Returns
+    -------
+    sigma : float
+        mode weight
     """
-    Calculate the mode weight sigma assuming a single-mode error budget.
-    :param c_target: float, overall target contrast
-    :param c_floor: float, coronagraph contrast floor
-    :param evalue: float, PASTIS eigenvalue of the mode weight to be calculated
-    :return: mode weight sigma
-    """
+
     sigma = np.sqrt((c_target - c_floor) / evalue)
     return sigma
 
 
 def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
-    """
-    Calculate the contrast stemming from one weighted PASTIS mode.
-    :param sigma: mode weight for the mode with index single_mode
-    :param pmodes: all PASTIS modes
-    :param single_mode: mode index of mode to weight and calculate contrast for
-    :param luvoir: LuvoirAPLC instance
-    :return: float, DH mean contrast for weighted PASTIS mode
+    """Calculate the contrast stemming from one weighted PASTIS mode.
+
+    Parameters
+    ----------
+    sigma : float
+        mode weight for the mode with index single_mode
+    pmodes : ndarray
+        all PASTIS modes
+    single_mode : int
+        mode index of mode to weight and calculate contrast for
+    luvoir : LuvoirAPLC
+        LuvoirAPLC simulator instance
+
+    Returns
+    -------
+    float
+        DH mean contrast for weighted PASTIS mode
     """
 
     # Calculate the OPD from scaling the mode by sigma
@@ -63,17 +83,25 @@ def single_mode_contrasts(sigma, pmodes, single_mode, luvoir):
 
 
 def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=None):
-    """
-    Calculate and plot single-mode error budget, for onde PASTIS mode.
+    """Calculate and plot single-mode error budget, for onde PASTIS mode.
 
     Calculate the mode weight and consecutive contrast for a range of target contrasts
     and plot the recovered contrasts against the target contrasts.
 
-    :param design: str, "small", "medium" or "large" LUVOIR-A APLC design
-    :param run_choice: str, path to data
-    :param c_target: float, target contrast
-    :param single_mode: int, mode index for single mode error budget
-    :return:
+    Parameters
+    ----------
+    design : string
+        "small", "medium" or "large" LUVOIR-A APLC design
+    run_choice : string
+        read path to data
+    c_target : float, default 1e-1-
+        target contrast
+    single_mode : int, default None
+        mode index for single mode error budget
+
+    Returns
+    -------
+
     """
 
     # Data directory

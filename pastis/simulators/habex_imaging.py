@@ -50,18 +50,18 @@ class Habex_VC(Telescope):
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
     def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
-        """ Calculate the PSF of this telescope, and return optionally all E-fields.
+        """Calculate the PSF of this telescope, and return optionally all E-fields.
 
         Parameters:
         ----------
         ref : bool
             Keyword for additionally returning the reference PSF without the FPM.
         display_intermediate : bool
-            Whether or not to display images of all planes.
+            Whether to display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
         Returns:
         --------

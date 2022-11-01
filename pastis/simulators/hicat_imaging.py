@@ -17,13 +17,19 @@ except ImportError:
 
 
 def set_up_hicat(apply_continuous_dm_maps=False):
-    """
-    Return a configured instance of the HiCAT simulator.
+    """Return a configured instance of the HiCAT simulator.
 
     Sets the pupil mask, whether the IrisAO is in or out, apodizer, Lyot stop and detector. Optionally, loads DM maps
     onto the two continuous face-sheet Boston DMs.
-    :param apply_continuous_dm_maps: bool, whether to load BostonDM maps from path specified in configfile, default False
-    :return: instance of HICAT_Sim()
+
+    Parameters
+    ----------
+    apply_continuous_dm_maps : bool, default False
+        whether to load BostonDM maps from path specified in configfile
+
+    Returns
+    -------
+    hicat_sim : instance of HICAT_Sim()
     """
 
     hicat_sim = hicat.simulators.hicat_sim.HICAT_Sim()
@@ -50,11 +56,18 @@ def set_up_hicat(apply_continuous_dm_maps=False):
 
 
 def read_continuous_dm_maps_hicat(path_to_dm_maps):
-    """
-    Read Boston DM maps from disk and return as one list per DM.
+    """Read Boston DM maps from disk and return as one list per DM.
+
     Hijacked partially from StrokeMinimizatoin.restore_last_strokemin_dm_shapes()
-    :param path_to_dm_maps: string, absolute path to folder containing DM maps to load
-    :return: DM1 actuator map array, DM2 actuator map array; in m
+
+    Parameters
+    ----------
+    path_to_dm_maps : string
+        absolute path to folder containing DM maps to load
+
+    Returns
+    -------
+    DM1 actuator map array and DM2 actuator map array; in m
     """
 
     surfaces = []

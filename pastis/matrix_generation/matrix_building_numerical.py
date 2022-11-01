@@ -38,7 +38,7 @@ matplotlib.rc('pdf', fonttype=42)
 
 
 class PastisMatrix:
-    """ Main class for PASTIS matrix generation.
+    """Main class for PASTIS matrix generation.
 
     This is an abstract class that is used for *all* PASTIS matrix calculations, both in intensities and E-fields. It is
     mostly concerned with setting up the result directories in a uniform way.
@@ -89,12 +89,12 @@ class PastisMatrix:
         util.copy_config(self.resDir)
 
     def calc(self):
-        """ This is the main method that should be called to calculate a PASTIS matrix. """
+        """This is the main method that should be called to calculate a PASTIS matrix."""
         raise NotImplementedError()
 
 
 class PastisMatrixIntensities(PastisMatrix):
-    """ Main class for PASTIS matrix calculations from pair-wise intensities.
+    """Main class for PASTIS matrix calculations from pair-wise intensities.
 
     Contrast matrix calculation is multiprocessed.
     """
@@ -106,11 +106,13 @@ class PastisMatrixIntensities(PastisMatrix):
         ----------
         nb_seg : int
             Number of segments in the segmented aperture.
+        seglist : list or array
+            List of all segment indices, as given in the indexed aperture file.
         initial_path: string
             Path to top-level directory where result folder should be saved to.
-        savepsfs: bool
+        savepsfs : bool
             Whether to save pair-wise aberrated PSFs as fits file to disk or not
-        saveopds: bool
+        saveopds : bool
             Whether to save images of pair-wise aberrated pupils to disk or not
         """
         super().__init__(nb_seg=nb_seg, seglist=seglist, save_path=initial_path)
@@ -124,7 +126,7 @@ class PastisMatrixIntensities(PastisMatrix):
             f'Non-repeating pairs in {self.instrument} pupil calculated here: {len(list(util.segment_pairs_non_repeating(self.nb_seg)))}')
 
     def calc(self):
-        """ Main method that calculates the PASTIS matrix """
+        """Main method that calculates the PASTIS matrix"""
         start_time = time.time()
 
         # Calculate coronagraph floor, and normalization factor from direct image
@@ -139,7 +141,7 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(f'Data saved to {self.resDir}')
 
     def calculate_contrast_matrix(self):
-        """ Calculate the contrast matrix.
+        """Calculate the contrast matrix.
 
         Uses the class attribute "self.calculate_matrix_pair", which needs to be a partial function, to calculate the
         PSFs of all pair-wise aberrated segments in the pupil. This is using multiprocessing. The contrast matrix will
@@ -193,7 +195,7 @@ class PastisMatrixIntensities(PastisMatrix):
         plt.savefig(os.path.join(self.resDir, 'contrast_matrix.pdf'))
 
     def calculate_pastis_from_contrast_matrix(self):
-        """ Take the contrast matrix and calculate the PASTIS matrix from it. """
+        """Take the contrast matrix and calculate the PASTIS matrix from it."""
 
         # Calculate the PASTIS matrix from the contrast matrix: analytical matrix element calculation and normalization
         self.matrix_pastis = pastis_from_contrast_matrix(self.contrast_matrix, self.seglist, self.wfe_aber, float(self.contrast_floor))
@@ -205,26 +207,36 @@ class PastisMatrixIntensities(PastisMatrix):
         log.info(f'PASTIS matrix saved to: {os.path.join(self.resDir, filename_matrix + ".fits")}')
 
     def calculate_ref_image(self):
-        """ Create the attributes self.norm, self.contrast_floor and self.coro_simulator. """
+        """Create the attributes self.norm, self.contrast_floor and self.coro_simulator."""
         raise NotImplementedError()
 
     def setup_one_pair_function(self):
-        """ Create an attribute that is the partial function that can calculate the contrast from one aberrated
-        segment/actuator pair. This needs to create self.calculate_matrix_pair. """
+        """Create an attribute that is the partial function that can calculate the contrast from one aberrated
+        segment/actuator pair. This needs to create self.calculate_matrix_pair."""
         raise NotImplementedError()
 
 
 def calculate_unaberrated_contrast_and_normalization(instrument, design=None, return_coro_simulator=True, save_coro_floor=False, save_psfs=False, outpath=''):
-    """
-    Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
-    :param instrument: string, 'LUVOIR', 'HiCAT', 'RST' or 'JWST'
-    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
-                   to use - 'small', 'medium' or 'large'
-    :param return_coro_simulator: bool, whether to return the coronagraphic simulator as third return, default True
-    :param save_coro_floor: bool, if True, will save coro floor value to txt file, default False
-    :param save_psfs: bool, if True, will save direct and coro PSF images to disk, default False
-    :param outpath: string, where to save outputs to if save=True
-    :return: contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
+    """Calculate the direct PSF peak and unaberrated coronagraph floor of an instrument.
+
+    Parameters
+    ----------
+    instrument : string
+        'LUVOIR', 'HiCAT', 'RST' or 'JWST'
+    design : string, default None
+        Choice of LUVOIR APLC design (small, medium, large), only used for LUVOIR. Default is None, which means we read
+        from the configfile.
+    return_coro_simulator : bool, default True
+        Whether to return the coronagraphic simulator as third return.
+    save_coro_floor : bool, default False
+        Whether to save coro floor value to txt file.
+    save_psfs : bool, default False
+        Whether to save direct and coro PSF images to disk.
+    outpath : string
+        Where to save outputs to if save=True
+    Returns
+    -------
+    contrast floor and PSF normalization factor, and optionally (by default) the simulator in coron mode
     """
 
     if instrument == 'LUVOIR':
@@ -334,18 +346,28 @@ def calculate_unaberrated_contrast_and_normalization(instrument, design=None, re
 
 
 def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
-    """
-    Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for PastisMatrixIntensities().
-    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in m
-    :param resDir: str, directory for matrix calculations
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
-                         entries, the segment will be aberrated only once.
-                         Note how JWST segments start numbering at 0 just because that's python indexing, with 0 being
-                         the segment A1.
-    :return: contrast as float, and segment pair as tuple
+    """Function to calculate JWST mean contrast of one aberrated segment pair in NIRCam; for PastisMatrixIntensities().
+
+    Parameters
+    ----------
+    norm : float
+        Direct PSF normalization factor (peak pixel of direct PSF)
+    wfe_aber : float
+        Calibration aberration per segment in m
+    resDir : string
+        Directory for saving matrix calculations
+    savepsfs : bool
+        If True, all PSFs will be saved to disk individually, as fits files
+    saveopds : bool
+        If True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    segment_pair : tuple
+        Pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple entries, the segment will be
+        aberrated only once.
+        Note how JWST segments start numbering at 0 just because that's python indexing, with 0 being the segment A1.
+
+    Returns
+    -------
+    contrast as float, and segment pair as tuple
     """
 
     # Set up JWST simulator in coronagraphic state
@@ -394,18 +416,30 @@ def _jwst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pa
 
 
 def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
-    """
-    Calculate the LUVOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
-    :param design: str, what coronagraph design to use - 'small', 'medium' or 'large'
-    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: float, calibration aberration per segment in m
-    :param resDir: str, directory for matrix calculations
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
-                         entries, the segment will be aberrated only once.
-                         Note how LUVOIR segments start numbering at 1, with 0 being the center segment that doesn't exist.
-    :return: contrast as float, and segment pair as tuple
+    """Calculate the LUVOIR-A mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
+
+    Parameters
+    ----------
+    design : string
+        what coronagraph design to use - 'small', 'medium' or 'large'
+    norm : float
+        direct PSF normalization factor (peak pixel of direct PSF)
+    wfe_aber : float
+        calibration aberration per segment in m
+    resDir : string
+        directory for saving matrix calculations
+    savepsfs : bool
+        if True, all PSFs will be saved to disk individually, as fits files
+    saveopds : bool
+        if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    segment_pair : tuple
+        Pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple entries, the segment will be
+        aberrated only once.
+        Note how LUVOIR segments start numbering at 1, with 0 being the center segment that doesn't exist.
+
+    Returns
+    -------
+    contrast as float, and segment pair as tuple
     """
 
     # Instantiate LUVOIR object
@@ -447,17 +481,28 @@ def _luvoir_matrix_one_pair(design, norm, wfe_aber, resDir, savepsfs, saveopds, 
 
 
 def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_pair):
-    """
-    Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
-    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in m
-    :param resDir: str, directory for matrix calculations
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param segment_pair: tuple, pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple
-                         entries, the segment will be aberrated only once.
-                         Note how HiCAT segments start numbering at 0, with 0 being the center segment.
-    :return: contrast as float, and segment pair as tuple
+    """Function to calculate HiCAT mean contrast of one aberrated segment pair; for PastisMatrixIntensities().
+
+    Parameters
+    ----------
+    norm : float
+        direct PSF normalization factor (peak pixel of direct PSF)
+    wfe_aber : float
+        calibration aberration per segment in m
+    resDir : string
+        directory for saving matrix calculations
+    savepsfs : bool
+        if True, all PSFs will be saved to disk individually, as fits files
+    saveopds : bool
+        if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    segment_pair : tuple
+        Pair of segments to aberrate, 0-indexed. If same segment gets passed in both tuple entries, the segment will be
+        aberrated only once.
+        Note how HiCAT segments start numbering at 0, with 0 being the center segment.
+
+    Returns
+    -------
+    contrast as float, and segment pair as tuple
     """
 
     # Set up HiCAT simulator in correct state
@@ -498,15 +543,27 @@ def _hicat_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, segment_p
 
 
 def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pair):
-    """
-    Function to calculate RST mean contrast of one DM actuator pair in CGI.
-    :param norm: float, direct PSF normalization factor (peak pixel of direct PSF)
-    :param wfe_aber: calibration aberration per segment in m
-    :param resDir: str, directory for matrix calculations
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :param actuator_pair: tuple, pair of actuators to aberrate. If same segment gets passed in both tuple entries, the actuator will be aberrated only once
-    :return: contrast as float, and segment pair as tuple
+    """Function to calculate RST mean contrast of one DM actuator pair in CGI.
+
+    Parameters
+    ----------
+    norm : float
+        direct PSF normalization factor (peak pixel of direct PSF)
+    wfe_aber : float
+        calibration aberration per segment in m
+    resDir : string
+        directory for saving results of matrix calculations
+    savepsfs : bool
+        if True, all PSFs will be saved to disk individually, as fits files
+    saveopds : bool
+        if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
+    actuator_pair : tuple
+        Pair of actuators to aberrate, 0-indexed. If same actuator gets passed in both tuple entries, the actuator will
+        be aberrated only once.
+
+    Returns
+    -------
+    contrast as float, and segment pair as tuple
     """
 
     # Set up RST simulator in coronagraphic state
@@ -554,8 +611,7 @@ def _rst_matrix_one_pair(norm, wfe_aber, resDir, savepsfs, saveopds, actuator_pa
 
 
 def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
-    """
-    Calculate the final PASTIS matrix from the input contrast matrix (only half filled).
+    """Calculate the final PASTIS matrix from the input contrast matrix (only half filled).
 
     The contrast matrix is a nseg x nseg matrix where only half of it is filled, including the diagonal, and the other
     half is filled with zeros. It holds the DH mean contrast values of each aberrated segment pair, with a WFE
@@ -566,14 +622,23 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
     coronagraph floor (passed in as a single float) or a drifting coronagraph floor (passed in as a 2D array, per
     segment pair measurement). Finally, it symmetrizes the matrix to output the full PASTIS matrix.
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs;
-                            only half of the matrix has non-zero values, contrast floor NOT SUBTRACTED yet.
-    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :param wfe_aber: float, calibration aberration in m, this is the aberration that was used to generate contrast_matrix
-    :param coro_floor: float, or nd.array of same dims like contrast_matrix. In simulations we usually assume a static
-                       coronagraph floor across the measurements for the PASTIS matrix and can use a single number.
-                       When we have a drifting coro floor though, we need one contrast floor number per measurement.
-    :return: the finalized PASTIS matrix in units of contrast per nanometers squared, ndarray of nseg x nseg
+    Parameters
+    ----------
+    contrast_matrix : ndarray
+        nseg x nseg matrix holding DH mean contast values of all aberrated segment pairs;
+        only half of the matrix has non-zero values, contrast floor NOT SUBTRACTED yet.
+    seglist : list
+        list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    wfe_aber : float
+        calibration aberration in m, this is the aberration that was used to generate contrast_matrix
+    coro_floor : float, or nd.array of same dims like contrast_matrix
+        In simulations we usually assume a static coronagraph floor across the measurements for the PASTIS matrix and
+        can use a single number. When we have a drifting coro floor though, we need one contrast floor number per
+        measurement.
+
+    Returns
+    -------
+    the finalized PASTIS matrix in units of contrast per nanometers squared, ndarray of nseg x nseg
     """
 
     # Normalize contrast matrix, and coronagraph floor, to the input aberration - this defines what units the PASTIS
@@ -596,8 +661,7 @@ def pastis_from_contrast_matrix(contrast_matrix, seglist, wfe_aber, coro_floor):
 
 
 def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_floor):
-    """
-    Perform the semi-analytical calculation to go from contrast matrix to PASTIS matrix, depending on assumption for
+    """Perform the semi-analytical calculation to go from contrast matrix to PASTIS matrix, depending on assumption for
     coronagraph floor drift.
 
     This function calculates the elements of the (half !) PASTIS matrix from the contrast matrix in which the
@@ -606,12 +670,20 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
     The calculation is slightly different for the two cases in which the coronagraph is either assumed to be constant
     across all pair-wise aberrated measurements, or is drifting.
 
-    :param contrast_matrix: nd.array, nseg x nseg matrix holding DH mean contrast values of all aberrated segment pairs
-    :param seglist: list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
-    :param coro_floor: float or nd.array of same dims like contrast_matrix. In simulations we usually assume a static
-                       coronagraph floor across the measurements for the PASTIS matrix and can use a single number.
-                       When we have a drifting coro floor though, we need one contrast floor number per measurement.
-    :return: half-PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
+    Parameters
+    ----------
+    contrast_matrix : ndarray
+        nseg x nseg matrix holding DH mean contrast values of all aberrated segment pairs
+    seglist : list
+        list of segment indices (e.g. 0, 1, 2, ...36 [HiCAT]; or 1, 2, ..., 120 [LUVOIR])
+    coro_floor : float, or nd.array of same dims like contrast_matrix
+        In simulations we usually assume a static coronagraph floor across the measurements for the PASTIS matrix and
+        can use a single number. When we have a drifting coro floor though, we need one contrast floor number per
+        measurement.
+
+    Returns
+    -------
+    half-PASTIS matrix, nd.array of nseg x nseg where one of its matrix triangles will be all zeros
     """
 
     # Create future (half filled) PASTIS matrix
@@ -660,20 +732,31 @@ def calculate_semi_analytic_pastis_from_contrast(contrast_matrix, seglist, coro_
 
 
 def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=True, saveopds=True):
-    """
-    Generate a numerical/semi-analytical PASTIS matrix.
+    """-- DEPRECATED !! -- This function is deprecated, use the class PastisMatrixIntensities instead.
 
-    -- DEPRECATED !! -- This function is deprecated, use the class PastisMatrixIntensities instead.
+    Generate a numerical/semi-analytical PASTIS matrix.
 
     Multiprocessed script to calculate PASTIS matrix. Implementation adapted from
     hicat.scripts.stroke_minimization.calculate_jacobian
-    :param instrument: str, what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
-    :param design: str, optional, default=None, which means we read from the configfile: what coronagraph design
-                   to use - 'small', 'medium' or 'large'
-    :param initial_path: str, path to save results directory to
-    :param savepsfs: bool, if True, all PSFs will be saved to disk individually, as fits files.
-    :param saveopds: bool, if True, all pupil surface maps of aberrated segment pairs will be saved to disk as PDF
-    :return: overall_dir: string, experiment directory
+
+    Parameters
+    ----------
+    instrument : string
+        what instrument (LUVOIR, HiCAT, JWST) to generate the PASTIS matrix for
+    design : string, default None
+        Choice of LUVOIR APLC design (small, medium, large), only used for LUVOIR. Default is None, which means we read
+        from the configfile.
+    initial_path : string
+        path to save results directory to
+    savepsfs : bool, default True
+        Whether to save all PSFs to disk individually, as fits files.
+    saveopds : bool, default True
+        Whether to save all pupil surface maps of aberrated segment pairs to disk as PDF.
+
+    Returns
+    -------
+    overall_dir : string
+        experiment directory
     """
 
     # Keep track of time
@@ -799,8 +882,9 @@ def num_matrix_multiprocess(instrument, design=None, initial_path='', savepsfs=T
 
 
 class MatrixIntensityLuvoirA(PastisMatrixIntensities):
+    """Calculate a PASTIS matrix for LUVOIR-A, using intensity images."""
+
     instrument = 'LUVOIR'
-    """ Calculate a PASTIS matrix for LUVOIR-A, using intensity images. """
 
     def __init__(self, design='small', initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
@@ -826,8 +910,9 @@ class MatrixIntensityLuvoirA(PastisMatrixIntensities):
 
 
 class MatrixIntensityHicat(PastisMatrixIntensities):
+    """Calculate a PASTIS matrix for HiCAT, using intensity images."""
+
     instrument = 'HiCAT'
-    """ Calculate a PASTIS matrix for HiCAT, using intensity images. """
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
@@ -855,7 +940,7 @@ class MatrixIntensityHicat(PastisMatrixIntensities):
 
 class MatrixIntensityJWST(PastisMatrixIntensities):
     instrument = 'JWST'
-    """ Calculate a PASTIS matrix for JWST, using intensity images. """
+    """Calculate a PASTIS matrix for JWST, using intensity images."""
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
@@ -880,7 +965,7 @@ class MatrixIntensityJWST(PastisMatrixIntensities):
 
 class MatrixIntensityRST(PastisMatrixIntensities):
     instrument = 'RST'
-    """ Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images. """
+    """Calculate a PASTIS matrix for the pupil-plane continuous DM on RST/CGI, using intensity images."""
 
     def __init__(self, initial_path='', savepsfs=True, saveopds=True):
         nb_seg = CONFIG_PASTIS.getint(self.instrument, 'nb_subapertures')
@@ -888,13 +973,13 @@ class MatrixIntensityRST(PastisMatrixIntensities):
         super().__init__(nb_seg=nb_seg, seglist=seglist, initial_path=initial_path, savepsfs=savepsfs, saveopds=saveopds)
 
     def setup_one_pair_function(self):
-        """ Create the partial function that returns the PSF of a single aberrated actuator pair. """
+        """Create the partial function that returns the PSF of a single aberrated actuator pair."""
 
         self.calculate_matrix_pair = functools.partial(_rst_matrix_one_pair, self.norm, self.wfe_aber, self.resDir,
                                                        self.savepsfs, self.saveopds)
 
     def calculate_ref_image(self, save_coro_floor=False, save_psfs=False):
-        """ Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object. """
+        """Calculate the coronagraph floor, normalization factor from direct image, and get the simulator object."""
 
         self.contrast_floor, self.norm, self.coro_simulator = calculate_unaberrated_contrast_and_normalization('RST',
                                                                                                                return_coro_simulator=True,
