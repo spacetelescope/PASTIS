@@ -168,7 +168,7 @@ def plot_eigenvalues(eigenvalues, nseg, wvln=None, out_dir='', fname_suffix='', 
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.title('PASTIS matrix eigenvalues', size=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel(f'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
+    plt.ylabel(fr'Eigenvalues $\lambda_p$ ({evals_unit})', size=30)
     plt.tight_layout()
 
     if save:
@@ -221,7 +221,7 @@ def plot_mode_weights_simple(sigmas, c_target, wvln=None, out_dir='', fname_suff
     plt.title('Mode weights', size=30)
     plt.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
     plt.xlabel('Mode index', size=30)
-    plt.ylabel(f'Mode weights $\sigma_p$ ({weights_units})', size=30)
+    plt.ylabel(fr'Mode weights $\sigma_p$ ({weights_units})', size=30)
     if labels is not None:
         plt.legend(prop={'size': 20})
     plt.tight_layout()
@@ -307,8 +307,8 @@ def plot_mode_weights_double_axis(sigmas, wvln, out_dir, c_target, fname_suffix=
         ax_wave.tick_params(axis='both', which='both', length=6, width=2, labelsize=30)
 
         ax_nm.set_title(f'Constraints per mode for $c_t = {c_target}$', size=30)
-        ax_nm.set_ylabel('Mode weight $\sigma_p$ (nm)', size=30)
-        ax_wave.set_ylabel('Mode weight $\sigma_p$ (waves)', size=30)
+        ax_nm.set_ylabel(r'Mode weight $\sigma_p$ (nm)', size=30)
+        ax_wave.set_ylabel(r'Mode weight $\sigma_p$ (waves)', size=30)
         ax_nm.set_xlabel('Mode index', size=30)
         if labels is not None:
             ax_nm.legend(prop={'size': 25})
@@ -509,7 +509,7 @@ def plot_mu_map(instrument, mus, sim_instance, out_dir, c_target, limits=None, f
         sim_instance[1].zero()
         for segnum in range(CONFIG_PASTIS.getint(instrument, 'nb_subapertures')):  # TODO: there is probably a single function that puts the aberration on the OTE at once
             seg_name = webbpsf_imaging.WSS_SEGS[segnum].split('-')[0]
-            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum]/2, trans_unit='nm')    # this function works with physical motions, meaning the piston is in surface
+            sim_instance[1].move_seg_local(seg_name, piston=mus[segnum] / 2, trans_unit='nm')    # this function works with physical motions, meaning the piston is in surface
 
         psf, inter = sim_instance[0].calc_psf(nlambda=1, return_intermediates=True)
         wf_sm = inter[1].phase
@@ -576,7 +576,7 @@ def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
     # Plot them
     fig, axs = plt.subplots(12, 10, figsize=(20, 24))
     for i, ax in enumerate(axs.flat):
-        im = hcipy.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
+        hcipy.imshow_field(all_modes[i], cmap='RdBu', ax=ax, vmin=-0.0045, vmax=0.0045)
         ax.axis('off')
         ax.annotate(f'{i + 1}', xy=(-6.8, -6.8), fontweight='roman', fontsize=13)
     fig.tight_layout()
@@ -585,7 +585,7 @@ def plot_all_modes(pastis_modes, out_dir, design, fname_suffix='', save=False):
         plt.savefig(os.path.join(out_dir, '.'.join([fname, 'pdf'])))
 
 
-def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5,8.5), vmin=None, vmax=None, fname_suffix='', save=False):
+def plot_single_mode(mode_nr, pastis_modes, out_dir, design, figsize=(8.5, 8.5), vmin=None, vmax=None, fname_suffix='', save=False):
     """
     Plot a single PASTIS mode.
     :param mode_nr: int, mode index
@@ -647,7 +647,7 @@ def plot_monte_carlo_simulation(random_contrasts, out_dir, c_target, segments=Tr
     ax1 = fig.subplots()
 
     ans = np.ceil(np.log10(len(random_contrasts)))
-    binsize = np.power(10, ans-1) if ans <= 3 else np.power(10, ans-2)
+    binsize = np.power(10, ans - 1) if ans <= 3 else np.power(10, ans - 2)
 
     n, bins, patches = plt.hist(np.array(random_contrasts), int(binsize), color=base_color)
     plt.title(f'Monte-Carlo simulation for {mc_name}', size=30)
@@ -754,7 +754,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         sampling = CONFIG_PASTIS.getfloat('HiCAT', 'sampling')
         dh_mask = pastis.util.create_dark_hole(all_psf_images[0], iwa, owa, sampling).astype('bool')
         # Load HiCAT aperture file
-        aperture = np.ones_like(all_ote_images[0])    #TODO: load actual HiCAT aperture
+        aperture = np.ones_like(all_ote_images[0])    # TODO: load actual HiCAT aperture
         # Calculate segment pair tuples
         seg_pair_tuples = list(pastis.util.segment_pairs_non_repeating(37))
 
@@ -784,7 +784,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         elif display_mode == 'stretch':
             plt.subplot(1, 3, 1)
         plt.title('Segmented mirror phase', fontsize=30)
-        this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    #TODO: add apodizer (and LS) to aperture
+        this_ote = np.ma.masked_where(aperture == 0, all_ote_images[i])    # TODO: add apodizer (and LS) to aperture
         plt.imshow(this_ote, cmap=cmap_matrix_anim)
         plt.axis('off')
         cbar = plt.colorbar(fraction=0.046, pad=0.04)
@@ -818,7 +818,7 @@ def animate_contrast_matrix(data_path, instrument='LUVOIR', design='small', disp
         # cbar = plt.colorbar(fraction=0.046, pad=0.04)    # no clue what these numbers mean but it did the job of adjusting the colorbar size to the actual plot size
         # cbar.ax.tick_params(labelsize=30)
         # cbar.ax.yaxis.offsetText.set(size=25)   # this changes the base of ten on the colorbar
-        #TODO: figure out whether to add colorbar to contrast matrix or not (above)
+        # TODO: figure out whether to add colorbar to contrast matrix or not (above)
 
         plt.suptitle(instrument, fontsize=40)
 
@@ -883,7 +883,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
         map_small = np.ma.masked_where(map_small == 0, map_small)
 
         plt.subplot(1, 3, 1)
-        plt.title('$\mu$ map', fontsize=30)
+        plt.title(r'$\mu$ map', fontsize=30)
         plt.imshow(map_small, cmap=cmap_brev, norm=norm_center_zero)
         cbar = plt.colorbar(fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=30)  # this changes the numbers on the colorbar
@@ -898,7 +898,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
         pdf = norm.pdf(wfe_range, dist_mean, dist_stddev)
 
         plt.subplot(1, 3, 2)
-        plt.title('$\mu_k$ as stddev', fontsize=30)
+        plt.title(r'$\mu_k$ as stddev', fontsize=30)
         plt.plot(wfe_range, pdf)
         plt.axvline(dist_mean, c='r', ls='-.', lw=3)
         plt.axvline(dist_mean + dist_stddev, c='darkorange', ls=':', lw=3)
@@ -915,7 +915,7 @@ def animate_random_wfe_maps(data_path, c_target, instrument='LUVOIR', design='sm
             vmax = 0.0015
 
         plt.subplot(1, 3, 3)
-        plt.title('$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
+        plt.title(r'$a_k \sim \mathcal{N}(0,\mu_k)$', fontsize=30)
         one_mode = pastis.util.apply_mode_to_luvoir(seg_weights_all, luvoir)[0]
         hcipy.imshow_field(one_mode.phase, cmap='RdBu', vmin=vmin, vmax=vmax)
         plt.axis('off')

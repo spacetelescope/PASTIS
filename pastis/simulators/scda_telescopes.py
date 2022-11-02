@@ -51,18 +51,18 @@ class ScdaAPLC(SegmentedAPLC):
         # For the 3-Hex, 4-Hex and 5-Hex Luvex designs, actually create the LS #TODO: get to the bottom of this problem
         if hasattr(self, 'num_rings') and self.num_rings in [3, 4, 5]:
             all_ls_diams = [5.417565656565657, 5.4495959595959595, 5.4981407035175875]
-            ls_diam = all_ls_diams[self.num_rings-3]
+            ls_diam = all_ls_diams[self.num_rings - 3]
             lyot_stop = hcipy.evaluate_supersampled(hcipy.circular_aperture(diameter=ls_diam), pupil_grid, 4)
 
         # Create a focal plane mask
         samp_foc = fpm_px / (fpm_rad * 2)
         focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
-        fpm = 1 - hcipy.circular_aperture(2*fpm_rad * lam_over_d)(focal_grid_fpm)
+        fpm = 1 - hcipy.circular_aperture(2 * fpm_rad * lam_over_d)(focal_grid_fpm)
 
         # Create a focal plane grid for the detector
         focal_det = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=sampling, num_airy=imlamD, wavelength=wvln)
 
-        super().__init__(apod=apodizer, lyot_stop=lyot_stop, fpm=fpm, fpm_rad=fpm_rad,  iwa=iwa, owa=owa, wvln=wvln,
+        super().__init__(apod=apodizer, lyot_stop=lyot_stop, fpm=fpm, fpm_rad=fpm_rad, iwa=iwa, owa=owa, wvln=wvln,
                          diameter=diameter, aper=aperture, indexed_aper=aper_ind, seg_pos=seg_pos,
                          seg_diameter=seg_diameter_circumscribed, focal_grid=focal_det, sampling=sampling, imlamD=imlamD)
 
@@ -102,9 +102,9 @@ class HexRingAPLC(ScdaAPLC):
         aper_ind_fname = aper_fname.split('.')[0] + '_indexed.fits'
 
         aper_hdr = fits.getheader(os.path.join(data_in_repo, aper_fname))
-        #diameter_circumscribed = aper_hdr['D_CIRC']
+        # diameter_circumscribed = aper_hdr['D_CIRC']
         all_diameters_outer = [7.952780833, 7.258823341, 7.72593506, 7.136856303, 6.844452477]
-        diameter_circumscribed = all_diameters_outer[num_rings-1]
+        diameter_circumscribed = all_diameters_outer[num_rings - 1]
         seg_flat_to_flat = aper_hdr['SEG_F2F']
         wvln = CONFIG_PASTIS.getfloat('HexRingTelescope', 'lambda') * 1e-9    # m
 

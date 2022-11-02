@@ -55,7 +55,7 @@ def make_aperture_nrp():
     nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')   # Number of apertures, without central obscuration
     flat_diam = CONFIG_PASTIS.getfloat(telescope, 'diameter') * u.m
     im_size_pupil = CONFIG_PASTIS.getint('numerical', 'tel_size_px')
-    m_to_px = im_size_pupil/flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
+    m_to_px = im_size_pupil / flat_diam      # for conversion from meters to pixels: 3 [m] = 3 * m_to_px [px]
 
     log.info('Running aperture generation for {}\n'.format(telescope))
 
@@ -67,7 +67,7 @@ def make_aperture_nrp():
     if not os.path.isdir(outDir):
         os.mkdir(outDir)
 
-    #-# Get the coordinates of the central pixel of each segment and save aperture to disk
+    ### Get the coordinates of the central pixel of each segment and save aperture to disk
     log.info('Getting segment centers')
     seg_position = np.zeros((nb_seg, 2))
 
@@ -79,24 +79,24 @@ def make_aperture_nrp():
         from pastis.simulators import atlast_imaging as atim
         _aper, seg_coords = atim.get_atlast_aperture(normalized=False, write_to_disk=True, outDir=outDir)
 
-        seg_position[:,0] = seg_coords.x
-        seg_position[:,1] = seg_coords.y
+        seg_position[:, 0] = seg_coords.x
+        seg_position[:, 1] = seg_coords.y
 
     # Save the segment center positions just in case we want to check them without running the code
     np.savetxt(os.path.join(outDir, 'seg_position.txt'), seg_position, fmt='%2.2f')
     # 18 segments, central segment (0) not included
 
-    #-# Make distance list with distances between all of the segment centers among each other - in meters
+    ### Make distance list with distances between all of the segment centers among each other - in meters
     vec_list = np.zeros((nb_seg, nb_seg, 2))
     for i in range(nb_seg):
         for j in range(nb_seg):
-            vec_list[i,j,:] = seg_position[i,:] - seg_position[j,:]
+            vec_list[i, j, :] = seg_position[i, :] - seg_position[j, :]
     vec_list *= u.m
     # Save, but gotta save x and y coordinate separately because of the function I use for saving
-    np.savetxt(os.path.join(outDir, 'vec_list_x.txt'), vec_list[:,:,0], fmt='%2.2f')   # x distance; units: meters
-    np.savetxt(os.path.join(outDir, 'vec_list_y.txt'), vec_list[:,:,1], fmt='%2.2f')   # y distance; units: meters
+    np.savetxt(os.path.join(outDir, 'vec_list_x.txt'), vec_list[:, :, 0], fmt='%2.2f')   # x distance; units: meters
+    np.savetxt(os.path.join(outDir, 'vec_list_y.txt'), vec_list[:, :, 1], fmt='%2.2f')   # y distance; units: meters
 
-    #-# Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
+    ### Nulling redundant vectors = setting redundant vectors in vec_list equal to zero
     # This was really hard to figure out, so I simply went with exactly the same way like in IDL.
 
     # Reshape vec_list array to one dimension so that we can implement the loop below
@@ -119,28 +119,28 @@ def make_aperture_nrp():
                              # to 0 in vec_null (they're already 0 in vec_flat).
 
             # Some print statements for testing
-            #print('i, j', i, j)
-            #print('vec_flat[i,:]: ', vec_flat[i,:])
-            #print('vec_flat[j,:]: ', vec_flat[j,:])
-            #print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i,:]) - np.linalg.norm(vec_flat[j,:])))
-            #print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i,:], vec_flat[j,:])))
+            # print('i, j', i, j)
+            # print('vec_flat[i, :]: ', vec_flat[i, :])
+            # print('vec_flat[j,:]: ', vec_flat[j,:])
+            # print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i,:]) - np.linalg.norm(vec_flat[j, :])))
+            # print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i,:], vec_flat[j, :])))
             ap += 1
 
             # Check if length of two vectors is the same (within numerical limits)
-            if np.abs(np.linalg.norm(vec_flat[i,:]) - np.linalg.norm(vec_flat[j,:])) <= 1.e-10:
+            if np.abs(np.linalg.norm(vec_flat[i, :]) - np.linalg.norm(vec_flat[j, :])) <= 1.e-10:
 
                 # Check if direction of two vectors is the same (within numerical limits)
-                if np.linalg.norm(np.cross(vec_flat[i,:], vec_flat[j,:])) <= 1.e-10:
+                if np.linalg.norm(np.cross(vec_flat[i, :], vec_flat[j, :])) <= 1.e-10:
 
                     # Some print statements for testing
-                    #print('i, j', i, j)
-                    #print('vec_flat[i,:]: ', vec_flat[i, :])
-                    #print('vec_flat[j,:]: ', vec_flat[j, :])
-                    #print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i, :]) - np.linalg.norm(vec_flat[j, :])))
-                    #print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i, :], vec_flat[j, :])))
+                    # print('i, j', i, j)
+                    # print('vec_flat[i, :]: ', vec_flat[i, :])
+                    # print('vec_flat[j, :]: ', vec_flat[j, :])
+                    # print('norm diff: ', np.abs(np.linalg.norm(vec_flat[i, :]) - np.linalg.norm(vec_flat[j, :])))
+                    # print('dir diff: ', np.linalg.norm(np.cross(vec_flat[i, :], vec_flat[j, :])))
                     rp += 1
 
-                    vec_null[i,:] = [0, 0]
+                    vec_null[i, :] = [0, 0]
 
     # Reshape nulled array back into proper shape of vec_list
     vec_list_nulled = np.reshape(vec_null, (vec_list.shape[0], vec_list.shape[1], 2))
@@ -148,10 +148,10 @@ def make_aperture_nrp():
     np.savetxt(os.path.join(outDir, 'vec_list_nulled_x.txt'), vec_list_nulled[:, :, 0], fmt='%2.2f')
     np.savetxt(os.path.join(outDir, 'vec_list_nulled_y.txt'), vec_list_nulled[:, :, 1], fmt='%2.2f')
 
-    #-# Extract the (number of) non redundant vectors: NR_distance_list
+    ### Extract the (number of) non redundant vectors: NR_distance_list
 
     # Create vector that holds distances between segments (instead of distance COORDINATES like in vec_list)
-    distance_list = np.square(vec_list_nulled[:,:,0]) + np.square(vec_list_nulled[:,:,1])   # We use square distances so that we don't miss out on negative values
+    distance_list = np.square(vec_list_nulled[:, :, 0]) + np.square(vec_list_nulled[:, :, 1])   # We use square distances so that we don't miss out on negative values
     nonzero = np.nonzero(distance_list)             # get indices of non-redundant segment pairs
     NR_distance_list = distance_list[nonzero]       # extract the list of distances between segments of NR pairs
     NR_pairs_nb = np.count_nonzero(distance_list)   # Counting how many non-redundant (NR) pairs we have
@@ -159,7 +159,7 @@ def make_aperture_nrp():
     np.savetxt(os.path.join(outDir, 'NR_distance_list.txt'), NR_distance_list, fmt='%2.2f')
     log.info(f'Number of non-redundant pairs: {NR_pairs_nb}')
 
-    #-# Select non redundant vectors
+    ### Select non redundant vectors
     # NR_pairs_list is a [NRP number, seg1, seg2] vector to hold non-redundant vector information.
     # NRPs are numbered from 1 to NR_pairs_nb, but Python indexing starts at 0!
 
@@ -170,15 +170,15 @@ def make_aperture_nrp():
     for i in range(NR_pairs_nb):
         # Since 'nonzero' holds the indices of segments, and Python indices start at 0, we have to add 1 to all the
         # 'segment names' in the array that tells us which NRP they form.
-        NR_pairs_list[i,0] = nonzero[0][i] + 1
-        NR_pairs_list[i,1] = nonzero[1][i] + 1
+        NR_pairs_list[i, 0] = nonzero[0][i] + 1
+        NR_pairs_list[i, 1] = nonzero[1][i] + 1
         # Again, NRP are numbered from 1 to NR_pairs_nb, and the segments are too!
 
     NR_pairs_list = NR_pairs_list.astype(int)
     # Save for testing
     np.savetxt(os.path.join(outDir, 'NR_pairs_list.txt'), NR_pairs_list, fmt='%i')
 
-    #-# Generate projection matrix
+    ### Generate projection matrix
 
     # Set diagonal to zero (distance between a segment and itself will always be zero)
     # Although I am pretty sure they already are. - yeah they are, vec_list is per definition a vector of distances
@@ -186,8 +186,8 @@ def make_aperture_nrp():
     vec_list2 = np.copy(vec_list)
     for i in range(nb_seg):
         for j in range(nb_seg):
-            if i ==j:
-                vec_list2[i,j,:] = [0,0]
+            if i == j:
+                vec_list2[i, j, :] = [0, 0]
 
     # Save for testing
     np.savetxt(os.path.join(outDir, 'vec_list2_x.txt'), vec_list2[:, :, 0], fmt='%2.2f')
@@ -215,14 +215,14 @@ def make_aperture_nrp():
             # This means we write NR_pairs_list[k,0]-1 and NR_pairs_list[k,1]-1 .
 
             # Figure out which NRP a segment distance vector corresponds to - first by length.
-            if np.abs(np.linalg.norm(vec2_flat[i, :]) - np.linalg.norm(vec_list[NR_pairs_list[k,0]-1, NR_pairs_list[k,1]-1, :])) <= 1.e-10:
+            if np.abs(np.linalg.norm(vec2_flat[i, :]) - np.linalg.norm(vec_list[NR_pairs_list[k, 0] - 1, NR_pairs_list[k, 1] - 1, :])) <= 1.e-10:
 
                 # Figure out which NRP a segment distance vector corresponds to - now by direction.
-                if np.linalg.norm(np.cross(vec2_flat[i, :], vec_list[NR_pairs_list[k,0]-1, NR_pairs_list[k,1]-1, :])) <= 1.e-10:
+                if np.linalg.norm(np.cross(vec2_flat[i, :], vec_list[NR_pairs_list[k, 0] - 1, NR_pairs_list[k, 1] - 1, :])) <= 1.e-10:
 
                     matrix_flat[i, 0] = k + 1                       # Again: NRP start their numbering at 1
-                    matrix_flat[i, 1] = NR_pairs_list[k,1] + 1      # and segments start their numbering at 1 too
-                    matrix_flat[i, 2] = NR_pairs_list[k,0] + 1      # (see pupil image!).
+                    matrix_flat[i, 1] = NR_pairs_list[k, 1] + 1      # and segments start their numbering at 1 too
+                    matrix_flat[i, 2] = NR_pairs_list[k, 0] + 1      # (see pupil image!).
 
     # Reshape matrix back to normal form
     Projection_Matrix = np.reshape(matrix_flat, (Projection_Matrix_int.shape[0], Projection_Matrix_int.shape[1], 3))
@@ -230,7 +230,7 @@ def make_aperture_nrp():
     # Convert the segment positions in vec_list from meters to pixels
     vec_list_px = vec_list * m_to_px
 
-    #-# Save the arrays: vec_list, NR_pairs_list, Projection_Matrix
+    ### Save the arrays: vec_list, NR_pairs_list, Projection_Matrix
     util.write_fits(vec_list_px.value, os.path.join(outDir, 'vec_list.fits'), header=None, metadata=None)
     util.write_fits(NR_pairs_list, os.path.join(outDir, 'NR_pairs_list_int.fits'), header=None, metadata=None)
     util.write_fits(Projection_Matrix, os.path.join(outDir, 'Projection_Matrix.fits'), header=None, metadata=None)

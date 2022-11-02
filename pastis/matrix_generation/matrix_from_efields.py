@@ -225,14 +225,14 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         # Calculate contrast normalization factor from direct PSF (intensity)
         unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon)
         self.norm = np.max(direct)
-        hcipy.write_fits(unaberrated_coro_psf/self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
+        hcipy.write_fits(unaberrated_coro_psf / self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
         npx = unaberrated_coro_psf.shaped.shape[0]
-        im_lamd = npx/2 / self.simulator.sampling
+        im_lamd = npx / 2 / self.simulator.sampling
         plt.figure(figsize=(10, 10))
-        plt.imshow(np.log10(unaberrated_coro_psf.shaped/self.norm), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
-        plt.xlabel('$\lambda/D$', size=30)
-        plt.ylabel('$\lambda/D$', size=30)
+        plt.imshow(np.log10(unaberrated_coro_psf.shaped / self.norm), cmap='inferno', extent=[-im_lamd, im_lamd, -im_lamd, im_lamd])
+        plt.xlabel(r"$\lambda/D$", size=30)
+        plt.ylabel(r"$\lambda/D$", size=30)
         plt.tick_params(axis='both', length=6, width=2, labelsize=30)
         cbar = plt.colorbar(fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=30)

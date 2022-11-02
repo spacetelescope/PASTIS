@@ -4,7 +4,6 @@ This is a module containing convenience functions to create the JWST aperture an
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 import astropy.units as u
 import logging
 import poppy
@@ -37,7 +36,7 @@ IM_SIZE_E2E = CONFIG_PASTIS.getint('numerical', 'im_size_px_webbpsf')
 
 def get_jwst_coords(outDir):
 
-    #-# Generate the pupil with segments and spiders
+    ### Generate the pupil with segments and spiders
 
     # Use poppy to create JWST aperture without spiders
     log.info('Creating and saving aperture')
@@ -45,9 +44,9 @@ def get_jwst_coords(outDir):
     jwst_pup.display(colorbar=False)   # Show pupil (will be saved to file)
     plt.title('JWST telescope pupil')
     # Number the segments
-    for i in range(NB_SEG+1):
+    for i in range(NB_SEG + 1):
         ycen, xcen = jwst_pup._hex_center(i)
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the numbers closer to the segment centers
+        plt.annotate(str(i), size='x-large', xy=(xcen - 0.1, ycen - 0.1))   # -0.1 is for shifting the numbers closer to the segment centers
     # Save a PDF version of the pupil
     plt.savefig(os.path.join(outDir, 'JWST_aperture.pdf'))
 
@@ -58,10 +57,10 @@ def get_jwst_coords(outDir):
     jwst_pup.display(colorbar=False)   # Show pupil
     plt.title('JWST telescope exit pupil')
     # Number the segments
-    for i in range(NB_SEG+1):
+    for i in range(NB_SEG + 1):
         ycen, xcen = jwst_pup._hex_center(i)
         ycen *= -1
-        plt.annotate(str(i), size='x-large', xy=(xcen-0.1, ycen-0.1))   # -0.1 is for shifting the number labels closer to the segment centers
+        plt.annotate(str(i), size='x-large', xy=(xcen - 0.1, ycen - 0.1))   # -0.1 is for shifting the number labels closer to the segment centers
     # Save a PDF version of the exit pupil
     plt.savefig(os.path.join(outDir, 'JWST_exit_pupil.pdf'))
 
@@ -71,14 +70,14 @@ def get_jwst_coords(outDir):
     # But for the JWST case with poppy it makes such a small difference that I am skipping it for now
     util.write_fits(pupil_dir[0], os.path.join(outDir, 'pupil.fits'))
 
-    #-# Get the coordinates of the central pixel of each segment
+    ### Get the coordinates of the central pixel of each segment
     seg_position = np.zeros((NB_SEG, 2))   # holds x and y position of each central pixel
-    for i in range(NB_SEG+1):   # our pupil is still counting the central segment as seg 0, so we need to include it
+    for i in range(NB_SEG + 1):   # our pupil is still counting the central segment as seg 0, so we need to include it
                                 # in the loop, however, we will just discard the values for the center
         if i == 0:     # Segment 0 is the central segment, which we want to skip and not put into seg_position
             continue   # Continues with the next iteration of the loop
         else:
-            seg_position[i-1, 1], seg_position[i-1, 0] = jwst_pup._hex_center(i)   # y, x = center position
+            seg_position[i - 1, 1], seg_position[i - 1, 0] = jwst_pup._hex_center(i)   # y, x = center position
             seg_position[i - 1, 1] *= -1       # inverting the y-axis because we want to work with the EXIT PUPIL!!!
             # Units are meters!!!
 
@@ -110,7 +109,7 @@ def nircam_coro(filter, fpm, ppm, Aber_WSS):
     ote.zero()
     for i in range(NB_SEG):
         seg = WSS_SEGS[i].split('-')[0]
-        ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
+        ote._apply_hexikes_to_seg(seg, Aber_WSS[i, :])
 
     # Calculate PSF
     psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(IM_SIZE_E2E), nlambda=1)
@@ -138,7 +137,7 @@ def nircam_nocoro(filter, Aber_WSS):
     ote.zero()
     for i in range(NB_SEG):
         seg = WSS_SEGS[i].split('-')[0]
-        ote._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
+        ote._apply_hexikes_to_seg(seg, Aber_WSS[i, :])
 
     # Calculate PSF
     psf_nc = nc.calc_psf(oversample=1, fov_pixels=int(IM_SIZE_E2E), nlambda=1)
@@ -177,7 +176,7 @@ def set_up_cgi():
     """
     webbpsf.setup_logging('ERROR')
 
-    #Set actuators numbesr
+    # Set actuators numbesr
     mode_in = CONFIG_PASTIS.get('RST', 'mode')
     nbactuator = int(CONFIG_PASTIS.get('RST', 'nb_subapertures'))
     nbactuator_in = int(np.sqrt(nbactuator))
@@ -214,6 +213,6 @@ def display_ote_and_psf(inst, ote, opd_vmax=500, psf_vmax=0.1, title="OPD and PS
     plt.figure(figsize=(12, 8))
     ax1 = plt.subplot(121)
     ote.display_opd(ax=ax1, vmax=opd_vmax, colorbar_orientation='horizontal', title='OPD with aberrated segments')
-    ax2 = plt.subplot(122)
-    webbpsf.display_psf(psf, ext=2, vmax=psf_vmax, vmin=psf_vmax/1e4, colorbar_orientation='horizontal', title="PSF simulation")
+    plt.subplot(122)
+    webbpsf.display_psf(psf, ext=2, vmax=psf_vmax, vmin=psf_vmax / 1e4, colorbar_orientation='horizontal', title="PSF simulation")
     plt.suptitle(title, fontsize=16)

@@ -113,9 +113,9 @@ if __name__ == '__main__':
     # Calculate the baseline contrast *with* the coronagraph and *without* aberrations and save the value to file
     contrast_im = psf_coro * dh_area
     contrast_base = np.mean(contrast_im[np.where(contrast_im != 0)])
-    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   #TODO: Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
+    contrastname = 'base-contrast_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)   # TODO: Why does the filename include a Zernike if this is supposed to be the perfect PSF without aberrations?
     contrast_fake_array = np.array(contrast_base).reshape(1,)   # Convert into array of shape (1,), otherwise np.savetxt() doesn't work
-    np.savetxt(os.path.join(outDir, contrastname+'.txt'), contrast_fake_array)
+    np.savetxt(os.path.join(outDir, contrastname + '.txt'), contrast_fake_array)
 
     # Create the arrays to hold the contrast values from the iterations
     contrast_e2e = np.zeros([nb_seg])
@@ -143,10 +143,10 @@ if __name__ == '__main__':
 
         # Feed the aberration nm_aber into the array position
         # that corresponds to the correct Zernike, but only on segment i
-        Aber_WSS[i, wss_zern_nb-1] = nm_aber.to(u.m).value  # Aberration on the segment we're currently working on;
-                                                            # convert to meters; -1 on the Zernike because Python starts
-                                                            # numbering at 0.
-        Aber_Noll[i, zern_number-1] = nm_aber.value         # Noll version - in nm
+        Aber_WSS[i, wss_zern_nb - 1] = nm_aber.to(u.m).value  # Aberration on the segment we're currently working on;
+                                                              # convert to meters; -1 on the Zernike because Python starts
+                                                              # numbering at 0.
+        Aber_Noll[i, zern_number - 1] = nm_aber.value         # Noll version - in nm
 
         # Make sure the aberration coefficients have correct units
         Aber_Noll *= u.nm
@@ -154,45 +154,45 @@ if __name__ == '__main__':
         # that is not decorated with the astropy decorator for checking units and does not use astropy.units. Which is
         # why we made sure it gets filled with values in units of meters already a couple of lines above this.
 
-        #-# Crate OPD with aberrated segment(s)
+        ### Crate OPD with aberrated segment(s)
         log.info('Applying aberration to OTE.')
         log.info('nm_aber: {}'.format(nm_aber))
         ote_coro.reset()   # Making sure there are no previous movements on the segments.
         ote_coro.zero()    # For now, ignore internal WFE.
-        ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i,:])
+        ote_coro._apply_hexikes_to_seg(seg, Aber_WSS[i, :])
 
         # If you want to display it:
-        #ote_coro.display_opd()
-        #plt.show()
+        # ote_coro.display_opd()
+        # plt.show()
 
-        #-# Generate the coronagraphic PSF
+        ### Generate the coronagraphic PSF
         log.info('Calculating coronagraphic PSF.')
         psf_endsim = nc_coro.calc_psf(fov_pixels=int(im_size_e2e), oversample=1, nlambda=1)
         psf_end = psf_endsim[0].data
 
-        #-# Normalize coro PSF
+        ### Normalize coro PSF
         psf_end = psf_end / normp
 
-        #-# Get end-to-end image in DH, calculate the contrast (mean) and put it in array
+        ### Get end-to-end image in DH, calculate the contrast (mean) and put it in array
         im_end = psf_end * dh_area
         contrast_e2e[i] = np.mean(im_end[np.where(im_end != 0)])
 
-        #-# Create image from PASTIS (analytical model), calculate contrast (mean, in DH) and put in array
-        dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:, zern_number-1], cali=False)
+        ### Create image from PASTIS (analytical model), calculate contrast (mean, in DH) and put in array
+        dh_im_am, full_im_am = impastis.analytical_model(zern_number, Aber_Noll[:, zern_number - 1], cali=False)
         contrast_pastis[i] = np.mean(dh_im_am[np.where(dh_im_am != 0)])
 
         log.info(f'Contrast WebbPSF: {contrast_e2e[i]}')
         log.info(f'Contrast image-PASTIS, uncalibrated: {contrast_pastis[i]}')
 
         # Save images for testing
-        im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        im_am_name = 'image_pastis_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i + 1)
         util.write_fits(full_im_am, os.path.join(outDir, 'images', im_am_name + '.fits'))
-        #dh_im_am - for image with DH
-        im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        # dh_im_am - for image with DH
+        im_end_name = 'image_webbpsf_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i + 1)
         util.write_fits(psf_end, os.path.join(outDir, 'images', im_end_name + '.fits'))
-        #im_end - for image with DH
+        # im_end - for image with DH
         # Save OTE OPD
-        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i+1)
+        opd_name = 'opd_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index) + '_seg' + str(i + 1)
         plt.clf()
         ote_coro.display_opd()
         plt.savefig(os.path.join(outDir, 'images', opd_name + '.pdf'))
@@ -206,21 +206,21 @@ if __name__ == '__main__':
 
     calibration = np.sqrt((contrast_e2e - contrast_base) / contrast_pastis)
 
-    #calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account. should never to this, but it's
-                                                    # ok for testing if calibration aberration is too low
+    # calibration = contrast_e2e / contrast_pastis   # without taking C_0 into account. should never to this, but it's
+                                                     # ok for testing if calibration aberration is too low
 
     # Not taking C_0 into account is necessary to avoid negative values of the E2E contrast in cases where
     # we're calibrating at a level that is too low and numerically, the calibration contrast of one aberrated
     # segment might end up being lower than the baseline contrast, which could lead to negative values in the sqrt.
 
-    #-# Save calibration vector
+    ### Save calibration vector
     filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    util.write_fits(calibration, os.path.join(outDir, filename+'.fits'), header=None, metadata=None)
+    util.write_fits(calibration, os.path.join(outDir, filename + '.fits'), header=None, metadata=None)
 
     # Save contrast vectors for WebbPSF and image-PASTIS so that we can look at the values if needed
     name_webbpsf = 'contrast_WEBBPSF_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
     name_impastis = 'contrast_IMAGE-PASTIS_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-    util.write_fits(contrast_e2e, os.path.join(outDir, name_webbpsf+'.fits'), header=None, metadata=None)
+    util.write_fits(contrast_e2e, os.path.join(outDir, name_webbpsf + '.fits'), header=None, metadata=None)
     util.write_fits(contrast_pastis, os.path.join(outDir, name_impastis + '.fits'), header=None, metadata=None)
 
     # Generate some plots

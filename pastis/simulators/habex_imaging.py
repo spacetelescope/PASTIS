@@ -48,8 +48,8 @@ class Habex_VC(Telescope):
         dh_outer = hcipy.circular_aperture(2 * self.owa * self.lam_over_d)(self.focal_det)
         dh_inner = hcipy.circular_aperture(2 * self.iwa * self.lam_over_d)(self.focal_det)
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
-        
-    def calc_psf(self, ref=False, display_intermediate=False,  return_intermediate=None, norm_one_photon=False):
+
+    def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
         """ Calculate the PSF of this telescope, and return optionally all E-fields.
 
         Parameters:
@@ -72,7 +72,7 @@ class Habex_VC(Telescope):
         intermediates : dict
             Dictionary containing the Wavefronts of all the planes, returned if return_intermediate='efield'
         """
-        
+
         if isinstance(return_intermediate, bool):
             raise TypeError(f"'return_intermediate' needs to be 'efield' or 'intensity' if you want all "
                             f"E-fields returned by 'calc_psf()'.")
@@ -80,7 +80,7 @@ class Habex_VC(Telescope):
         # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
         wf_active_pupil, wf_zm, wf_ripples, wf_dm, _tr = self._propagate_active_pupils(norm_one_photon)
 
-        # All E-field propagations 
+        # All E-field propagations
         wf_before_lyot = self.coro(wf_active_pupil)
         wf_lyot = self.lyot_mask(wf_before_lyot)
         wf_lyot.wavelength = self.wvln
@@ -114,7 +114,7 @@ class Habex_VC(Telescope):
             hcipy.imshow_field(wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
                                norm=LogNorm(vmin=1e-8, vmax=1e-1), cmap='inferno')
             plt.title('Before Lyot stop')
-            
+
             plt.subplot(3, 3, 7)
             hcipy.imshow_field(wf_lyot.intensity / wf_lyot.intensity.max(),
                                norm=LogNorm(vmin=1e-5, vmax=1), cmap='inferno', mask=self.lyotstop)

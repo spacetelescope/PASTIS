@@ -33,7 +33,7 @@ def analytical_model(zernike_pol, coef, cali=False):
     :return:
     """
 
-    #-# Parameters
+    ### Parameters
     dataDir = os.path.join(CONFIG_PASTIS.get('local', 'local_data_path'), 'active')
     telescope = CONFIG_PASTIS.get('telescope', 'name')
     nb_seg = CONFIG_PASTIS.getint(telescope, 'nb_subapertures')
@@ -54,11 +54,11 @@ def analytical_model(zernike_pol, coef, cali=False):
     # Create Zernike mode object for easier handling
     zern_mode = util.ZernikeMode(zernike_pol)
 
-    #-# Mean subtraction for piston
+    ### Mean subtraction for piston
     if zernike_pol == 1:
         coef -= np.mean(coef)
 
-    #-# Generic segment shapes
+    ### Generic segment shapes
 
     if telescope == 'JWST':
         # Load pupil from file
@@ -66,17 +66,17 @@ def analytical_model(zernike_pol, coef, cali=False):
 
         # Put pupil in randomly picked, slightly larger image array
         pup_im = np.copy(pupil)   # remove if lines below this are active
-        #pup_im = np.zeros([tel_size_px, tel_size_px])
-        #lim = int((pup_im.shape[1] - pupil.shape[1])/2.)
-        #pup_im[lim:-lim, lim:-lim] = pupil
-        # test_seg = pupil[394:,197:315]    # this is just so that I can display an individual segment when the pupil is 512
-        # test_seg = pupil[:203,392:631]    # ... when the pupil is 1024
+        # pup_im = np.zeros([tel_size_px, tel_size_px])
+        # lim = int((pup_im.shape[1] - pupil.shape[1]) / 2.)
+        # pup_im[lim:-lim, lim:-lim] = pupil
+        # test_seg = pupil[394:, 197:315]    # this is just so that I can display an individual segment when the pupil is 512
+        # test_seg = pupil[:203, 392:631]    # ... when the pupil is 1024
         # one_seg = np.zeros_like(test_seg)
         # one_seg[:110, :] = test_seg[8:, :]    # this is the centered version of the individual segment for 512 px pupil
 
         # Creat a mini-segment (one individual segment from the segmented aperture)
         mini_seg_real = poppy.NgonAperture(name='mini', radius=real_size_seg)   # creating real mini segment shape with poppy
-        #test = mini_seg_real.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
+        # test = mini_seg_real.sample(wavelength=wvln, grid_size=flat_diam, return_scale=True)   # fix its sampling with wavelength
         mini_hdu = mini_seg_real.to_fits(wavelength=wvln, npix=size_seg)    # make it a fits file
         mini_seg = mini_hdu[0].data      # extract the image data from the fits file
 
@@ -86,7 +86,7 @@ def analytical_model(zernike_pol, coef, cali=False):
         focal_grid = hcipy.make_focal_grid_from_pupil_grid(pupil_grid, sampling, sz, wavelength=wvln.to(u.m).value)
         prop = hcipy.FraunhoferPropagator(pupil_grid, focal_grid)
 
-        mini_seg_real = hcipy.hexagonal_aperture(circum_diameter=real_size_seg, angle=np.pi/2)
+        mini_seg_real = hcipy.hexagonal_aperture(circum_diameter=real_size_seg, angle=np.pi / 2)
         mini_seg_hc = hcipy.evaluate_supersampled(mini_seg_real, pupil_grid, 4)  # the supersampling number doesn't really matter in context with the other numbers
         mini_seg = mini_seg_hc.shaped    # make it a 2D array
 
@@ -97,42 +97,42 @@ def analytical_model(zernike_pol, coef, cali=False):
         pupil = fits.getdata(os.path.join(dataDir, 'segmentation', 'pupil.fits'))
         pup_im = np.copy(pupil)
 
-    #-# Generate a dark hole mask
-    #TODO: simplify DH generation and usage
+    ### Generate a dark hole mask
+    # TODO: simplify DH generation and usage
     dh_area = util.create_dark_hole(pup_im, inner_wa, outer_wa, sampling)   # this might become a problem if pupil size is not same like pastis image size. fine for now though.
     if telescope == 'ATLAST':
-        dh_sz = util.zoom_cen(dh_area, sz*sampling)
+        dh_sz = util.zoom_cen(dh_area, sz * sampling)
 
-    #-# Import information form segmentation script
-    Projection_Matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'Projection_Matrix.fits'))
+    ### Import information form segmentation script
+    projection_matrix = fits.getdata(os.path.join(dataDir, 'segmentation', 'projection_matrix.fits'))
     vec_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'vec_list.fits'))                    # in pixels
     NR_pairs_list = fits.getdata(os.path.join(dataDir, 'segmentation', 'NR_pairs_list_int.fits'))
 
     # Figure out how many NRPs we're dealing with
     NR_pairs_nb = NR_pairs_list.shape[0]
 
-    #-# Chose whether calibration factors to do the calibraiton with
+    ### Chose whether calibration factors to do the calibraiton with
     if cali:
         filename = 'calibration_' + zern_mode.name + '_' + zern_mode.convention + str(zern_mode.index)
-        ck = fits.getdata(os.path.join(dataDir, 'calibration', filename+'.fits'))
+        ck = fits.getdata(os.path.join(dataDir, 'calibration', filename + '.fits'))
     else:
         ck = np.ones(nb_seg)
 
     coef = coef * ck
 
-    #-# Generic coefficients
+    ### Generic coefficients
     # the coefficients in front of the non redundant pairs, the A_q in eq. 13 in Leboulleux et al. 2018
     generic_coef = np.zeros(NR_pairs_nb) * u.nm * u.nm    # setting it up with the correct units this will have
 
     for q in range(NR_pairs_nb):
         for i in range(nb_seg):
-            for j in range(i+1, nb_seg):
-                if Projection_Matrix[i, j, 0] == q+1:
+            for j in range(i + 1, nb_seg):
+                if projection_matrix[i, j, 0] == q + 1:
                     generic_coef[q] += coef[i] * coef[j]
 
-    #-# Constant sum and cosine sum - calculating eq. 13 from Leboulleux et al. 2018
+    ### Constant sum and cosine sum - calculating eq. 13 from Leboulleux et al. 2018
     if telescope == 'JWST':
-        i_line = np.linspace(-im_size_pastis/2., im_size_pastis/2., im_size_pastis)
+        i_line = np.linspace(-im_size_pastis / 2., im_size_pastis / 2., im_size_pastis)
         tab_i, tab_j = np.meshgrid(i_line, i_line)
         cos_u_mat = np.zeros((int(im_size_pastis), int(im_size_pastis), NR_pairs_nb))
     elif telescope == 'ATLAST':
@@ -149,8 +149,8 @@ def analytical_model(zernike_pol, coef, cali=False):
         #                   u is the position (vector) in the detector plane. Here, those are the grids tab_i and tab_j.
         # We need to calculate the dot product between all b_q and u, so in each iteration (for q), we simply add the
         # x and y component.
-        cos_u_mat[:,:,q] = np.cos(px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 0] * tab_i) +
-                                  px_sq_to_rad * (vec_list[NR_pairs_list[q,0]-1, NR_pairs_list[q,1]-1, 1] * tab_j)) * u.dimensionless_unscaled
+        cos_u_mat[:, :, q] = np.cos(px_sq_to_rad * (vec_list[NR_pairs_list[q, 0] - 1, NR_pairs_list[q, 1] - 1, 0] * tab_i) +
+                                    px_sq_to_rad * (vec_list[NR_pairs_list[q, 0] - 1, NR_pairs_list[q, 1] - 1, 1] * tab_j)) * u.dimensionless_unscaled
 
     sum1 = np.sum(coef**2)   # sum of all a_{k,l} in eq. 13 - this works only for single Zernikes (l fixed), because np.sum would sum over l too, which would be wrong.
     if telescope == 'JWST':
@@ -159,9 +159,9 @@ def analytical_model(zernike_pol, coef, cali=False):
         sum2 = np.zeros((int(2 * sz * sampling), int(2 * sz * sampling))) * u.nm * u.nm
 
     for q in range(NR_pairs_nb):
-        sum2 = sum2 + generic_coef[q] * cos_u_mat[:,:,q]
+        sum2 = sum2 + generic_coef[q] * cos_u_mat[:, :, q]
 
-    #-# Local Zernike
+    ### Local Zernike
     if telescope == 'JWST':
         # Generate a basis of Zernikes with the mini segment being the support
         isolated_zerns = zern.hexike_basis(nterms=zern_max, npix=size_seg, rho=None, theta=None, vertical=False, outside=0.0)
@@ -170,13 +170,13 @@ def analytical_model(zernike_pol, coef, cali=False):
         # Apply the currently used Zernike to the mini-segment.
         if zernike_pol == 1:
             Zer = np.copy(mini_seg)
-        elif zernike_pol in range(2, zern_max-2):
+        elif zernike_pol in range(2, zern_max - 2):
             Zer = np.copy(mini_seg)
-            Zer = Zer * isolated_zerns[zernike_pol-1]
+            Zer = Zer * isolated_zerns[zernike_pol - 1]
 
         # Fourier Transform of the Zernike - the global envelope
         mf = mft.MatrixFourierTransform()
-        ft_zern = mf.perform(Zer, im_size_pastis/sampling, im_size_pastis)
+        ft_zern = mf.perform(Zer, im_size_pastis / sampling, im_size_pastis)
 
     elif telescope == 'ATLAST':
         isolated_zerns = hcipy.make_zernike_basis(num_modes=zern_max, D=real_size_seg, grid=pupil_grid, radial_cutoff=False)
@@ -185,7 +185,7 @@ def analytical_model(zernike_pol, coef, cali=False):
         # Fourier transform the Zernike
         ft_zern = prop(Zer)
 
-    #-# Final image
+    ### Final image
     if telescope == 'JWST':
         # Generating the final image that will get passed on to the outer scope, I(u) in eq. 13
         intensity = np.abs(ft_zern)**2 * (sum1.value + 2. * sum2.value)
@@ -267,7 +267,7 @@ if __name__ == '__main__':
 
     log.info('coef: {}'.format(coef))
     log.info('Aberration: {}'.format(nm_aber))
-    log.info('On segment: {}'.format(i+1))
+    log.info('On segment: {}'.format(i + 1))
     log.info('Zernike (Noll): {}'.format(util.zernike_name(zern_number, framework='Noll')))
     log.info('Zernike (WSS): {}'.format(util.zernike_name(wss_zern_nb, framework='WSS')))
     log.info('Zernike number (Noll): {}'.format(zernike_pol))

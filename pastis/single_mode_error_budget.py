@@ -101,7 +101,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
     log.info('Single mode error budget')
 
     # Calculate the mode weight
-    single_sigma = single_mode_sigma(c_target, coronagraph_floor, svals[single_mode-1])
+    single_sigma = single_mode_sigma(c_target, coronagraph_floor, svals[single_mode - 1])
     log.info(f'Eigenvalue: {svals[single_mode-1]}')
     log.info(f'single_sigma: {single_sigma}')
 
@@ -114,7 +114,7 @@ def single_mode_error_budget(design, run_choice, c_target=1e-10, single_mode=Non
 
     # Calculate according sigmas
     for i, con in enumerate(c_list):
-        sigma_list.append(single_mode_sigma(con, coronagraph_floor, svals[single_mode-1]))
+        sigma_list.append(single_mode_sigma(con, coronagraph_floor, svals[single_mode - 1]))
 
     # Calculate recovered contrasts
     c_recov = []
