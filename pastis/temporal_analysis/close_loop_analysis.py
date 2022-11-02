@@ -16,7 +16,7 @@ def matrix_subsample(matrix, n, m):
 
     Returns
     -------
-    matrix_reduced : numpy 2d array
+    reduced_matrix : numpy 2d array
     """
 
     length = matrix.shape[0] // n  # block length
