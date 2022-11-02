@@ -1019,12 +1019,31 @@ def sort_1d_mus_per_actuator(mus, nmodes, nseg):
 
 
 def matrix_subsample(matrix, n, m):
-    l = matrix.shape[0] // n  # block length
-    b = matrix.shape[1] // m  # block breadth
-    new_shape = (n, l, m, b)
+    """
+    Reduces the order of a matrix by taking mean over a block in the matrix.
+
+    Parameters
+    ----------
+    matrix : numpy 2d array
+        the input matrix to be reduced
+    n : int
+        desired number of rows of the reduced matrix
+    m : int
+        desired number of columns of the reduced matrix
+
+    Returns
+    -------
+    matrix_reduced : numpy 2d array
+    """
+
+    length = matrix.shape[0] // n  # block length
+    breadth = matrix.shape[1] // m  # block breadth
+
+    new_shape = (n, length, m, breadth)
     reshaped_array = matrix.reshape(new_shape)
-    data_reduced = np.sum(reshaped_array, axis=(1, 3))
-    return data_reduced
+    matrix_reduced = np.sum(reshaped_array, axis=(1, 3))
+
+    return matrix_reduced
 
 
 def calculate_sensitivity_matrices(e0_coron, e0_obwfs, efield_coron_real,
