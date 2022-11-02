@@ -29,15 +29,26 @@ log = logging.getLogger()
 
 @u.quantity_input(rms=u.nm)
 def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pastis=False, plotting=False):
+    """Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
+
+    Parameters
+    ----------
+    matdir : string
+        data directory to use for matrix and calibration coefficients from
+    matrix_mode : string, default "analytical"
+        Whether to use "analytical" or "numerical" matrix
+    rms : float
+        RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
+    im_pastis : bool, default Fals
+        whether to also calculate contrast from image PASTIS
+    plotting : bool, default False
+        whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
+
+    Returns
+    -------
+    contrast_webbpsf, contrast_am, contrast_matrix : float
     """
-    Calculate the contrast for an RMS WFE with image PASTIS, matrix PASTIS
-    :param matdir: data directory to use for matrix and calibration coefficients from
-    :param matrix_mode: use 'analytical or 'numerical' matrix
-    :param rms: RMS wavefront error in pupil to calculate contrast for; in NANOMETERS
-    :param im_pastis: default False, whether to also calculate contrast from image PASTIS
-    :param plotting: default False, whether to save E2E and PASTIS DH PSFs; works only if im_pastis=True
-    :return:
-    """
+
     from simulators import webbpsf_imaging as webbim
 
     log.warning("THIS ONLY WORKS FOR PISTON FOR NOW")
@@ -181,14 +192,22 @@ def contrast_jwst_ana_num(matdir, matrix_mode="analytical", rms=1. * u.nm, im_pa
 
 
 def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1 * u.nm):
-    """
-    Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
+    """Compute the contrast for a random IrisAO misalignment on the HiCAT simulator.
 
-    :param coro_floor: float, coronagraph contrast floor
-    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
-    :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity, rms wfe to be put randomly on the SM
-    :return: E2E and matrix contrast, both floats
+    Parameters
+    ----------
+    coro_floor : float
+        coronagraph contrast floor
+    norm : float
+        normalization factor for PSFs: peak of unaberrated direct PSF
+    matrix_dir : string
+        read directory of saved matrix
+    rms : astropy quantity
+        E2E and matrix contrast, both floats
+
+    Returns
+    -------
+    contrast_hicat, contrast_matrix : float
     """
 
     # Keep track of time
@@ -252,14 +271,27 @@ def contrast_hicat_num(coro_floor, norm, matrix_dir, rms=1 * u.nm):
 
 
 def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1 * u.nm):
-    """
-    Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
+    """Compute the contrast for a random segmented mirror misalignment on the LUVOIR simulator.
 
-    :param coro_floor: float, coronagraph contrast floor
-    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
-    :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
-    :return: 2x float, E2E and matrix contrast
+    Parameters
+    ----------
+    coro_floor : float
+        coronagraph contrast floor
+    norm : float
+        normalization factor for PSFs: peak of unaberrated direct PSF
+    design : string
+        which LUVOIR APLC design to use, "small", "medium" or "large"
+    matrix_dir : string
+        read directory of saved matrix
+    rms : astropy quantity
+        WFE rms (OPD) to be put randomly over the entire segmented mirror
+
+    Returns
+    -------
+    contrast_luvoir : float
+        E2E contrast
+    contrast_matrix : float
+        matrix contrast
     """
 
     # Keep track of time
@@ -320,15 +352,27 @@ def contrast_luvoir_num(coro_floor, norm, design, matrix_dir, rms=1 * u.nm):
 
 
 def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50 * u.nm):
-    """
-    Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
+    """Compute the contrast for a random segmented OTE misalignment on the JWST simulator.
 
-    :param coro_floor: float, coronagraph contrast floor
-    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
-    :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire segmented mirror
-    :return: 2x float, E2E and matrix contrast
+    Parameters
+    ----------
+    coro_floor : float
+        coronagraph contrast floor
+    norm : float
+        normalization factor for PSFs: peak of unaberrated direct PSF
+    matrix_dir : string
+        read directory of saved matrix
+    rms : astropy quantity
+        WFE rms (OPD) to be put randomly over the entire segmented mirror
+
+    Returns
+    -------
+    contrast_jwst : float
+        E2E contrast
+    contrast_matrix : float
+        matrix contrast
     """
+
     # Keep track of time
     start_time = time.time()
 
@@ -391,15 +435,27 @@ def contrast_jwst_num(coro_floor, norm, matrix_dir, rms=50 * u.nm):
 
 
 def contrast_rst_num(coro_floor, norm, matrix_dir, rms=50 * u.nm):
-    """
-    Compute the contrast for a random aberration over all DM actuators in the RST simulator.
+    """Compute the contrast for a random aberration over all DM actuators in the RST simulator.
 
-    :param coro_floor: float, coronagraph contrast floor
-    :param norm: float, normalization factor for PSFs: peak of unaberrated direct PSF
-    :param matrix_dir: str, directory of saved matrix
-    :param rms: astropy quantity (e.g. m or nm), WFE rms (OPD) to be put randomly over the entire continuous mirror
-    :return: 2x float, E2E and matrix contrast
+    Parameters
+    ----------
+    coro_floor : float
+        coronagraph contrast floor
+    norm : float
+        normalization factor for PSFs: peak of unaberrated direct PSF
+    matrix_dir : string
+        read directory of saved matrix
+    rms : astropy quantity
+        WFE rms (OPD) to be put randomly over the entire continuous mirror
+
+    Returns
+    -------
+    contrast_rst : float
+        E2E contrast
+    contrast_matrix : float
+        matrix contrast
     """
+
     # Keep track of time
     start_time = time.time()
 

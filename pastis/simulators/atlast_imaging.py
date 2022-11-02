@@ -43,6 +43,7 @@ def get_atlast_aperture(normalized=False, with_segment_gaps=True, segment_transm
     CartesianGrid
         The segment positions.
     """
+
     pupil_diameter = PUP_DIAMETER
     segment_circum_diameter = 2 / np.sqrt(3) * pupil_diameter / 7
     num_rings = 3
@@ -124,6 +125,7 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
         Wavefront
             The reflected wavefront.
         """
+
         wf = wavefront.copy()
         wf.electric_field *= np.exp(2j * self.surface * wavefront.wavenumber)
         return wf
@@ -141,29 +143,28 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
         Wavefront
             The reflected wavefront.
         """
+
         wf = wavefront.copy()
         wf.electric_field *= np.exp(-2j * self.surface * wavefront.wavenumber)
         return wf
 
     @property
     def surface(self):
-        """ The surface of the segmented mirror in meters, the full surface as a Field.
-        """
+        """ The surface of the segmented mirror in meters, the full surface as a Field."""
         surf = self.apply_coef()
         return surf
 
     @property
     def coef(self):
-        """ The surface shape of the deformable mirror, in meters and radians; PTT segment coefficients.
-        """
+        """ The surface shape of the deformable mirror, in meters and radians; PTT segment coefficients."""
         return self._coef
 
     def flatten(self):
-        """ Flatten the DM by setting all segment coefficients to zero."""
+        """Flatten the DM by setting all segment coefficients to zero."""
         self._coef[:] = 0
 
     def set_segment(self, segid, piston, tip, tilt):
-        """ Set an individual segment of the DM.
+        """Set an individual segment of the DM.
 
         Piston in meter of surface, tip and tilt in radians of surface.
 
@@ -177,7 +178,8 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
         self._coef[segid - 1] = [piston, tip, tilt]
 
     def _setup_grids(self):
-        """ Set up the grids to compute the segmented mirror surface into.
+        """Set up the grids to compute the segmented mirror surface into.
+
         This is relatively slow, but we only need to do this once for
         each size of input grids.
         """
@@ -217,10 +219,9 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
             self._seg_y[bad_gaps_y] = 0
 
     def apply_coef(self):
-        """ Apply the DM shape from its own segment coefficients to make segmented mirror surface.
-        """
-        self._setup_grids()
+        """Apply the DM shape from its own segment coefficients to make segmented mirror surface."""
 
+        self._setup_grids()
         keep_surf = np.zeros_like(self._seg_x)
         for i in self.segmentlist:
             wseg = self._seg_indices[i]
@@ -246,8 +247,7 @@ class SegmentedMirrorAtlast(hcipy.OpticalElement):
 
 
 def seg_mirror_test():
-    """
-    Testing the integrated energy of images produced by HCIPy vs Poppy segmented DMs.
+    """Testing the integrated energy of images produced by HCIPy vs Poppy segmented DMs.
 
     This is now deprecated as we refactored the segmented mirror classes significantly.
     """

@@ -17,18 +17,19 @@ log = logging.getLogger()
 
 
 class LuvoirA_APLC(ScdaAPLC):
-    """ LUVOIR A with APLC simulator
+    """LUVOIR A with APLC simulator"""
 
-    Parameters:
-    ----------
-    input_dir : string
-        Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
-    apod_design : string
-        Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
-    sampling : float
-        Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
-    """
     def __init__(self, input_dir, apod_design, sampling):
+        """
+        Parameters
+        ----------
+        input_dir : string
+            Path to input files: apodizer, aperture, indexed aperture, Lyot stop.
+        apod_design : string
+            Choice of apodizer design from May 2019 delivery. "small", "medium" or "large".
+        sampling : float
+            Desired image plane sampling of coronagraphic PSF in pixels per lambda/D.
+        """
 
         # Parameters for three specific apodizer designs
         self.apod_dict = {'small': {'pxsize': 1000, 'fpm_rad': 3.5, 'fpm_px': 150, 'iwa': 3.4, 'owa': 12.,
@@ -65,7 +66,7 @@ class LuvoirA_APLC(ScdaAPLC):
 
 
 class SegmentedTelescopeAPLC(SegmentedAPLC):   # TODO: remove completely from repo
-    """ THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
+    """-- DEPRECATED -- THIS PIPES DIRECTLY THROUGH TO SegmentedAPLC.
     !!! This class only still exists for back-compatibility. Please use SegmentedTelescope and SegmentedAPLC for new implementations. !!!
     """
     def __init__(self, aper, indexed_aperture, seg_pos, apod, lyotst, fpm, focal_grid, params):
@@ -83,7 +84,7 @@ class SegmentedTelescopeAPLC(SegmentedAPLC):   # TODO: remove completely from re
 
 
 class LuvoirAPLC(LuvoirA_APLC):
-    """ THIS PIPES DIRECTLY THROUGH TO LuvoirA_APLC.
+    """-- DEPRECATED -- THIS PIPES DIRECTLY THROUGH TO LuvoirA_APLC.
     !!! This class only still exists for back-compatibility. Please use LuvoirA_APLC for new implementations. !!!
     """
     def __init__(self, input_dir, apod_design, samp):
@@ -91,17 +92,18 @@ class LuvoirAPLC(LuvoirA_APLC):
 
 
 class LuvoirBVortex(SegmentedTelescope):
-    """ A segmented Vortex coronagraph
-
-    Parameters:
-    ----------
-    input_dir : string
-        Path to input files: DMs, aperture, indexed aperture, Lyot stop, etc.
-    charge : int
-        charge of vortex coronagraph
-    """
+    """A segmented Vortex coronagraph"""
 
     def __init__(self, input_dir, charge):
+        """
+        Parameters
+        ----------
+        input_dir : string
+            Path to input files: DMs, aperture, indexed aperture, Lyot stop, etc.
+        charge : int
+            charge of vortex coronagraph
+        """
+
         self.input_dir = input_dir
         self.set_up_telescope()
         super().__init__(indexed_aper=self.indexed_aperture, seg_pos=self.seg_pos,
@@ -177,14 +179,14 @@ class LuvoirBVortex(SegmentedTelescope):
         self.segment_circum_diameter = 2 / np.sqrt(3) * 0.955 * (self.D_pup / 8)   # m
 
     def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None):
-        """ Calculate the PSF of LUVOIR B, and return optionally all E-fields.
+        """Calculate the PSF of LUVOIR B, and return optionally all E-fields.
 
-        Parameters:
+        Parameters
         ----------
         ref : bool
-            Whether or not to return the reference (direct) PSF
+            Whether to return the reference (direct) PSF
         display_intermediate : bool
-            Whether or not to display images of all planes.
+            Whether o display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
 

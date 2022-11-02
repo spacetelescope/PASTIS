@@ -15,17 +15,18 @@ log = logging.getLogger()
 
 
 class SegmentedMirror(hcipy.OpticalElement):
-    """A segmented mirror from a segmented aperture.
-    Parameters:
-    ----------
-    indexed_aperture : Field
-        The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
-        segment identification. Segment gaps must be strictly zero.
-    seg_pos : CartesianGrid(UnstructuredCoords)
-        Segment positions of the aperture.
-    """
+    """A segmented mirror from a segmented aperture."""
 
     def __init__(self, indexed_aperture, seg_pos):
+        """
+        Parameters
+        ----------
+        indexed_aperture : Field
+            The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
+            segment identification. Segment gaps must be strictly zero.
+        seg_pos : CartesianGrid(UnstructuredCoords)
+            Segment positions of the aperture.
+        """
         self.ind_aper = indexed_aperture
         self.segnum = len(seg_pos.x)
         self.segmentlist = np.arange(1, self.segnum + 1)
@@ -37,6 +38,7 @@ class SegmentedMirror(hcipy.OpticalElement):
 
     def forward(self, wavefront):
         """Propagate a wavefront through the segmented mirror.
+
         Parameters
         ----------
         wavefront : Wavefront
@@ -47,6 +49,7 @@ class SegmentedMirror(hcipy.OpticalElement):
         Wavefront
             The reflected wavefront.
         """
+
         wf = wavefront.copy()
         wf.electric_field *= np.exp(2j * self.surface * wavefront.wavenumber)
         return wf
@@ -64,39 +67,37 @@ class SegmentedMirror(hcipy.OpticalElement):
         Wavefront
             The reflected wavefront.
         """
+
         wf = wavefront.copy()
         wf.electric_field *= np.exp(-2j * self.surface * wavefront.wavenumber)
         return wf
 
     @property
     def surface(self):
-        """ The surface of the segmented mirror in meters, the full surface as a Field.
-        """
+        """The surface of the segmented mirror in meters, the full surface as a Field."""
         if self._surface is None:
             self._surface = self.apply_coef()
         return self._surface
 
     @property
     def coef(self):
-        """ The surface shape of the deformable mirror, in meters and radians; PTT segment coefficients.
-        """
+        """The surface shape of the deformable mirror, in meters and radians; PTT segment coefficients."""
         self._surface = None
         return self._coef
 
     def show_numbers(self):
-        """ Display the mirror pupil with numbered segments.
-        """
+        """ Display the mirror pupil with numbered segments."""
         imshow_field(self.ind_aper)
         for i, par in enumerate(self.seg_pos):
             plt.annotate(s=i + 1, xy=par, xytext=par, color='white', fontweight='bold')  # TODO: scale text size by segment size
 
     def flatten(self):
-        """ Flatten the DM by setting all segment coefficients to zero."""
+        """Flatten the DM by setting all segment coefficients to zero."""
         self._surface = None
         self._coef[:] = 0
 
     def set_segment(self, segid, piston, tip, tilt):
-        """ Set an individual segment of the DM.
+        """Set an individual segment of the DM.
 
         Piston in meter of surface, tip and tilt in radians of surface.
 
@@ -107,14 +108,17 @@ class SegmentedMirror(hcipy.OpticalElement):
         piston, tip, tilt : floats, meters and radians
             Piston (in meters) and tip and tilt (in radians)
         """
+
         self._surface = None
         self._coef[segid - 1] = [piston, tip, tilt]
 
     def _setup_grids(self):
-        """ Set up the grids to compute the segmented mirror surface into.
+        """Set up the grids to compute the segmented mirror surface into.
+
         This is relatively slow, but we only need to do this once for
         each size of input grids.
         """
+
         npix = self.ind_aper.shaped.shape[0]
         if npix == self._last_npix:
             return
@@ -137,10 +141,9 @@ class SegmentedMirror(hcipy.OpticalElement):
             self._seg_y[wseg] = y[wseg] - ceny
 
     def apply_coef(self):
-        """ Apply the DM shape from its own segment coefficients to make segmented mirror surface.
-        """
-        self._setup_grids()
+        """Apply the DM shape from its own segment coefficients to make segmented mirror surface."""
 
+        self._setup_grids()
         keep_surf = np.zeros_like(self._seg_x)
         for i in self.segmentlist:
             wseg = self._seg_indices[i]
@@ -151,10 +154,12 @@ class SegmentedMirror(hcipy.OpticalElement):
 
     def phase_for(self, wavelength):
         """Get the phase that is added to a wavefront with a specified wavelength.
+
         Parameters
         ----------
         wavelength : scalar
             The wavelength at which to calculate the phase deformation.
+
         Returns
         -------
         Field
@@ -164,14 +169,25 @@ class SegmentedMirror(hcipy.OpticalElement):
 
 
 def load_segment_centers(input_dir, aper_ind_path, nseg, diameter):
-    """ Load segment positions from fits header
+    """Load segment positions from fits header
 
-    :param input_dir: string, absolute path to input directory
-    :param aper_ind_path: string, relative path and filename of indexed aperture file
-    :param nseg: int, total number of segments in the pupil
-    :param diameter: float, pupil diameter
-    :return: hcipy.CartesianGrid of segment centers
+    Parameters
+    ----------
+    input_dir : string
+        absolute path to input directory
+    aper_ind_path : string
+        relative path and filename of indexed aperture file
+    nseg : int
+        total number of segments in the pupil
+    diameter : float
+        pupil diameter
+
+    Returns
+    -------
+    seg_pos : hcipy.CartesianGrid
+        grid of segment centers
     """
+
     hdr = fits.getheader(os.path.join(input_dir, aper_ind_path))
     poslist = []
     for i in range(nseg):
@@ -187,7 +203,7 @@ def load_segment_centers(input_dir, aper_ind_path, nseg, diameter):
 
 
 class Telescope:
-    """ A simple telescope with active components in the pupil plane (DMs), but without actively controlled segments.
+    """A simple telescope with active components in the pupil plane (DMs), but without actively controlled segments.
 
     This class can take an arbitrary telescope aperture as input and will create a telescope object out of it. This can
     be monolithic or segmented or other apertures, but the DMs that the class contains will always be actinvn on the
@@ -200,21 +216,6 @@ class Telescope:
         self.zernike_mirror.num_actuators
     You can command each DM by passing it an array of length "num_actuators", e.g.
         self.zernike_mirror.actuators = dm_command
-
-    Parameters:
-    ----------
-    wvln : float
-        Wavelength in meters
-    diameter : float
-        Telescope diameter in meters
-    aper : Field
-        Telescope aperture
-    focal_grid : hcipy focal grid
-        Focal plane grid to put final image on
-    sampling : float
-        Sampling in focal plane in pixels per lambda/D
-    imlamD : float
-        Detector image half-size in lambda/D
 
     Attributes:
     ----------
@@ -243,6 +244,23 @@ class Telescope:
     """
 
     def __init__(self, wvln, diameter, aper, focal_grid, sampling, imlamD):
+        """
+        Parameters:
+        ----------
+        wvln : float
+            Wavelength in meters
+        diameter : float
+            Telescope diameter in meters
+        aper : Field
+            Telescope aperture
+        focal_grid : hcipy focal grid
+            Focal plane grid to put final image on
+        sampling : float
+            Sampling in focal plane in pixels per lambda/D
+        imlamD : float
+            Detector image half-size in lambda/D
+        """
+
         self.wvln = wvln
         self.diam = diameter
         self.aperture = aper
@@ -262,11 +280,15 @@ class Telescope:
         self.zwfs = None
 
     def prop_norm_one_photon(self, input_efield):
-        """ Perform a Fraunhofer propagation, normalized to one photon.
+        """Perform a Fraunhofer propagation, normalized to one photon.
 
         Parameters:
         ----------
         input_efield : hcipy.Wavefront
+
+        Returns
+        --------
+        normalized_efield : hcipy.Wavefront
         """
 
         norm_fac = np.max(self.focal_det.x) * self.pupil_grid.dims[0] / np.max(self.pupil_grid.x) / self.focal_det.dims[0]
@@ -276,13 +298,14 @@ class Telescope:
         return normalized_efield
 
     def create_global_zernike_mirror(self, n_zernikes):
-        """ Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
+        """Create a Zernike mirror in the pupil plane, with a global Zenrike modal basis of n_zernikes modes.
 
         Parameters:
         ----------
         n_zernikes : int
             Number of Zernikes to enable the Zernike mirror for.
         """
+
         global_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                    self.diam,
                                                                    self.pupil_grid,
@@ -290,25 +313,27 @@ class Telescope:
         self.zernike_mirror = hcipy.optics.DeformableMirror(global_zernike_basis)
 
     def create_ripple_mirror(self, n_fourier):
-        """ Create a DM that applies Fourier sine and cosine modes in the entrance pupil plane, up to n_fourier cycles per aperture.
+        """Create a DM that applies Fourier sine and cosine modes in the entrance pupil plane, up to n_fourier cycles per aperture.
 
         Parameters:
         ----------
         n_fourier : int
             Maximum number for cycles per aperture, use an odd number (!)
         """
+
         fourier_grid = hcipy.make_pupil_grid(dims=n_fourier, diameter=n_fourier)   # TODO: should it be diameter=self.diam instead?
         fourier_basis = hcipy.mode_basis.make_fourier_basis(self.pupil_grid, fourier_grid, sort_by_energy=True)
         self.ripple_mirror = hcipy.optics.DeformableMirror(fourier_basis)
 
     def create_continuous_deformable_mirror(self, n_actuators_across):
-        """ Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
+        """Create a continuous deformable mirror in the pupil plane, with n_actuators_across across the pupil.
 
         Parameters:
         ----------
         n_actuators_across : int
             number of actuators across the pupil plane
         """
+
         actuator_spacing = self.diam / n_actuators_across
         influence_functions = hcipy.make_xinetics_influence_functions(self.pupil_grid,
                                                                       n_actuators_across,
@@ -316,19 +341,19 @@ class Telescope:
         self.dm = hcipy.DeformableMirror(influence_functions)
 
     def remove_global_zernike_mirror(self):
-        """ Remove the global Zernike mirror as class attribute. """
+        """Remove the global Zernike mirror as class attribute."""
         self.zernike_mirror = None
 
     def remove_ripple_mirror(self):
-        """ Remove the high-spatial frequency ripple mirror as class attribute. """
+        """Remove the high-spatial frequency ripple mirror as class attribute."""
         self.ripple_mirror = None
 
     def remove_continuous_deformable_mirror(self):
-        """ Remove the continuous deformable mirror as class attribute. """
+        """Remove the continuous deformable mirror as class attribute."""
         self.dm = None
 
     def flatten(self):
-        """ Flatten all deformable mirrors in this simulator instance, if they exist. """
+        """Flatten all deformable mirrors in this simulator instance, if they exist."""
         if self.zernike_mirror is not None:
             self.zernike_mirror.flatten()
         if self.ripple_mirror is not None:
@@ -342,10 +367,17 @@ class Telescope:
         Create a transparent field object that can be used in propagation planes that are not set up.
         Also create the WF on the full active pupil, depending on normalization choice.
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns
+        --------
+        transparent_field : hcipy.Field
+            Transparent field (all ones).
+        wf_active_pupil : hcipy.Wavefront
+            Wavefront of all active conjugate pupils combined into one.
         """
 
         # Create empty field for components that are None
@@ -361,14 +393,14 @@ class Telescope:
         return transparent_field, wf_active_pupil
 
     def _propagate_active_pupils(self, norm_one_photon=False):
-        """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
+        """Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_active_pupil, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
@@ -396,18 +428,18 @@ class Telescope:
         return wf_active_pupil, wf_zm, wf_ripples, wf_dm, transparent_field
 
     def calc_psf(self, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
-        """ Calculate the PSF of this telescope, and return optionally all E-fields.
+        """Calculate the PSF of this telescope, and return optionally all E-fields.
 
-        Parameters:
+        Parameters
         ----------
         display_intermediate : bool
-            Whether or not to display images of all planes.
+            Whether to display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_image.intensity : Field
             returned if return_intermediate=None (default)
@@ -469,7 +501,8 @@ class Telescope:
         return wf_image.intensity
 
     def create_zernike_wfs(self, step=None, spot_diam=None, spot_points=None):
-        """ Create a Zernike wavefront sensor object. """
+        """Create a Zernike wavefront sensor object. """
+
         if step is None:
             step = np.pi / 2    # original value for LUVOIR-A
         if spot_diam is None:
@@ -485,14 +518,14 @@ class Telescope:
                                                                          reference_wavelength=self.wvln)
 
     def calc_out_of_band_wfs(self, norm_one_photon=False):
-        """ Propagate pupil through an out-of-band wavefront sensor.
+        """Propagate pupil through an out-of-band wavefront sensor.
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         ob_wfs : hcipy.Wavefront
             E-field on OBWFS detector
@@ -510,7 +543,7 @@ class Telescope:
 
 
 class SegmentedTelescope(Telescope):
-    """ A segmented telescope with active components in the pupil plane (DMs).
+    """A segmented telescope with active components in the pupil plane (DMs).
 
     By default, instantiates just with a segmented mirror that can do piston, tip and tilt with the pre-defined methods.
     Use the deformable mirror methods to create more flexible DMs as class attributes, on top of DMs inherited from "Telescope":
@@ -523,21 +556,7 @@ class SegmentedTelescope(Telescope):
 
     The segments are numbered following their respective index in the indexed aperture input file.
 
-    Parameters:
-    ----------
-    indexed_aper : Field
-        The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
-        segment identification. Segment gaps must be strictly zero.
-    seg_pos : CartesianGrid(UnstructuredCoords)
-        Segment positions of the aperture
-    seg_diameter : float
-        Circumscribed diameter of an individual segment in meters
-    center_segment : Bool
-        ...
-    *kwargs :
-        keyword arguments passed through to "Telescope" parent class, see docs there
-
-    Attributes:
+    Attributes
     ----------
     aper_ind : hcipy.Field
         Indexed telescope aperture
@@ -548,9 +567,26 @@ class SegmentedTelescope(Telescope):
     nseg : int
         Number of active segments on telescope primary mirror
     center_segment : bool
-        Whether or not the center segment is actively controllable (unobscured) or not
+        Whether the center segment is actively controllable (unobscured) or not
     """
+
     def __init__(self, indexed_aper, seg_pos, seg_diameter, center_segment=False, **kwargs):
+        """
+        Parameters
+        ----------
+        indexed_aper : Field
+            The *indexed* segmented aperture of the mirror, all pixels each segment being filled with its number for
+            segment identification. Segment gaps must be strictly zero.
+        seg_pos : CartesianGrid(UnstructuredCoords)
+            Segment positions of the aperture
+        seg_diameter : float
+            Circumscribed diameter of an individual segment in meters
+        center_segment : Bool
+            ...
+        *kwargs :
+            keyword arguments passed through to "Telescope" parent class, see docs there
+        """
+
         super().__init__(**kwargs)
 
         self.aper_ind = indexed_aper
@@ -563,12 +599,12 @@ class SegmentedTelescope(Telescope):
         self.harris_sm = None
 
     def set_segment(self, segid, piston, tip, tilt):
-        """ Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
+        """Set an individual segment of the SegmentedMirror to a piston/tip/tilt command.
 
         This method only works with a segmented DM of type pastis.simulators.generic_segmented_telescopes.SegmentedMirror
         and only exists for back-compatibility.
 
-        Parameters:
+        Parameters
         ----------
         segid : int
             Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
@@ -579,6 +615,7 @@ class SegmentedTelescope(Telescope):
         tilt : float
             Tilt aberration amplitude in meters rms of surface.
         """
+
         if not isinstance(self.sm, SegmentedMirror):
             raise TypeError("This function is only for usage with a segmented mirror of type "
                             "'pastis.simulators.generic_segmented_telescopes.SegmentedMirror'. You are currently "
@@ -586,9 +623,9 @@ class SegmentedTelescope(Telescope):
         self.sm.set_segment(segid, piston, tip, tilt)
 
     def _create_evaluated_segment_grid(self):
-        """ Create a list of segments evaluated on the pupil_grid.
+        """Create a list of segments evaluated on the pupil_grid.
 
-        Returns:
+        Returns
         --------
         seg_evaluated: list
             all segments evaluated individually on self.pupil_grid
@@ -608,9 +645,9 @@ class SegmentedTelescope(Telescope):
         return seg_evaluated
 
     def create_segmented_mirror(self, n_zernikes):
-        """ Create an actuated segmented mirror from hcipy's DeformableMirror, with n_zernikes Zernike modes per segment.
+        """Create an actuated segmented mirror from hcipy's DeformableMirror, with n_zernikes Zernike modes per segment.
 
-        Parameters:
+        Parameters
         ----------
         n_zernikes : int
             how many Zernikes to create per segment
@@ -643,13 +680,13 @@ class SegmentedTelescope(Telescope):
         self.sm = hcipy.optics.DeformableMirror(local_zernike_basis)
 
     def set_sm_segment(self, segid, zernike_number, amplitude, override=False):
-        """ Set an individual segment of the multi-mode segmented DM to a single Zernike mode.
+        """Set an individual segment of the multi-mode segmented DM to a single Zernike mode.
 
         This works only on the new multi-mode segmented DM that is a hcipy.optics.DeformableMirror. You can use
         Zernikes up to the number you created the SM with. For commanding individual segments of the internal
         SegmentedMirror, use self.set_segment(), which exists purely for back-compatibility.
 
-        Parameters:
+        Parameters
         ----------
         segid : int
             Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
@@ -661,6 +698,7 @@ class SegmentedTelescope(Telescope):
             Whether to override all other segment commands with zero, default False, which means the new segment
             aberration will be added to what is already on the segmented mirror.
         """
+
         if not isinstance(self.sm, hcipy.optics.DeformableMirror):
             raise TypeError("This function is only for usage with the multi-mode segmented DM. You are currently "
                             "using a 'pastis.simulators.generic_segmented_telescopes.SegmentedMirror'.")
@@ -688,7 +726,7 @@ class SegmentedTelescope(Telescope):
         self.sm.actuators = new_command
 
     def create_segmented_harris_mirror(self, filepath, pad_orientation, thermal=True, mechanical=True, other=True):
-        """ Create an actuated segmented mirror with a modal basis made of the thermal modes provided by Harris.
+        """Create an actuated segmented mirror with a modal basis made of the thermal modes provided by Harris.
 
         Thermal modes: a, h, i, j, k
         Mechanical modes: e, f, g
@@ -698,7 +736,7 @@ class SegmentedTelescope(Telescope):
         a, h, i, j, k, e, f, g, b, c, d
         If only a subset is created, the ordering will be retained but the non-chosen modes dropped.
 
-        Parameters:
+        Parameters
         ----------
         filepath : string
             absolute path to the xls spreadsheet containing the Harris segment modes
@@ -789,9 +827,9 @@ class SegmentedTelescope(Telescope):
         self.harris_sm = hcipy.optics.DeformableMirror(harris_mode_basis)
 
     def set_harris_segment(self, segid, mode_number, amplitude, override=False):
-        """ Set an individual segment of the Harris segmented mirror to a single Harris mode.
+        """Set an individual segment of the Harris segmented mirror to a single Harris mode.
 
-        Parameters:
+        Parameters
         ----------
         segid : int
             Id number of the segment you want to set. Center segment is always 0, whether it is obscured or not.
@@ -806,6 +844,7 @@ class SegmentedTelescope(Telescope):
             Whether to override all other segment commands with zero, default False, which means the new segment
             aberration will be added to what is already on the segmented mirror.
         """
+
         if mode_number >= self.n_harris_modes:
             raise NotImplementedError(f"'self.harris_sm' has only been instantiated for {self.n_harris_modes} modes "
                                       f"per segment, indexed with 0.")
@@ -829,15 +868,16 @@ class SegmentedTelescope(Telescope):
         self.harris_sm.actuators = new_command
 
     def remove_segmented_mirror(self):
-        """ Remove the segmented mirror with local Zernikes as class attribute, replace with PTT segmented mirror. """
+        """Remove the segmented mirror with local Zernikes as class attribute, replace with PTT segmented mirror."""
         self.sm = SegmentedMirror(indexed_aperture=self.aper_ind, seg_pos=self.seg_pos)
 
     def remove_segmented_harris_mirror(self):
-        """ Remove the segmented Harris mirror as class attribute. """
+        """Remove the segmented Harris mirror as class attribute."""
         self.harris_sm = None
 
     def flatten(self):
-        """ Flatten all deformable mirrors in this simulator instance, if they exist. """
+        """Flatten all deformable mirrors in this simulator instance, if they exist."""
+
         if self.sm is not None:
             self.sm.flatten()
         if self.harris_sm is not None:
@@ -845,14 +885,14 @@ class SegmentedTelescope(Telescope):
         super().flatten()
 
     def _propagate_active_pupils(self, norm_one_photon=False):
-        """ Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
+        """Propagate aperture wavefront "through" all active entrance pupil elements (DMs).
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm : hcipy.Wavefronts
             E-field after each respective DM individually; all DMs in the case of wf_active_pupil.
@@ -875,18 +915,18 @@ class SegmentedTelescope(Telescope):
         return wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm
 
     def calc_psf(self, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
-        """ Calculate the PSF of this segmented telescope, and return optionally all E-fields.
+        """Calculate the PSF of this segmented telescope, and return optionally all E-fields.
 
-        Parameters:
+        Parameters
         ----------
         display_intermediate : bool
-            Whether or not to display images of all planes.
+            Whether to display images of all planes.
         return_intermediate : string
             default None; if "efield", will also return E-fields of each plane and DM
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_image.intensity : Field
             returned if return_intermediate=None (default)
@@ -954,14 +994,14 @@ class SegmentedTelescope(Telescope):
         return wf_image.intensity
 
     def calc_out_of_band_wfs(self, norm_one_photon=False):
-        """ Propagate pupil through an out-of-band wavefront sensor.
+        """Propagate pupil through an out-of-band wavefront sensor.
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         ob_wfs : hcipy.Wavefront
             E-field on OBWFS detector
@@ -979,26 +1019,9 @@ class SegmentedTelescope(Telescope):
 
 
 class SegmentedAPLC(SegmentedTelescope):
-    """ A segmented Apodized Pupil Lyot Coronagraph (APLC)
+    """A segmented Apodized Pupil Lyot Coronagraph (APLC)
 
-    Parameters:
-    ----------
-    apod : Field
-        Apodizer
-    lyot_stop : Field
-        Lyot Stop
-    fpm : Field
-        Focal plane mask (FPM)
-    fpm_rad : float
-        FPM radius in lambda/D
-    iwa : float
-        Inner working angle in lambda/D
-    owa : float
-        Outer working angle in lambda/D
-    **kwargs :
-        Keyword arguments passed through to SegmentedTelescope, see documentation there
-
-    Attributes:
+    Attributes
     ----------
     apodizer : hcipy.Field
         Apodizer
@@ -1020,7 +1043,27 @@ class SegmentedAPLC(SegmentedTelescope):
         DH mask of your APLC as a boolean array
     and all attributes of SegmentedTelescope
     """
+
     def __init__(self, apod, lyot_stop, fpm, fpm_rad, iwa, owa, **kwargs):
+        """
+        Parameters
+        ----------
+        apod : Field
+            Apodizer
+        lyot_stop : Field
+            Lyot Stop
+        fpm : Field
+            Focal plane mask (FPM)
+        fpm_rad : float
+            FPM radius in lambda/D
+        iwa : float
+            Inner working angle in lambda/D
+        owa : float
+            Outer working angle in lambda/D
+        **kwargs :
+            Keyword arguments passed through to SegmentedTelescope, see documentation there
+        """
+
         self.apodizer = apod
         self.lyotstop = lyot_stop
         self.fpm = fpm
@@ -1036,22 +1079,22 @@ class SegmentedAPLC(SegmentedTelescope):
         self.dh_mask = (dh_outer - dh_inner).astype('bool')
 
     def calc_psf(self, ref=False, display_intermediate=False, return_intermediate=None, norm_one_photon=False):
-        """ Calculate the PSF of the segmented APLC, normalized to contrast units. Optionally return reference (direct
+        """Calculate the PSF of the segmented APLC, normalized to contrast units. Optionally return reference (direct
         PSF) and/or E-fields in all planes.
 
-        Parameters:
+        Parameters
         ----------
         ref : bool
             Keyword for additionally returning the reference PSF without the FPM.
         display_intermediate : bool
-            Whether or not to display images of all planes.
+            Whether to display images of all planes.
         return_intermediate : string
             Either 'intensity', return the intensity in all planes; except phase on the SM (first plane)
             or 'efield', return the E-fields in all planes. Default none.
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         wf_im_coro.intensity : Field
             Coronagraphic image, normalized to contrast units by max of reference image (even when ref
@@ -1207,14 +1250,14 @@ class SegmentedAPLC(SegmentedTelescope):
         return wf_im_coro.intensity
 
     def calc_low_order_wfs(self, norm_one_photon=False):
-        """ Propagate pupil through a low-order wavefront sensor.
+        """Propagate pupil through a low-order wavefront sensor.
 
-        Parameters:
+        Parameters
         ----------
         norm_one_photon : bool
-            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+            Whether to normalize the returned E-fields and intensities to one photon in the entrance pupil.
 
-        Returns:
+        Returns
         --------
         lowfs : hcipy.Wavefront
             E-field on LOWFS detector

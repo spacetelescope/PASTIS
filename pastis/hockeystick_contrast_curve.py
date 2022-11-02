@@ -27,19 +27,21 @@ log = logging.getLogger()
 
 
 def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'):
-    """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for JWST.
+    """Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix for JWST.
 
     The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
     used. We define how many realizations of a specific rms error we want to run through, and also how many points we
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. rms phase error.
 
-    :param range_points: int, How many points of rms error (OPD) to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per rms error (OPD) should be calculated; the mean of the realizations
-                                is used.
-    :param matrix_mode: string, Choice of PASTIS matrix to validate: 'analytical' or 'numerical'
-    :return:
+    Parameters
+    ----------
+    range_points : int, default 3
+        How many points of rms error (OPD) to use in the predefined aberration range.
+    no_realizations : int, default 3
+        How many realizations per rms error (OPD) should be calculated; the mean of the realizations is used.
+    matrix_mode : string, default 'analytical'
+        Choice of PASTIS matrix to validate: 'analytical' or 'numerical'.
     """
 
     # Keep track of time
@@ -119,22 +121,27 @@ def hockeystick_jwst(range_points=3, no_realizations=3, matrix_mode='analytical'
 
 
 def hockeystick_curve(instrument, apodizer_choice=None, matrixdir='', resultdir='', range_points=3, no_realizations=3):
-    """
-    Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for one particular instrument.
+    """Construct a PASTIS hockeystick contrast curve for validation of the PASTIS matrix, for one particular instrument.
 
     The aberration range is a fixed parameter in the function body since it depends on the coronagraph (and telescope)
     used. We define how many realizations of a specific WFE rms error we want to run through, and also how many points we
     want to fill the aberration range with. At each point we calculate the contrast for all realizations and plot the
     mean of this set of results in a figure that shows contrast vs. WFE rms error.
 
-    :param instrument: string, 'LUVOIR', 'HiCAT' or 'JWST'
-    :param apodizer_choice: string, needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
-    :param matrixdir: string, Path to matrix that should be used.
-    :param resultdir: string, Path to directory where results will be saved.
-    :param range_points: int, How many points of WFE rms error to use in the predefined aberration range.
-    :param no_realizations: int, How many realizations per WFE rms error should be calculated; the mean of the realizations
-                                is used in the plot
-    :return:
+    Parameters
+    ----------
+    instrument : string
+        'LUVOIR', 'HiCAT' or 'JWST'
+    apodizer_choice : string, default None
+        needed if instrument='LUVOIR'; use "small", "medium" or "large" FPM coronagraph
+    matrixdir : string
+        read path to pastis matrix
+    resultdir : string
+        path to directory where results will be saved
+    range_points : int, default 3
+        How many points of WFE rms error to use in the predefined aberration range.
+    no_realizations : int, default 3
+        How many realizations per WFE rms error should be calculated; the mean of the realizations is used in the plot
     """
 
     if instrument == 'LUVOIR' and apodizer_choice is None:

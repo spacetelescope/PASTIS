@@ -21,7 +21,7 @@ C_TARGET = 1e-10
 
 
 def test_modes_from_matrix():
-    """ Test correctness of eigenmodes and eigenvectors (here from full SVD). """
+    """Test correctness of eigenmodes and eigenvectors (here from full SVD)."""
 
     # Calculate modes and eigenvalues from matrix
     pmodes, svals, vh = np.linalg.svd(LUVOIR_INTENSITY_MATRIX_SMALL, full_matrices=True)

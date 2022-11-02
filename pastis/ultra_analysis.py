@@ -8,7 +8,38 @@ import pastis.util as util
 
 
 class MultiModeAnalysis:
+    """Analysis for multi-mode tolerancing on one of the internal simulators.
+
+    Attributes
+    ----------
+    c_target : float
+    simulator : simulator instance
+    which_dm : string
+    data_dir : string
+    num_modes : int
+    nseg : int
+    matrix_pastis : ndarray
+    dh_mask : ndarray
+    contrast_floor : float
+    mus : ndarray
+    """
+
     def __init__(self, c_target, simulator, which_dm, num_modes, data_dir):
+        """
+        Parameters
+        ----------
+        c_target : float
+            target contrast to tolerance to
+        simulator : simulator instance
+            simulator instance of one of the internal simulators
+        which_dm : string
+            which DM the tolerancing is done for, "harris_seg_mirror", "seg_mirror"
+        num_modes : int
+            number of modes (on a single segment)
+        data_dir : string
+            overall data directory that contains further subdirectories (e.g., "matrix_numerical")
+        """
+
         self.c_target = c_target
         self.simulator = simulator
         self.which_dm = which_dm
@@ -19,10 +50,12 @@ class MultiModeAnalysis:
         os.makedirs(os.path.join(self.data_dir, 'results', 'mu_maps'), exist_ok=True)
 
     def run(self):
+        """Main class method to call to perform the analysis."""
         self.read_matrix_results()
         self.calc_segment_reqs()
 
     def read_matrix_results(self):
+        """Save results from matrix calculation to class attributes."""
         self.matrix_pastis = fits.getdata(os.path.join(self.data_dir, 'matrix_numerical', 'pastis_matrix.fits'))
         unaber_psf = fits.getdata(os.path.join(self.data_dir, 'unaberrated_coro_psf.fits'))  # already normalized to max of direct pdf
         self.dh_mask = self.simulator.dh_mask.shaped
