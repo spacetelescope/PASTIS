@@ -24,9 +24,9 @@ def matrix_subsample(matrix, n, m):
 
     new_shape = (n, length, m, breadth)
     reshaped_array = matrix.reshape(new_shape)
-    matrix_reduced = np.sum(reshaped_array, axis=(1, 3))
+    reduced_matrix = np.sum(reshaped_array, axis=(1, 3))
 
-    return matrix_reduced
+    return reduced_matrix
 
 
 def calculate_sensitivity_matrices(e0_coron, e0_obwfs, efield_coron_real,
