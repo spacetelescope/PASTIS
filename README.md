@@ -139,7 +139,7 @@ who downloads the code and doesn't use version control. If you need a primer on 
 - To install it on a Mac, type `git` in your terminal and follow the instructions to install the Apple Xcode command tools.
 - To make it easy on Windows, [install Git Bash](https://gitforwindows.org/). **Note**: If 
 you will use Git Bash with Miniconda (see below), you will have to add Miniconda to your PATH during setup, even if it 
-is marked as not recommended. Otherwise Git Bash can't access it.
+is marked as not recommended. Otherwise, Git Bash can't access it.
 - For Linux, [follow this link](https://gist.github.com/derhuerst/1b15ff4652a867391f03#file-linux-md).
 
 ### Conda environment
