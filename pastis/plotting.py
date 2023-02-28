@@ -1222,5 +1222,6 @@ def plot_multimode_surface_maps(tel, mus, num_modes, mirror, cmin, cmax, data_di
         plt.tight_layout()
 
         if data_dir is not None:
+            os.makedirs(os.path.join(data_dir, 'mu_maps'), exist_ok=True)
             fname += f'_mode_{i}.pdf'
             plt.savefig(os.path.join(data_dir, 'mu_maps', fname))
