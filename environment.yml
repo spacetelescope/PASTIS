@@ -9,7 +9,7 @@ dependencies:
   - flake8
   - jupyter
   - matplotlib
-  - numpy
+  - numpy<=1.23
   - openpyxl
   - pandas
   - pip
