@@ -1,10 +1,12 @@
 import os
 from astropy.io import fits
 import astropy.units as u
+import hcipy
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-import pastis.matrix_generation.matrix_building_numerical as matrix_calc
+from pastis.matrix_generation.matrix_building_numerical import pastis_from_contrast_matrix
+from pastis.matrix_generation.matrix_from_efields import MatrixEfieldHex, pastis_matrix_from_efields
 from pastis.simulators.scda_telescopes import HexRingAPLC
 from pastis import util
 
@@ -48,7 +50,7 @@ hex2 = HexRingAPLC(optics_input, NUM_RINGS, sampling)
 
 unaberrated_coro_psf, direct = hex2.calc_psf(ref=True)
 NORM = np.max(direct)
-EFIELD_REF, _inter = hex2.calc_psf(return_intermediate='efields')
+EFIELD_REF, _inter = hex2.calc_psf(return_intermediate='efield')
 
 
 def test_semi_analytic_matrix_from_contrast_matrix():
@@ -136,10 +138,10 @@ def test_2hex_efields_matrix_regression(tmpdir):
     WHICH_DM = 'seg_mirror'
     DM_SPEC = 1
 
-    new_matrix_calc = matrix_calc.MatrixEfieldHex(which_dm=WHICH_DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
-                                                  calc_science=True, calc_wfs=False,
-                                                  initial_path=CONFIG_PASTIS.get('local', 'local_data_path'),
-                                                  norm_one_photon=True)
+    new_matrix_calc = MatrixEfieldHex(which_dm=WHICH_DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
+                                      calc_science=True, calc_wfs=False,
+                                      initial_path=CONFIG_PASTIS.get('local', 'local_data_path'),
+                                      norm_one_photon=True)
     new_matrix_calc.calc()
     new_matrix = new_matrix_calc.matrix_pastis
 
