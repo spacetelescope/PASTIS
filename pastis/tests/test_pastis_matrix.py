@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
-from pastis.matrix_generation.matrix_building_numerical import pastis_from_contrast_matrix
+from pastis.matrix_generation.matrix_building_numerical import calculate_unaberrated_contrast_and_normalization, pastis_from_contrast_matrix
 from pastis.matrix_generation.matrix_from_efields import MatrixEfieldHex, pastis_matrix_from_efields
 from pastis.simulators.scda_telescopes import HexRingAPLC
 from pastis import util
@@ -110,22 +110,22 @@ def test_pastis_forward_model():
     relative_tolerances = [1e-3, 1e-2, 1e-1]
     absolute_tolerances = [1e-15, 1e-9, 1e-8]
 
-    # Known from aberration-free image (2-Hex simulator)
-    contrast_floor = 4.1713373582172286e-11
+    # Calculate coronagraph floor, direct PSF peak normalization factor, and return E2E sim instance
+    contrast_floor, norm, luvoir_sim = calculate_unaberrated_contrast_and_normalization('LUVOIR', 'small')
 
     for rms, rel_tol, abs_tol in zip(rms_values, relative_tolerances, absolute_tolerances):
         # Create random aberration coefficients on segments, scaled to total rms
-        aber = util.create_random_rms_values(NSEG_HEX2, rms)
+        aber = util.create_random_rms_values(NSEG_LUVOIR, rms)
 
         # Contrast from PASTIS propagation
-        contrasts_matrix = (util.pastis_contrast(aber, HEX2_INTENSITY_MATRIX) + contrast_floor)
+        contrasts_matrix = (util.pastis_contrast(aber, LUVOIR_INTENSITY_MATRIX_SMALL) + contrast_floor)
 
         # Contrast from E2E propagator
-        for nb_seg in range(NSEG_HEX2):
-            hex2.set_segment(nb_seg, aber[nb_seg].to(u.m).value / 2, 0, 0)
-        psf_2hex = hex2.calc_psf(norm_one_photon=True)
-        psf_2hex /= NORM
-        contrasts_e2e = util.dh_mean(psf_2hex, hex2.dh_mask)
+        for nb_seg in range(NSEG_LUVOIR):
+            luvoir_sim.set_segment(nb_seg + 1, aber[nb_seg].to(u.m).value / 2, 0, 0)
+        psf_luvoir = luvoir_sim.calc_psf()
+        psf_luvoir /= norm
+        contrasts_e2e = (util.dh_mean(psf_luvoir, luvoir_sim.dh_mask))
 
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
 
