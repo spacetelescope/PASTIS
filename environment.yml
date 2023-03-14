@@ -16,7 +16,7 @@ dependencies:
   - conda-forge::pypdf2
   - pytest
   - python=3.10
-  - scipy
+  - scipy<=1.9
   - conda-forge::hcipy<=0.4
   - conda-forge::progressbar2
   - pip:
