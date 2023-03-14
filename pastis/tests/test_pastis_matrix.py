@@ -48,9 +48,9 @@ optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
 sampling = CONFIG_PASTIS.getfloat('HexRingTelescope', 'sampling')
 hex2 = HexRingAPLC(optics_input, NUM_RINGS, sampling)
 
-unaberrated_coro_psf, direct = hex2.calc_psf(ref=True)
+unaberrated_coro_psf, direct = hex2.calc_psf(ref=True, norm_one_photon=True)
 NORM = np.max(direct)
-EFIELD_REF, _inter = hex2.calc_psf(return_intermediate='efield')
+EFIELD_REF, _inter = hex2.calc_psf(return_intermediate='efield', norm_one_photon=True)
 
 
 def test_semi_analytic_matrix_from_contrast_matrix():
