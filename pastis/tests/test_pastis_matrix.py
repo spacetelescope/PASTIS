@@ -28,7 +28,7 @@ contrast_matrix_path = os.path.join(test_data_dir, 'data', 'pastis_matrices',
 CONTRAST_MATRIX = fits.getdata(contrast_matrix_path)
 
 # Read the 2-Hex simulator E-fields
-# From data dir: 2023-03-14T16-06-04_hexringtelescope
+# From data dir: 2023-03-14T17-10-12_hexringtelescope
 # Created on commit: 1771fc536b120fb862ff700917069e36135b20a5
 efields_path = os.path.join(test_data_dir, 'data', 'pastis_matrices')
 HEX2_E_FIELDS_REAL = fits.getdata(os.path.join(efields_path, 'Hex2_efield_coron_real.fits'))
@@ -36,7 +36,7 @@ HEX2_E_FIELDS_IMAG = fits.getdata(os.path.join(efields_path, 'Hex2_efield_coron_
 NUM_RINGS = 2
 
 # Read the 2-Hex matrix created from E-fields
-# From data dir: 2023-03-14T16-06-04_hexringtelescope
+# From data dir: 2023-03-14T17-10-12_hexringtelescope
 # Created on commit: 1771fc536b120fb862ff700917069e36135b20a5
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path2 = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'Hex2_matrix_piston-only.fits')
