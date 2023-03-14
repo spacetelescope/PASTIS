@@ -9,14 +9,14 @@ dependencies:
   - flake8
   - jupyter
   - matplotlib
-  - numpy<=1.22
+  - numpy
   - openpyxl
   - pandas
   - pip
   - conda-forge::pypdf2
   - pytest
   - python=3.10
-  - scipy
+  - scipy<=1.9
   - conda-forge::hcipy<=0.4
   - conda-forge::progressbar2
   - pip:
