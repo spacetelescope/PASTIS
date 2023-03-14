@@ -1,7 +1,6 @@
 import os
 from astropy.io import fits
 import astropy.units as u
-import hcipy
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
@@ -65,7 +64,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
     # Hard-code the contrast floor the matrix was generated with (LUVOIR small)
     coro_floor = 4.2376360700565846e-11
     # Calculate the PASTIS matrix under assumption of a CONSTANT coronagraph floor
-    pastis_matrix_constant = matrix_calc.pastis_from_contrast_matrix(CONTRAST_MATRIX, seglist, wfe_aber, coro_floor)
+    pastis_matrix_constant = pastis_from_contrast_matrix(CONTRAST_MATRIX, seglist, wfe_aber, coro_floor)
     # Compare to PASTIS matrix in the tests folder
     assert np.allclose(pastis_matrix_constant, LUVOIR_INTENSITY_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
@@ -84,7 +83,7 @@ def test_semi_analytic_matrix_from_contrast_matrix():
     contrast_matrix_random_c0 = contrast_matrix_subtracted + random_coro_floor_matrix
 
     # Calculate the PASTIS matrix under assumption of a DRIFTING coronagraph floor
-    pastis_matrix_drift = matrix_calc.pastis_from_contrast_matrix(contrast_matrix_random_c0, seglist, wfe_aber, random_coro_floor_matrix)
+    pastis_matrix_drift = pastis_from_contrast_matrix(contrast_matrix_random_c0, seglist, wfe_aber, random_coro_floor_matrix)
     # Compare to PASTIS matrix in the tests folder
     assert np.allclose(pastis_matrix_drift, LUVOIR_INTENSITY_MATRIX_SMALL, rtol=1e-8, atol=1e-24), 'Calculated LUVOIR small PASTIS matrix is wrong.'
 
@@ -94,10 +93,10 @@ def test_semi_analytic_matrix_from_efields():
     wfe_aber = 1e-9    # m
 
     # Recombine complex E-fields
-    E_FIELDS = HEX2_E_FIELDS_REAL + 1j * HEX2_E_FIELDS_IMAG
+    E_FIELDS = np.array([real.ravel() + 1j * imag.ravel() for real, imag in zip(HEX2_E_FIELDS_REAL, HEX2_E_FIELDS_IMAG)])
 
     # Calculate the PASTIS matrix under assumption of a CONSTANT coronagraph floor
-    pastis_matrix_constant = matrix_calc.pastis_matrix_from_efields(E_FIELDS, EFIELD_REF, NORM, hex2.dh_mask, wfe_aber)
+    pastis_matrix_constant = pastis_matrix_from_efields(E_FIELDS, EFIELD_REF.electric_field, NORM, hex2.dh_mask, wfe_aber)
     # Compare to PASTIS matrix in the tests folder
     assert np.allclose(pastis_matrix_constant, HEX2_INTENSITY_MATRIX, rtol=1e-8, atol=1e-24), 'Calculated 2-Hex PASTIS matrix is wrong.'
 
@@ -126,7 +125,7 @@ def test_pastis_forward_model():
             hex2.set_segment(nb_seg, aber[nb_seg].to(u.m).value / 2, 0, 0)
         psf_2hex = hex2.calc_psf()
         psf_2hex /= NORM
-        contrasts_e2e = (util.dh_mean(psf_2hex, hex2.dh_mask))
+        contrasts_e2e = util.dh_mean(psf_2hex, hex2.dh_mask)
 
         assert np.isclose(contrasts_matrix, contrasts_e2e, rtol=rel_tol, atol=abs_tol), f'Calculated contrasts from PASTIS and E2E are not the same for rms={rms} and rtol={rel_tol}.'
 
@@ -148,6 +147,5 @@ def test_2hex_efields_matrix_regression(tmpdir):
     # Check that the calculated PASTIS matrix is symmetric
     assert (new_matrix == new_matrix.T).all(), 'Calculated 2-Hex PASTIS matrix is not symmetric'
 
-    # Check that new matrix is equal to previously computed matrix that is known to be correct, down to numerical noise
-    # on the order of 1e-23
-    assert np.allclose(new_matrix, HEX2_INTENSITY_MATRIX, rtol=1e-8, atol=1e-24), 'Calculated 2-Hex PASTIS matrix is wrong.'
+    # Check that new matrix is equal to previously computed matrix that is known to be correct
+    assert np.allclose(new_matrix, HEX2_INTENSITY_MATRIX, rtol=1e-24, atol=1e-24), 'Calculated 2-Hex PASTIS matrix is wrong.'
