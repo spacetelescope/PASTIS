@@ -40,7 +40,7 @@ NUM_RINGS = 2
 test_data_dir = os.path.join(util.find_package_location(), 'tests')
 matrix_path2 = os.path.join(test_data_dir, 'data', 'pastis_matrices', 'Hex2_matrix_piston-only.fits')
 HEX2_INTENSITY_MATRIX = fits.getdata(matrix_path2)
-NMODES_HEX2 = HEX2_INTENSITY_MATRIX.shape[0]
+NSEG_HEX2 = 3 * NUM_RINGS * (NUM_RINGS + 1) + 1
 
 # Set up 2-Hex simulator instance and its basic properties
 optics_input = os.path.join(util.find_repo_location(), 'data', 'SCDA')
@@ -115,15 +115,15 @@ def test_pastis_forward_model():
 
     for rms, rel_tol, abs_tol in zip(rms_values, relative_tolerances, absolute_tolerances):
         # Create random aberration coefficients on segments, scaled to total rms
-        aber = util.create_random_rms_values(NMODES_HEX2, rms)
+        aber = util.create_random_rms_values(NSEG_HEX2, rms)
 
         # Contrast from PASTIS propagation
         contrasts_matrix = (util.pastis_contrast(aber, HEX2_INTENSITY_MATRIX) + contrast_floor)
 
         # Contrast from E2E propagator
-        for nb_seg in range(NMODES_HEX2):
+        for nb_seg in range(NSEG_HEX2):
             hex2.set_segment(nb_seg, aber[nb_seg].to(u.m).value / 2, 0, 0)
-        psf_2hex = hex2.calc_psf()
+        psf_2hex = hex2.calc_psf(norm_one_photon=True)
         psf_2hex /= NORM
         contrasts_e2e = util.dh_mean(psf_2hex, hex2.dh_mask)
 
