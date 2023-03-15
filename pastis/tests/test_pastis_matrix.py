@@ -139,7 +139,7 @@ def test_2hex_efields_matrix_regression(tmpdir):
 
     new_matrix_calc = MatrixEfieldHex(which_dm=WHICH_DM, dm_spec=DM_SPEC, num_rings=NUM_RINGS,
                                       calc_science=True, calc_wfs=False,
-                                      initial_path=CONFIG_PASTIS.get('local', 'local_data_path'),
+                                      initial_path=tmpdir,
                                       norm_one_photon=True)
     new_matrix_calc.calc()
     new_matrix = new_matrix_calc.matrix_pastis
