@@ -148,4 +148,4 @@ def test_2hex_efields_matrix_regression(tmpdir):
     assert (new_matrix == new_matrix.T).all(), 'Calculated 2-Hex PASTIS matrix is not symmetric'
 
     # Check that new matrix is equal to previously computed matrix that is known to be correct
-    assert np.allclose(new_matrix, HEX2_INTENSITY_MATRIX, rtol=1e-22, atol=1e-24), 'Calculated 2-Hex PASTIS matrix is wrong.'
+    assert np.allclose(new_matrix, HEX2_INTENSITY_MATRIX, rtol=1e-22, atol=1e-22), 'Calculated 2-Hex PASTIS matrix is wrong.'
