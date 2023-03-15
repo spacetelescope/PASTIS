@@ -8,7 +8,7 @@ dependencies:
   - configparser
   - flake8
   - jupyter
-  - matplotlib
+  - matplotlib<=3.5
   - numpy
   - openpyxl
   - pandas
