@@ -53,11 +53,11 @@ class ELTHarmoniSPC(SegmentedAPLC):
         # Create a focal plane mask
         samp_foc = fpm_px / (fpm_rad * 2)
         focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
-        fpm = 1 - hcipy.circular_aperture(2*fpm_rad * lam_over_d)(focal_grid_fpm)
+        fpm = 1 - hcipy.circular_aperture(2 * fpm_rad * lam_over_d)(focal_grid_fpm)
 
         # Create a focal plane grid for the detector
         focal_det = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=sampling, num_airy=imlamD, wavelength=wvln)
 
-        super().__init__(apod=apodizer, lyot_stop=lyot_stop, fpm=fpm, fpm_rad=fpm_rad,  iwa=iwa, owa=owa, wvln=wvln,
+        super().__init__(apod=apodizer, lyot_stop=lyot_stop, fpm=fpm, fpm_rad=fpm_rad, iwa=iwa, owa=owa, wvln=wvln,
                          diameter=diameter, aper=aperture, indexed_aper=aper_ind, seg_pos=seg_pos,
                          seg_diameter=seg_diameter_circumscribed, focal_grid=focal_det, sampling=sampling, imlamD=imlamD)
