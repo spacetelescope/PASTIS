@@ -10,10 +10,10 @@ class ELTHarmoniSPC(SegmentedAPLC):
     def __init__(self, input_dir, sampling, wvln, spc_design, fpm_rad):
 
         # Parameters for the specific SPC designs
-        self.spc_dict = {'one': {'pxsize': 512, 'iwa': 3.4, 'owa': 12,
-                                 'fname': 'something-very-long_one.fits'},
-                         'two': {'pxsize': 512, 'iwa': 3.4, 'owa': 12,
-                                 'fname': 'something-very-long_one.fits'}}
+        self.spc_dict = {'HSP1': {'pxsize': 1036, 'iwa': 5, 'owa': 12,
+                                 'fname': 'hsp1_1036px.fits'},
+                         'HSP2': {'pxsize': 1036, 'iwa': 7, 'owa': 40,
+                                 'fname': 'hsp2_1036px.fits'}}
 
         self.spc_design = spc_design
         fpm_px = CONFIG_PASTIS.getfloat('ELT', 'fpm_px')
@@ -22,7 +22,7 @@ class ELTHarmoniSPC(SegmentedAPLC):
         diameter = CONFIG_PASTIS.getfloat('ELT', 'diameter')     # m
         aper_fname = CONFIG_PASTIS.get('ELT', 'aperture_path_in_optics')
         aper_ind_fname = CONFIG_PASTIS.get('ELT', 'indexed_aperture_path_in_optics')
-        apod_fname = 'haha.fits'   #TODO: Construct name with self.spc_design
+        apod_fname = self.spc_dict[spc_design]['fname']
         ls_fname = CONFIG_PASTIS.get('ELT', 'lyot_stop_path_in_optics')
         pxsize = self.spc_dict[spc_design]['pxsize']
         iwa = self.spc_dict[spc_design]['iwa']
