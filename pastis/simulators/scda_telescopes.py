@@ -58,7 +58,7 @@ class ScdaAPLC(SegmentedAPLC):
 
         # Create a focal plane mask
         samp_foc = fpm_px / (fpm_rad * 2)
-        focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad, wavelength=wvln)
+        focal_grid_fpm = hcipy.make_focal_grid_from_pupil_grid(pupil_grid=pupil_grid, q=samp_foc, num_airy=fpm_rad*1.01, wavelength=wvln)
         fpm = 1 - hcipy.circular_aperture(2 * fpm_rad * lam_over_d)(focal_grid_fpm)
 
         # Create a focal plane grid for the detector
