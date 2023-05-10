@@ -10,10 +10,8 @@ class ELTHarmoniSPC(SegmentedAPLC):
     def __init__(self, input_dir, sampling, wvln, spc_design, fpm_rad):
 
         # Parameters for the specific SPC designs
-        self.spc_dict = {'HSP1': {'pxsize': 1034, 'iwa': 5, 'owa': 11.5,
-                                 'fname': 'hsp1_1034px.fits'},
-                         'HSP2': {'pxsize': 1034, 'iwa': 7.5, 'owa': 39.5,
-                                 'fname': 'hsp2_1034px.fits'}}
+        self.spc_dict = {'HSP1': {'pxsize': 1034, 'iwa': 5, 'owa': 11.5, 'fname': 'hsp1_1034px.fits'},
+                         'HSP2': {'pxsize': 1034, 'iwa': 7.5, 'owa': 39.5, 'fname': 'hsp2_1034px.fits'}}
 
         self.spc_design = spc_design
         fpm_px = CONFIG_PASTIS.getfloat('ELT', 'fpm_px')
