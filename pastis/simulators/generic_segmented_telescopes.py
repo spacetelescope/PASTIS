@@ -672,7 +672,7 @@ class SegmentedTelescope(Telescope):
                                                                           self.segment_circumscribed_diameter,
                                                                           self.pupil_grid.shifted(-self.seg_pos[seg_num]),
                                                                           starting_mode=1, radial_cutoff=False)
-            # Adjust each transformation matrix again for some reason
+            # Cut to segment support
             for zernike_num in range(0, n_zernikes):
                 local_zernike_basis_tmp._transformation_matrix[:, zernike_num] *= seg_evaluated[seg_num]
             local_zernike_basis.extend(local_zernike_basis_tmp)  # extend our basis with this new segment
