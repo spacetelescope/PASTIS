@@ -661,7 +661,7 @@ class SegmentedTelescope(Telescope):
         local_zernike_basis = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                   self.segment_circumscribed_diameter,
                                                                   self.pupil_grid.shifted(-self.seg_pos[first_seg]),
-                                                                  starting_mode=1)
+                                                                  starting_mode=1, radial_cutoff=False)
         # # For all Zernikes on this first segment, cut them to the actual segment support
         for zernike_num in range(0, n_zernikes):
             local_zernike_basis._transformation_matrix[:, zernike_num] = seg_evaluated[first_seg] * local_zernike_basis._transformation_matrix[:, zernike_num]
@@ -671,7 +671,7 @@ class SegmentedTelescope(Telescope):
             local_zernike_basis_tmp = hcipy.mode_basis.make_zernike_basis(n_zernikes,
                                                                           self.segment_circumscribed_diameter,
                                                                           self.pupil_grid.shifted(-self.seg_pos[seg_num]),
-                                                                          starting_mode=1)
+                                                                          starting_mode=1, radial_cutoff=False)
             # Adjust each transformation matrix again for some reason
             for zernike_num in range(0, n_zernikes):
                 local_zernike_basis_tmp._transformation_matrix[:, zernike_num] = seg_evaluated[seg_num] * local_zernike_basis_tmp._transformation_matrix[:, zernike_num]
