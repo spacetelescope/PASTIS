@@ -662,7 +662,8 @@ class SegmentedTelescope(Telescope):
                                                                   self.segment_circumscribed_diameter,
                                                                   self.pupil_grid.shifted(-self.seg_pos[first_seg]),
                                                                   starting_mode=1, radial_cutoff=False)
-        # # For all Zernikes on this first segment, cut them to the actual segment support
+
+        # For all Zernikes on this first segment, cut them to the actual segment support
         for zernike_num in range(0, n_zernikes):
             local_zernike_basis._transformation_matrix[:, zernike_num] *= seg_evaluated[first_seg]
 
