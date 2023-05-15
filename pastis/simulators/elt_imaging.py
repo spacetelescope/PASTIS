@@ -37,7 +37,7 @@ class ELTHarmoniSPC(SegmentedAPLC):
         # Load indexed segmented aperture
         aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_fname))
         aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
-        seg_pos = load_segment_centers(input_dir, aper_ind_fname, num_seg, diameter)
+        seg_pos = load_segment_centers(input_dir, aper_ind_fname, num_seg, diameter=1)
         seg_diameter_circumscribed = 2 / np.sqrt(3) * seg_flat_to_flat    # m
 
         # Load apodizer
