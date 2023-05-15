@@ -479,7 +479,7 @@ class MatrixEfieldRST(PastisMatrixEfields):
 class MatrixEfieldELT(MatrixEfieldInternalSimulator):
     """Calculate a PASTIS matrix HARMONI on the ELT, using E-fields."""
 
-    instrument = 'ELT_Harmoni'
+    instrument = 'ELT'
 
     def __init__(self, which_dm, dm_spec, design, calc_science=True, calc_wfs=False,
                  initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
