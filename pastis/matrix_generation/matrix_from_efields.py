@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pastis.config import CONFIG_PASTIS
+from pastis.simulators.elt_imaging import ELTHarmoniSPC
 from pastis.simulators.luvoir_imaging import LuvoirA_APLC
 from pastis.simulators.scda_telescopes import HexRingAPLC
 import pastis.simulators.webbpsf_imaging as webbpsf_imaging
@@ -473,6 +474,53 @@ class MatrixEfieldRST(PastisMatrixEfields):
         """Create the partial function that returns the E-field of a single aberrated mode."""
         self.calculate_one_mode = functools.partial(_rst_matrix_single_mode, self.wfe_aber,
                                                     self.rst_cgi, self.resDir, self.saveopds)
+
+
+class MatrixEfieldELT(MatrixEfieldInternalSimulator):
+    """Calculate a PASTIS matrix HARMONI on the ELT, using E-fields."""
+
+    instrument = 'ELT_Harmoni'
+
+    def __init__(self, which_dm, dm_spec, design, calc_science=True, calc_wfs=False,
+                 initial_path='', saveefields=True, saveopds=True, norm_one_photon=True):
+        """
+        Parameters
+        ----------
+        which_dm : string
+            which DM to calculate the matrix for - "seg_mirror", "harris_seg_mirror", "zernike_mirror"
+        dm_spec : tuple or int
+            Specification for the used DM:
+            for seg_mirror : int, number of local Zernike modes on each segment
+            for harris_seg_mirror : tuple (string, array, bool, bool, bool), absolute path to Harris spreadsheet, pad orientations, choice of Harris mode sets
+            for zernike_mirror : int, number of global Zernikes
+        design : string
+            Which SPC design to use in the coronagraph, HSP1 ro SHP2.
+        calc_science : bool, default True
+            whether to calculate the Efields in the science focal plane
+        calc_wfs : bool, default False
+            whether to calculate the Efields in the out-of-band Zernike WFS plane
+        initial_path : string
+            path to top-level directory where result folder should be saved to
+        saveefields : bool, default True
+            whether to save E-fields as fits file to disk or not
+        saveopds : bool, default True
+            whether to save images of pair-wise aberrated pupils to disk or not
+        norm_one_photon : bool, default True
+            whether to normalize the returned E-fields and intensities to one photon in the entrance pupil
+        """
+        nb_seg = 798
+        seglist = np.arange(nb_seg) + 1
+        self.design = design
+        super().__init__(which_dm=which_dm, dm_spec=dm_spec, nb_seg=nb_seg, seglist=seglist, calc_science=calc_science, calc_wfs=calc_wfs,
+                         initial_path=initial_path, saveefields=saveefields, saveopds=saveopds, norm_one_photon=norm_one_photon)
+
+    def instantiate_simulator(self):
+        sampling = CONFIG_PASTIS.getfloat('ELT', 'sampling')
+        optics_input = os.path.join(util.find_repo_location(), CONFIG_PASTIS.get('ELT', 'optics_path_in_repo'))
+        fpm_px = CONFIG_PASTIS.getint('ELT', 'fpm_px')
+        wvln = CONFIG_PASTIS.getfloat('ELT', 'lambda') * 1e-9
+
+        self.simulator = ELTHarmoniSPC(input_dir=optics_input, sampling=sampling, wvln=wvln, spc_design=self.design, fpm_rad=fpm_px)
 
 
 def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulator, calc_science, calc_wfs,
