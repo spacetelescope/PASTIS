@@ -25,7 +25,7 @@ class ELTHarmoniSPC(SegmentedAPLC):
         pxsize = self.spc_dict[spc_design]['pxsize']
         iwa = self.spc_dict[spc_design]['iwa']
         owa = self.spc_dict[spc_design]['owa']
-        seg_flat_to_flat = 1.45   # m
+        seg_diameter_circumscribed = 1.45   # m
 
         pupil_grid = hcipy.make_pupil_grid(dims=pxsize, diameter=diameter)
         lam_over_d = wvln / diameter
