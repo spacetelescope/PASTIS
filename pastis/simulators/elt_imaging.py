@@ -38,6 +38,9 @@ class ELTHarmoniSPC(SegmentedAPLC):
         aper_ind_read = hcipy.read_fits(os.path.join(input_dir, aper_ind_fname))
         aper_ind = hcipy.Field(aper_ind_read.ravel(), pupil_grid)
         seg_pos = load_segment_centers(input_dir, aper_ind_fname, num_seg, diameter=0.98)
+        # The segment positions saved in the indexed aperture file are already scaled to the overall ELT diameter,
+        # so the function above does not have to do that anymore, and we pass it a diameter o ~1. This has been scaled
+        # manually so that the local ode bases overlap as good as possible with the aperture segments.
 
         # Load apodizer
         apod_read = hcipy.read_fits(os.path.join(input_dir, apod_fname))
