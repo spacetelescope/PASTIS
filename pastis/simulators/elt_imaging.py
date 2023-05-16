@@ -1,6 +1,5 @@
 import os
 import hcipy
-import numpy as np
 
 from pastis.config import CONFIG_PASTIS
 from pastis.simulators.generic_segmented_telescopes import SegmentedAPLC, load_segment_centers
