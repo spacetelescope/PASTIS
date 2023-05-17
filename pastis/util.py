@@ -723,6 +723,9 @@ def setup_pastis_logging(experiment_path, name):
     log.info("LOG SETUP: Experiment log will save messages of {} or higher to {}".format(logging.getLevelName(experiment_hander.level),
                                                                                          experiment_logfile_path))
 
+    # Suppress fontTools.subset logs
+    logging.getLogger('fontTools.subset').level = logging.WARN
+
 
 class PDF(fpdf.FPDF):
     """Subclass from fpdf.FPDF to be able to add a header and footer."""
