@@ -31,8 +31,9 @@ if __name__ == '__main__':
 
     # Calculate sensitivity matrix
     run_matrix = MatrixEfieldELT(which_dm=WHICH_DM, dm_spec=DM_SPEC, design=DESIGN,
-                                 calc_science=True, calc_wfs=True,
-                                 initial_path=CONFIG_PASTIS.get('local', 'local_data_path'), norm_one_photon=True)
+                                 calc_science=True, calc_wfs=False,
+                                 initial_path=CONFIG_PASTIS.get('local', 'local_data_path'),
+                                 saveopds=False, norm_one_photon=True)
     run_matrix.calc()
     dir_run = run_matrix.overall_dir
     print(f'All saved to {dir_run}.')
