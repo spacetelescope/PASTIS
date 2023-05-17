@@ -82,7 +82,8 @@ class PastisMatrixEfields(PastisMatrix):
         for i in range(self.number_all_modes):
             efields = self.calculate_one_mode(i)
             if self.calc_science:
-                self.efields_per_mode.append(efields['efield_science_plane'])
+                coro_field = efields['efield_science_plane'] if not self.instrument == 'ELT' else efields['efield_before_fpm']
+                self.efields_per_mode.append(coro_field)
             if self.calc_wfs:
                 self.efields_per_mode_wfs.append(efields['efield_wfs_plane'])
         self.efields_per_mode = np.array(self.efields_per_mode)
@@ -260,8 +261,12 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
         self.dh_mask = self.simulator.dh_mask
 
         # Calculate contrast normalization factor from direct PSF (intensity)
-        unaberrated_coro_psf, direct = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon)
+        unaberrated_coro_psf, direct, inter = self.simulator.calc_psf(ref=True, norm_one_photon=self.norm_one_photon,
+                                                                      return_intermediate='efield')
         self.norm = np.max(direct)
+        if self.instrument == 'ELT':
+            unaberrated_coro_psf = inter['before_fpm'].intensity
+            self.norm = np.max(direct.intensity)
         hcipy.write_fits(unaberrated_coro_psf / self.norm, os.path.join(self.overall_dir, 'unaberrated_coro_psf.fits'))
 
         npx = unaberrated_coro_psf.shaped.shape[0]
@@ -279,7 +284,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
 
         # Calculate reference E-field in focal plane, without any aberrations applied
         unaberrated_ref_efield, _inter = self.simulator.calc_psf(return_intermediate='efield', norm_one_photon=self.norm_one_photon)
-        self.efield_ref = unaberrated_ref_efield.electric_field
+        self.efield_ref = unaberrated_ref_efield.electric_field if not self.instrument == 'ELT' else _inter['before_fpm'].electric_field
 
         # Save unaberrated electric field at the science plane
         if self.save_efields:
@@ -592,7 +597,8 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
 
     # Format returned Efields
     efields = {'efield_science_plane': efield_focal_plane.electric_field,
-               'efield_wfs_plane': efield_wfs_plane}
+               'efield_wfs_plane': efield_wfs_plane,
+               'efield_before_fpm': inter['before_fpm'].electric_field}
 
     return efields
 
