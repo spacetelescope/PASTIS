@@ -1186,7 +1186,7 @@ class SegmentedAPLC(SegmentedTelescope):
             plt.title('Before FPM')
 
             plt.subplot(3, 4, 9)
-            hcipy.imshow_field(int_after_fpm / wf_before_fpm.intensity.max(), cmap='inferno')
+            hcipy.imshow_field(int_after_fpm, cmap='inferno')
             plt.title('After FPM')
 
             plt.subplot(3, 4, 10)
@@ -1216,7 +1216,7 @@ class SegmentedAPLC(SegmentedTelescope):
                              'active_pupil': wf_active_pupil.phase,
                              'apod': wf_apod.intensity,
                              'before_fpm': wf_before_fpm.intensity / wf_before_fpm.intensity.max(),
-                             'after_fpm': int_after_fpm / wf_before_fpm.intensity.max(),
+                             'after_fpm': int_after_fpm,
                              'before_lyot': wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
                              'after_lyot': wf_lyot.intensity / wf_lyot.intensity.max()}
 
