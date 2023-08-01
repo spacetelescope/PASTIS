@@ -11,6 +11,10 @@ on:
     - master
     - develop
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   pytest:
     name: Pytests on Python ${{ matrix.python-version }} and ${{ matrix.os }}
@@ -23,26 +27,19 @@ jobs:
         # if we ever need to enable this for Windows too, just replace with this line:
         # os: [ubuntu-latest, windows-latest]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
       with:
         lfs: true
-    - uses: actions/setup-python@v1
+    - uses: mamba-org/setup-micromamba@v1
       with:
-          python-version: ${{ matrix.python-version }}
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-          auto-update-conda: true
-          auto-activate-base: false
+        environment-name: ci-env
+        environment-file: environment.yml
+        create-args: >-
+          python=${{ matrix.python-version }}
+        init-shell: bash
+        
     - name: Install dependencies
-      run: |
-        sed -E 's/[ \t]*-[ \t]*python[=<>0-9.,]*/  - python=${{ matrix.python-version }}/' environment.yml > environment2.yml
-        conda env create --name ci-env --file environment2.yml
-        conda activate ci-env
-        python setup.py develop
-      shell: bash -l {0}
+      run: pip install -e .
+    - run: git lfs pull
     - name: Test with pytest
-      run: |
-        conda activate ci-env
-        git lfs pull
-        pytest pastis
-      shell: bash -l {0}
+      run: pytest pastis
