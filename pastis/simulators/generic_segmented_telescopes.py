@@ -5,8 +5,10 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import griddata
-import numpy as np
+import numpy as npSegmentedAPLC
 import hcipy
+import numpy as np
+
 
 from hcipy.field import Field
 from hcipy.plotting import imshow_field
@@ -541,6 +543,38 @@ class Telescope:
         ob_wfs = self.zwfs(wf_active_pupil)
         return ob_wfs
 
+    def calc_low_order_wfs(self, norm_one_photon=False):
+        """ Propagate pupil through a low-order wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns:
+        --------
+        lowfs : hcipy.Wavefront
+            E-field on LOWFS detector
+        """
+
+        # If ZWFS hasn't been created yet, do it now
+        if self.zwfs is None:
+            self.create_zernike_wfs()
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
+
+        # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
+        apod_prop = hcipy.Apodizer(self.apodizer)
+
+        # Apply spatial filter
+        apod_plane = apod_prop(wf_active_pupil)
+        through_fpm = apod_plane.electric_field - self.coro_no_ls(apod_plane).electric_field
+        wf_pre_lowfs = hcipy.Wavefront(through_fpm, self.wvln)
+
+        lowfs = self.zwfs(wf_pre_lowfs)
+        return lowfs
+
 
 class SegmentedTelescope(Telescope):
     """A segmented telescope with active components in the pupil plane (DMs).
@@ -1018,6 +1052,38 @@ class SegmentedTelescope(Telescope):
         ob_wfs = self.zwfs(wf_active_pupil)
         return ob_wfs
 
+    def calc_low_order_wfs(self, norm_one_photon=False):
+        """ Propagate pupil through a low-order wavefront sensor.
+
+        Parameters:
+        ----------
+        norm_one_photon : bool
+            Whether or not to normalize the returned E-fields and intensities to one photon in the entrance pupil.
+
+        Returns:
+        --------
+        lowfs : hcipy.Wavefront
+            E-field on LOWFS detector
+        """
+
+        # If ZWFS hasn't been created yet, do it now
+        if self.zwfs is None:
+            self.create_zernike_wfs()
+
+        # Propagate aperture wavefront "through" all active entrance pupil elements (DMs)
+        wf_active_pupil, wf_sm, wf_harris_sm, wf_zm, wf_ripples, wf_dm = self._propagate_active_pupils(norm_one_photon)
+
+        # Create apodizer as hcipy.Apodizer() object to be able to propagate through it
+        apod_prop = hcipy.Apodizer(self.apodizer)
+
+        # Apply spatial filter
+        apod_plane = apod_prop(wf_active_pupil)
+        through_fpm = apod_plane.electric_field - self.coro_no_ls(apod_plane).electric_field
+        wf_pre_lowfs = hcipy.Wavefront(through_fpm, self.wvln)
+
+        lowfs = self.zwfs(wf_pre_lowfs)
+        return lowfs
+
 
 class SegmentedAPLC(SegmentedTelescope):
     """A segmented Apodized Pupil Lyot Coronagraph (APLC)
@@ -1186,7 +1252,7 @@ class SegmentedAPLC(SegmentedTelescope):
             plt.title('Before FPM')
 
             plt.subplot(3, 4, 9)
-            hcipy.imshow_field(int_after_fpm, cmap='inferno')
+            hcipy.imshow_field(int_after_fpm / wf_before_fpm.intensity.max(), cmap='inferno')
             plt.title('After FPM')
 
             plt.subplot(3, 4, 10)
@@ -1216,7 +1282,7 @@ class SegmentedAPLC(SegmentedTelescope):
                              'active_pupil': wf_active_pupil.phase,
                              'apod': wf_apod.intensity,
                              'before_fpm': wf_before_fpm.intensity / wf_before_fpm.intensity.max(),
-                             'after_fpm': int_after_fpm,
+                             'after_fpm': int_after_fpm / wf_before_fpm.intensity.max(),
                              'before_lyot': wf_before_lyot.intensity / wf_before_lyot.intensity.max(),
                              'after_lyot': wf_lyot.intensity / wf_lyot.intensity.max()}
 
