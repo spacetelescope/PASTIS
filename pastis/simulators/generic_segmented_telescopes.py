@@ -5,13 +5,9 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import griddata
-import numpy as npSegmentedAPLC
-import hcipy
 import numpy as np
+import hcipy
 
-
-from hcipy.field import Field
-from hcipy.plotting import imshow_field
 
 log = logging.getLogger()
 
@@ -89,7 +85,7 @@ class SegmentedMirror(hcipy.OpticalElement):
 
     def show_numbers(self):
         """ Display the mirror pupil with numbered segments."""
-        imshow_field(self.ind_aper)
+        hcipy.imshow_field(self.ind_aper)
         for i, par in enumerate(self.seg_pos):
             plt.annotate(s=i + 1, xy=par, xytext=par, color='white', fontweight='bold')  # TODO: scale text size by segment size
 
@@ -152,7 +148,7 @@ class SegmentedMirror(hcipy.OpticalElement):
             keep_surf[wseg] = (self._coef[i - 1, 0] +
                                self._coef[i - 1, 1] * self._seg_x[wseg] +
                                self._coef[i - 1, 2] * self._seg_y[wseg])
-        return Field(keep_surf, self.input_grid)
+        return hcipy.Field(keep_surf, self.input_grid)
 
     def phase_for(self, wavelength):
         """Get the phase that is added to a wavefront with a specified wavelength.
