@@ -552,6 +552,7 @@ def _simulator_matrix_single_mode(which_dm, number_all_modes, wfe_aber, simulato
     log.info(f'MODE NUMBER: {mode_no}')
     efield_focal_plane = None
     efield_wfs_plane = None
+    efield_lowfs_plane = None
 
     # Apply calibration aberration to used mode
     all_modes = np.zeros(number_all_modes)
