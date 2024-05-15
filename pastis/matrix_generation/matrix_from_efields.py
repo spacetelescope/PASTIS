@@ -321,7 +321,7 @@ class MatrixEfieldInternalSimulator(PastisMatrixEfields):
             e0_wfs = np.zeros([2, n_wfs_pix, n_wfs_pix])
             e0_wfs[0, :, :] = np.reshape(self.efield_ref_wfs.real, (n_wfs_pix, n_wfs_pix))
             e0_wfs[1, :, :] = np.reshape(self.efield_ref_wfs.imag, (n_wfs_pix, n_wfs_pix))
-            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'ref_e0_wfs.fits'))
+            hcipy.write_fits(e0_wfs, os.path.join(self.overall_dir, 'ref_e0_obwfs.fits'))
 
     def calculate_ref_efield_lowfs(self):
         """Calculate the reference E-field at the wavefront sensor plane."""
